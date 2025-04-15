@@ -84,6 +84,11 @@ test("JavaScript code refactoring", () => {
   expect(refactoredCode.includes("// Entry point")).toBeTruthy();
   expect(refactoredCode.includes("async ()")).toBeTruthy();
          
+  // New checks for enhanced refactoring
+  expect(refactoredCode.includes("try {")).toBeTruthy(); // Error handling
+  expect(refactoredCode.includes("catch (error)")).toBeTruthy(); // Error catching
+  expect(refactoredCode.includes("Debug info:")).toBeTruthy(); // Better logging
+  
   console.log("Original code:", sampleJSCode);
   console.log("Refactored code:", refactoredCode);
 });
