@@ -32,10 +32,10 @@ const refactorJavaScript = (code: string): string => {
   // Remove unnecessary console.logs
   refactored = refactored.replace(/console\.log\([^)]*\);(\s*\n)/g, '$1');
   
-  // Convert callbacks to async/await where possible
+  // Fixed: Convert callbacks to async/await (synchronous version)
   refactored = refactored.replace(
     /\.then\(\s*(?:function\s*\(([^)]*)\)|(?:\(([^)]*)\)\s*=>))\s*{([^}]*)}\s*\)/g, 
-    async (match, p1, p2, p3) => {
+    (match, p1, p2, p3) => {
       const param = p1 || p2 || 'result';
       return `\nconst ${param} = await `;
     }
