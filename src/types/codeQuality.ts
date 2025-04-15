@@ -9,6 +9,7 @@ export interface QualityMetrics {
   complexityScore: number;
   securityScore: number;
   consistencyScore: number;
+  bestPracticesScore: number;
 }
 
 export interface CodeSnippet {
