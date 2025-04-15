@@ -1,3 +1,4 @@
+
 /**
  * Code Refactoring Utility Functions
  * 
@@ -456,3 +457,6 @@ export const refactorJava = (code: string): string => {
     /public\s+boolean\s+equals\s*\(\s*Object\s+([a-zA-Z0-9_]+)\s*\)\s*{[\s\n]*if\s*\(\s*\1\s*==\s*this\s*\)\s*{\s*return\s+true;\s*}[\s\n]*if\s*\(\s*\1\s*==\s*null\s*\)\s*{\s*return\s+false;\s*}[\s\n]*if\s*\(\s*\1\s*instanceof\s+([a-zA-Z0-9_]+)\s*\)\s*{[\s\n]*/g,
     '@Override\npublic boolean equals(Object $1) {\n    if ($1 == this) return true;\n    if ($1 == null || getClass() != $1.getClass()) return false;\n    $2 other = ($2) $1;\n    '
   );
+  
+  return refactored;
+};
