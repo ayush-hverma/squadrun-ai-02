@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -8,7 +7,8 @@ import {
   BookOpen, 
   CircleCheck, 
   CircleAlert, 
-  PlayCircle 
+  PlayCircle,
+  X 
 } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 
@@ -20,6 +20,10 @@ interface CodeQualityProps {
 export default function CodeQuality({ fileContent, fileName }: CodeQualityProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [qualityResults, setQualityResults] = useState<any | null>(null);
+
+  const handleClear = () => {
+    setQualityResults(null);
+  };
 
   // Function to analyze code and generate a quality score based on content
   const analyzeCodeQuality = (code: string, language: string) => {
@@ -134,7 +138,7 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     if (metrics.securityScore < 80) {
       snippets.push({
         title: "Improve Security with Validation",
-        code: "function getData() {\n  return fetch(url).then(res => res.json());\n  // Missing error handling\n}",
+        code: "function getData() {\n  return fetch(url).then(res => res.json();\n  // Missing error handling\n}",
         suggestion: "function getData() {\n  return fetch(url)\n    .then(res => {\n      if (!res.ok) throw new Error('Network response failed');\n      return res.json();\n    })\n    .catch(error => {\n      console.error('Fetch error:', error);\n      throw error;\n    });\n}"
       });
     }
@@ -207,33 +211,19 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
         </p>
       </div>
       
-      {!qualityResults ? (
-        <div className="flex-1 flex flex-col">
-          <Card className="mb-4 border border-squadrun-primary/20 bg-squadrun-darker/50 flex-1">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Code to Analyze</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CodeDisplay code={fileContent} language={fileName?.split('.').pop() || 'python'} />
-            </CardContent>
-          </Card>
-          
-          <Button
-            onClick={handleAssess}
-            className="bg-squadrun-primary hover:bg-squadrun-vivid text-white ml-auto"
-            disabled={isProcessing}
-          >
-            {isProcessing ? (
-              <>Processing...</>
-            ) : (
-              <>
-                <PlayCircle className="mr-2 h-4 w-4" /> Assess Quality
-              </>
-            )}
-          </Button>
-        </div>
-      ) : (
+      {qualityResults ? (
         <div className="flex-1 flex flex-col gap-4 overflow-auto">
+          <div className="flex items-center">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleClear} 
+              className="ml-auto text-white hover:bg-squadrun-primary/20"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+          
           <div className="grid grid-cols-5 gap-4">
             <Card className="border border-squadrun-primary/20 bg-squadrun-darker/50 col-span-2">
               <CardHeader className="pb-2">
@@ -310,6 +300,31 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
               </CardContent>
             </Card>
           </div>
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col">
+          <Card className="mb-4 border border-squadrun-primary/20 bg-squadrun-darker/50 flex-1">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Code to Analyze</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CodeDisplay code={fileContent} language={fileName?.split('.').pop() || 'python'} />
+            </CardContent>
+          </Card>
+          
+          <Button
+            onClick={handleAssess}
+            className="bg-squadrun-primary hover:bg-squadrun-vivid text-white ml-auto"
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <>Processing...</>
+            ) : (
+              <>
+                <PlayCircle className="mr-2 h-4 w-4" /> Assess Quality
+              </>
+            )}
+          </Button>
         </div>
       )}
     </div>
