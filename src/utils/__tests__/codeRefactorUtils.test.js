@@ -50,7 +50,7 @@ import { refactorJavaScript } from "../codeRefactorUtils";
 test("JavaScript code refactoring", () => {
   const refactoredCode = refactorJavaScript(sampleJSCode);
   
-  // Check that 'var' was replaced with 'const'
+  // Check that 'var' was replaced with 'const' or 'let'
   expect(refactoredCode.includes("var name")).toBeFalsy();
   expect(refactoredCode.includes("const name")).toBeTruthy();
   
@@ -71,6 +71,18 @@ test("JavaScript code refactoring", () => {
   expect(refactoredCode.includes("return fetch")).toBeFalsy();
   expect(refactoredCode.includes("const response = await fetch") || 
          refactoredCode.includes("try {")).toBeTruthy();
+  
+  // Check for proper docstrings
+  expect(refactoredCode.includes("/**")).toBeTruthy();
+  expect(refactoredCode.includes("@param")).toBeTruthy();
+  
+  // Check for use strict directive
+  expect(refactoredCode.includes("use strict")).toBeTruthy();
+  
+  // Check for modern entry point pattern
+  expect(refactoredCode.includes("main();")).toBeFalsy();
+  expect(refactoredCode.includes("// Entry point")).toBeTruthy();
+  expect(refactoredCode.includes("async ()")).toBeTruthy();
          
   console.log("Original code:", sampleJSCode);
   console.log("Refactored code:", refactoredCode);
