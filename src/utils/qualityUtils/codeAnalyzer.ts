@@ -24,7 +24,8 @@ export const calculateCodeMetrics = (code: string): QualityMetrics => {
   // Calculate average line length (shorter is often better)
   const totalChars = code.length;
   const avgLineLength = totalChars / Math.max(1, nonEmptyLines.length);
-  const lineLengthScore = Math.min(100, 100 - Math.min(30, Math.max(0, (avgLineLength - 35) / 2)));
+  // Be more strict about line length
+  const lineLengthScore = Math.min(100, 100 - Math.min(75, Math.max(0, (avgLineLength - 30) / 1.5)));
   
   // Check for comments and documentation
   const commentLines = lines.filter(line => 
@@ -34,24 +35,36 @@ export const calculateCodeMetrics = (code: string): QualityMetrics => {
     line.trim().startsWith('*') ||
     line.includes('*/') ||
     line.trim().startsWith('"""') ||
-    line.includes('"""')
+    line.includes('"""') ||
+    line.trim().startsWith("'''") ||
+    line.includes("'''")
   ).length;
   
-  // Higher comment ratio is better, up to about 25-30% of code
-  const commentRatio = Math.min(100, (commentLines / Math.max(1, nonEmptyLines.length)) * 400);
+  // Be more strict about comments - require more comments for a good score
+  const commentRatio = Math.min(100, (commentLines / Math.max(1, nonEmptyLines.length)) * 300);
   
   // Check for JSDoc or similar documentation patterns
   const hasDocumentation = (
-    code.includes('/**') && code.includes('*/') ||
-    code.includes('"""') ||
-    code.includes("'''")
+    (code.includes('/**') && code.includes('*/')) ||
+    (code.includes('"""') && code.includes('"""')) ||
+    (code.includes("'''") && code.includes("'''"))
   );
   
-  // Bonus for having proper documentation
-  const documentationScore = hasDocumentation ? 15 : 0;
+  const hasFunctionDocumentation = (
+    code.includes('@param') || 
+    code.includes('@return') || 
+    code.includes(':param') || 
+    code.includes(':return') ||
+    code.includes('Args:') ||
+    code.includes('Returns:')
+  );
+  
+  // Be more strict about documentation
+  const documentationScore = hasDocumentation ? 10 : 0;
+  const functionDocScore = hasFunctionDocumentation ? 15 : 0;
   
   // Improved comment score with documentation bonus
-  const commentScore = Math.min(100, commentRatio + documentationScore);
+  const commentScore = Math.min(100, commentRatio + documentationScore + functionDocScore);
   
   // Analyze complexity based on:
   // 1. Nesting levels (braces, indentation)
@@ -60,38 +73,100 @@ export const calculateCodeMetrics = (code: string): QualityMetrics => {
   const bracesCount = (code.match(/{/g) || []).length;
   const indentationRatio = bracesCount / Math.max(1, nonEmptyLines.length);
   
-  // Count conditional and loop statements
-  const conditionalMatches = code.match(/if|else|switch|case|for|while|foreach|map|filter|reduce/g) || [];
+  // Count conditional and loop statements - be more comprehensive
+  const conditionalMatches = code.match(/if\s+\(|if\s+[a-zA-Z_]|else|switch|case\s+:|for\s+\(|for\s+[a-zA-Z_]|while\s+\(|while\s+[a-zA-Z_]|foreach|\.map\(|\.filter\(|\.reduce\(/g) || [];
   const conditionalCount = conditionalMatches.length;
   const conditionalRatio = conditionalCount / Math.max(1, nonEmptyLines.length);
   
   // Check for function/method definitions
-  const functionMatches = code.match(/function|def|method|class|interface|impl/g) || [];
+  const functionMatches = code.match(/function\s+[a-zA-Z_]|def\s+[a-zA-Z_]|class\s+[a-zA-Z_]|interface\s+[a-zA-Z_]|impl\s+|[a-zA-Z_]+\s*\([^)]*\)\s*{/g) || [];
   const functionCount = functionMatches.length;
   
-  // Complex code has high indentation, conditionals, and few functions
-  const complexityScore = Math.max(50, 100 - 
-    (indentationRatio * 20) - 
-    (conditionalRatio * 30) + 
-    (functionCount > 0 ? Math.min(20, functionCount * 2) : 0)
+  // Measure function length
+  const functionLengths: number[] = [];
+  let currentFunctionLines = 0;
+  let inFunction = false;
+  let openBraces = 0;
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    if (!inFunction && (
+      trimmedLine.match(/function\s+[a-zA-Z_]/) || 
+      trimmedLine.match(/def\s+[a-zA-Z_]/) ||
+      trimmedLine.match(/[a-zA-Z_]+\s*\([^)]*\)\s*{/)
+    )) {
+      inFunction = true;
+      currentFunctionLines = 1;
+      openBraces += (trimmedLine.match(/{/g) || []).length;
+      openBraces -= (trimmedLine.match(/}/g) || []).length;
+      continue;
+    }
+    
+    if (inFunction) {
+      currentFunctionLines++;
+      openBraces += (trimmedLine.match(/{/g) || []).length;
+      openBraces -= (trimmedLine.match(/}/g) || []).length;
+      
+      if ((openBraces <= 0 && trimmedLine.includes('}')) || 
+          (trimmedLine.endsWith(':') && openBraces <= 0)) {
+        inFunction = false;
+        functionLengths.push(currentFunctionLines);
+      }
+    }
+  }
+  
+  // Calculate average function length
+  const avgFunctionLength = functionLengths.length > 0 
+    ? functionLengths.reduce((sum, len) => sum + len, 0) / functionLengths.length 
+    : 0;
+  
+  // Penalize for long functions
+  const functionLengthPenalty = Math.min(40, Math.max(0, avgFunctionLength - 15) * 2);
+  
+  // Complex code has high indentation, conditionals, and long functions
+  const complexityScore = Math.max(40, 100 - 
+    (indentationRatio *
+    30) - 
+    (conditionalRatio * 40) - 
+    functionLengthPenalty + 
+    (functionCount > 0 ? Math.min(10, functionCount * 1) : 0)
   );
   
-  // Check for potential security issues (basic checks)
+  // Check for potential security issues (more comprehensive list)
   const securityIssues = [
     'eval(', 'exec(', '.innerHTML', 'document.write(', 
     'sql.query(', 'unvalidated', 'unsanitized', 
     '.dangerouslySetInnerHTML', 'shell_exec', 'system(',
     '__import__', 'subprocess.call', 'os.system',
     'scanf', 'gets(', 'strcpy', 'strcat', 'sprintf',
-    'deserialize', 'pickle.loads', 'yaml.load', 'fromYaml'
+    'deserialize', 'pickle.loads', 'yaml.load', 'fromYaml',
+    'innerHTML =', 'outerHTML =', 'exec(', 'eval(',
+    'setTimeout(', 'setInterval(', 'new Function(',
+    'document.write', 'document.writeln',
+    'localStorage.', 'sessionStorage.', '.createObjectURL',
+    'Math.random()', 'window.location', 'location.href',
+    'location.hash', 'location.pathname', 'location.search'
   ];
   
   // Count security issues found
   const securityIssueCount = securityIssues.reduce((count, issue) => 
     count + (code.toLowerCase().includes(issue.toLowerCase()) ? 1 : 0), 0);
   
+  // Check for password/credential exposure
+  const hasCredentials = (
+    code.includes('password') ||
+    code.includes('passwd') ||
+    code.includes('secret') ||
+    code.includes('api_key') ||
+    code.includes('apikey') ||
+    code.includes('api-key') ||
+    code.includes('token') ||
+    code.includes('auth')
+  );
+  
   // Reduce score for each security issue found
-  const securityScore = Math.max(60, 100 - securityIssueCount * 15);
+  const securityScore = Math.max(30, 100 - securityIssueCount * 15 - (hasCredentials ? 20 : 0));
   
   // Check for input validation patterns
   const hasInputValidation = (
@@ -101,10 +176,11 @@ export const calculateCodeMetrics = (code: string): QualityMetrics => {
     code.includes('trim') ||
     code.includes('parseFloat') ||
     code.includes('parseInt') ||
-    code.includes('isNaN')
+    code.includes('isNaN') ||
+    code.includes('typeof') && code.includes('===')
   );
   
-  // Bonus for having input validation
+  // Smaller bonus for having input validation
   const securityBonus = hasInputValidation ? 10 : 0;
   
   // Improved security score with validation bonus
@@ -122,30 +198,39 @@ export const calculateCodeMetrics = (code: string): QualityMetrics => {
     (code.includes('if (') && code.includes('if('))
   );
   
-  // Penalty points for inconsistent style
-  const styleIssues = (mixedQuotes ? 10 : 0) + 
-                     (mixedIndentation ? 15 : 0) + 
-                     (inconsistentBraces ? 10 : 0);
+  // Check for trailing whitespace
+  const linesWithTrailingSpace = lines.filter(line => line.match(/\s+$/)).length;
+  const trailingWhitespacePenalty = Math.min(25, (linesWithTrailingSpace / lines.length) * 100);
   
-  const consistencyScore = Math.max(60, 100 - styleIssues);
+  // Penalty points for inconsistent style
+  const styleIssues = (mixedQuotes ? 15 : 0) + 
+                     (mixedIndentation ? 20 : 0) + 
+                     (inconsistentBraces ? 15 : 0) +
+                     trailingWhitespacePenalty;
+  
+  const consistencyScore = Math.max(40, 100 - styleIssues);
   
   // Check for best practices
   const bestPracticesIssues = [
     { pattern: /var\s+[a-zA-Z0-9_]+/g, count: 0 }, // Using var instead of let/const
     { pattern: /for\s*\(\s*var\s+\w+\s*=\s*0/g, count: 0 }, // Using traditional for loop vs array methods
     { pattern: /console\.log/g, count: 0 }, // Leftover console.logs
+    { pattern: /print\(/g, count: 0 }, // Leftover print statements in Python
     { pattern: /alert\(/g, count: 0 }, // Using alert
     { pattern: /[^\w\s.]\s*=\s*null/g, count: 0 }, // Explicit null assignment
     { pattern: /catch\s*\([^)]*\)\s*{}/g, count: 0 }, // Empty catch blocks
-    { pattern: /if\s*\([^)]+\)\s*{\s*}\s*else/g, count: 0 } // Empty if blocks
+    { pattern: /if\s*\([^)]+\)\s*{\s*}\s*else/g, count: 0 }, // Empty if blocks
+    { pattern: /TODO|FIXME/g, count: 0 }, // TODOs and FIXMEs
+    { pattern: /\t/g, count: 0 } // Tabs (in some style guides)
   ];
   
   bestPracticesIssues.forEach(issue => {
     issue.count = (code.match(issue.pattern) || []).length;
   });
   
-  const bestPracticesScore = Math.max(60, 100 - bestPracticesIssues.reduce(
-    (total, issue) => total + issue.count * 5, 0
+  // More aggressive penalty for best practices issues
+  const bestPracticesScore = Math.max(30, 100 - bestPracticesIssues.reduce(
+    (total, issue) => total + issue.count * 8, 0
   ));
   
   return {
@@ -349,32 +434,51 @@ export const generateSummary = (overallScore: number, categories: CategoryScore[
  * Analyze code quality and generate comprehensive results
  */
 export const analyzeCodeQuality = (code: string, language: string): QualityResults => {
-  // Generate refactored version of the code with best practices
-  const refactoredCode = refactorCode(code, language);
+  // Calculate metrics directly from the original code
+  // This makes the assessment more accurate by evaluating the actual code
+  const metrics = calculateCodeMetrics(code);
   
-  // Calculate metrics for the refactored code
-  const metrics = calculateCodeMetrics(refactoredCode);
+  // Get refactored version for display purposes
+  const refactoredCode = refactorCode(code, language);
   
   // Calculate category scores based on code characteristics
   const categories = generateCategoryScores(metrics);
   
-  // Calculate overall score (weighted average)
-  const weights = [0.25, 0.25, 0.2, 0.2, 0.1];
+  // Calculate overall score (weighted average with modified weights)
+  // Adjusted to be more sensitive to code quality issues
+  const weights = [0.20, 0.25, 0.15, 0.25, 0.15]; // Readability, Maintainability, Performance, Security, Code Smell
+  
+  // Make sure the weights always sum to 1
+  const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
+  const normalizedWeights = weights.map(w => w / weightSum);
+  
+  // Calculate weighted score
   const overallScore = Math.round(
-    categories.reduce((sum, category, index) => sum + (category.score * weights[index]), 0)
+    categories.reduce((sum, category, index) => sum + (category.score * normalizedWeights[index]), 0)
+  );
+  
+  // Apply a scaling factor to make the scores more realistic
+  // This will map the scores from a naturally high range (where even bad code might score 75+)
+  // to a more intuitive range where excellent code is 90+, good code is 75-90, etc.
+  const scaledScore = Math.min(
+    95, 
+    Math.max(
+      40,
+      Math.round(overallScore * 0.8 + (overallScore > 85 ? 10 : 0))
+    )
   );
   
   // Generate recommendations based on scores
-  const recommendations = generateRecommendations(metrics, overallScore);
+  const recommendations = generateRecommendations(metrics, scaledScore);
   
   // Generate code snippets based on the issues found
   const snippets = generateCodeSnippets(metrics, language);
   
   // Summary based on overall score
-  const summary = generateSummary(overallScore, categories);
+  const summary = generateSummary(scaledScore, categories);
   
   return {
-    score: overallScore,
+    score: scaledScore,
     summary,
     categories,
     recommendations,

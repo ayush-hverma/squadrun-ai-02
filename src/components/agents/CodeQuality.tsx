@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayCircle } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { QualityResults } from "@/types/codeQuality";
 import { analyzeCodeQuality } from "@/utils/qualityUtils/codeAnalyzer";
 import NoCodeMessage from "./quality/NoCodeMessage";
@@ -30,30 +30,24 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     
     setIsProcessing(true);
     
-    // Simulate processing delay
-    setTimeout(() => {
-      try {
-        const language = fileName?.split('.').pop() || 'javascript';
-        const results = analyzeCodeQuality(fileContent, language);
-        setQualityResults(results);
-        
-        toast({
-          title: "Code Quality Assessment Complete",
-          description: `Overall Score: ${results.score}/100`,
-          duration: 3000,
-        });
-      } catch (error) {
-        console.error("Quality assessment error:", error);
-        toast({
-          title: "Error Assessing Code Quality",
-          description: "There was an issue analyzing your code. Please try again.",
-          variant: "destructive",
-          duration: 3000,
-        });
-      } finally {
-        setIsProcessing(false);
-      }
-    }, 2000);
+    try {
+      const language = fileName?.split('.').pop() || 'javascript';
+      const results = analyzeCodeQuality(fileContent, language);
+      setQualityResults(results);
+      
+      toast.success("Code Quality Assessment Complete", {
+        description: `Overall Score: ${results.score}/100`,
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error("Quality assessment error:", error);
+      toast.error("Error Assessing Code Quality", {
+        description: "There was an issue analyzing your code. Please try again.",
+        duration: 3000,
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // When no file is selected, show the upload prompt
@@ -78,7 +72,7 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
               <CardTitle className="text-lg">Code to Analyze</CardTitle>
             </CardHeader>
             <CardContent>
-              <CodeDisplay code={fileContent} language={fileName?.split('.').pop() || 'python'} />
+              <CodeDisplay code={fileContent} language={fileName?.split('.').pop() || 'javascript'} />
             </CardContent>
           </Card>
           
