@@ -206,7 +206,7 @@ router.post('/', [auth, validateItem], async (req, res) => {
 });
       `.trim();
       
-      // Deployment
+      // Deployment - Fixed the template literal issue by escaping the $ character
       const deploymentCode = `
 // Deployment Configuration for: ${prompt}
 
@@ -267,7 +267,7 @@ jobs:
       - name: Deploy to production
         uses: some-deployment-action@v1
         with:
-          api_token: ${{ secrets.DEPLOY_TOKEN }}
+          api_token: \${{ secrets.DEPLOY_TOKEN }}
 */
       `.trim();
       
