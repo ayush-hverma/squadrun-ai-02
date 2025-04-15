@@ -21,6 +21,155 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
   const [isProcessing, setIsProcessing] = useState(false);
   const [qualityResults, setQualityResults] = useState<any | null>(null);
 
+  // Function to analyze code and generate a quality score based on content
+  const analyzeCodeQuality = (code: string, language: string) => {
+    // Simple metrics to evaluate
+    const metrics = {
+      lineLength: 0,
+      commentRatio: 0,
+      complexityScore: 0,
+      securityScore: 0,
+      consistencyScore: 0
+    };
+
+    // Split code into lines
+    const lines = code.split('\n');
+    
+    // Calculate average line length (shorter is often better)
+    const totalChars = code.length;
+    metrics.lineLength = Math.min(100, 100 - Math.min(30, Math.max(0, (totalChars / lines.length - 40) / 2)));
+    
+    // Check for comments
+    const commentLines = lines.filter(line => 
+      line.trim().startsWith('//') || 
+      line.trim().startsWith('#') || 
+      line.trim().startsWith('/*') || 
+      line.includes('*/')
+    ).length;
+    metrics.commentRatio = Math.min(100, (commentLines / lines.length) * 300);
+    
+    // Simple complexity heuristic (fewer nested blocks is better)
+    const bracesCount = (code.match(/{/g) || []).length;
+    const indentationLevel = Math.max(1, bracesCount / Math.max(1, lines.length) * 10);
+    metrics.complexityScore = Math.max(50, 100 - indentationLevel * 5);
+    
+    // Check for potential security issues (very basic check)
+    const securityIssues = [
+      'eval(', 'exec(', '.innerHTML', 'document.write(', 
+      'sql.query(', 'unvalidated', 'unsanitized'
+    ];
+    const securityIssueCount = securityIssues.reduce((count, issue) => 
+      count + (code.includes(issue) ? 1 : 0), 0);
+    metrics.securityScore = Math.max(50, 100 - securityIssueCount * 10);
+    
+    // Check for consistency in code style
+    const mixedQuotes = (code.includes("'") && code.includes('"'));
+    const mixedIndentation = (code.includes('    ') && code.includes('\t'));
+    metrics.consistencyScore = mixedQuotes || mixedIndentation ? 70 : 90;
+    
+    // Calculate category scores based on code characteristics
+    const categories = [
+      { 
+        name: "Readability", 
+        score: Math.round((metrics.lineLength + metrics.commentRatio + metrics.consistencyScore) / 3), 
+        icon: BookOpen 
+      },
+      { 
+        name: "Maintainability", 
+        score: Math.round((metrics.commentRatio + metrics.complexityScore) / 2), 
+        icon: CircleCheck 
+      },
+      { 
+        name: "Performance", 
+        score: Math.round(metrics.complexityScore), 
+        icon: CircleCheck 
+      },
+      { 
+        name: "Security", 
+        score: Math.round(metrics.securityScore), 
+        icon: CircleAlert 
+      },
+      { 
+        name: "Code Smell", 
+        score: Math.round((metrics.consistencyScore + metrics.complexityScore) / 2), 
+        icon: AlertTriangle 
+      }
+    ];
+    
+    // Calculate overall score (weighted average)
+    const weights = [0.25, 0.25, 0.2, 0.2, 0.1];
+    const overallScore = Math.round(
+      categories.reduce((sum, category, index) => sum + (category.score * weights[index]), 0)
+    );
+    
+    // Generate recommendations based on scores
+    const recommendations = [];
+    
+    if (metrics.commentRatio < 70) {
+      recommendations.push("Add more comments to explain complex logic and improve code understanding");
+    }
+    
+    if (metrics.lineLength < 70) {
+      recommendations.push("Consider breaking long lines of code into more readable, shorter segments");
+    }
+    
+    if (metrics.complexityScore < 80) {
+      recommendations.push("Refactor complex functions into smaller, more focused ones");
+    }
+    
+    if (metrics.securityScore < 80) {
+      recommendations.push("Review code for potential security vulnerabilities and add input validation");
+    }
+    
+    if (metrics.consistencyScore < 80) {
+      recommendations.push("Standardize code style (quotes, indentation, naming conventions)");
+    }
+    
+    // Always recommend error handling as it's good practice
+    recommendations.push("Add error handling for potential exceptions");
+    
+    // Generate code snippets based on the issues found
+    const snippets = [];
+    
+    if (metrics.securityScore < 80) {
+      snippets.push({
+        title: "Improve Security with Validation",
+        code: "function getData() {\n  return fetch(url).then(res => res.json());\n  // Missing error handling\n}",
+        suggestion: "function getData() {\n  return fetch(url)\n    .then(res => {\n      if (!res.ok) throw new Error('Network response failed');\n      return res.json();\n    })\n    .catch(error => {\n      console.error('Fetch error:', error);\n      throw error;\n    });\n}"
+      });
+    }
+    
+    if (metrics.complexityScore < 80) {
+      snippets.push({
+        title: "Simplify Complex Logic",
+        code: "function process(data) {\n  let result;\n  if (data.type === 'A') {\n    if (data.value > 10) {\n      result = data.value * 2;\n    } else {\n      result = data.value;\n    }\n  } else {\n    result = 0;\n  }\n  return result;\n}",
+        suggestion: "function process(data) {\n  // Early return pattern\n  if (data.type !== 'A') return 0;\n  \n  // Simplified conditional logic\n  return data.value > 10 ? data.value * 2 : data.value;\n}"
+      });
+    }
+    
+    // Summary based on overall score
+    let summary = "";
+    if (overallScore >= 90) {
+      summary = "Excellent code quality with good practices. Minor improvements possible.";
+    } else if (overallScore >= 75) {
+      summary = "Good code quality with some areas needing improvement, particularly in " + 
+        categories.filter(c => c.score < 75).map(c => c.name.toLowerCase()).join(" and ") + ".";
+    } else if (overallScore >= 60) {
+      summary = "Moderate code quality with several areas requiring attention, especially " + 
+        categories.filter(c => c.score < 70).map(c => c.name.toLowerCase()).join(" and ") + ".";
+    } else {
+      summary = "Code needs significant improvement across multiple dimensions for better maintainability and reliability.";
+    }
+    
+    return {
+      score: overallScore,
+      summary: summary,
+      categories: categories,
+      recommendations: recommendations,
+      snippets: snippets
+    };
+  };
+
   const handleAssess = () => {
     if (!fileContent) return;
     
@@ -28,33 +177,9 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     
     // Simulate processing delay
     setTimeout(() => {
-      // Mock quality assessment - in a real app, this would come from an API
-      const mockResults = {
-        score: 78,
-        summary: "Code is generally good but has some areas for improvement, particularly in error handling and documentation.",
-        categories: [
-          { name: "Readability", score: 85, icon: BookOpen },
-          { name: "Maintainability", score: 72, icon: CircleCheck },
-          { name: "Performance", score: 83, icon: CircleCheck },
-          { name: "Security", score: 65, icon: CircleAlert },
-          { name: "Code Smell", score: 70, icon: AlertTriangle }
-        ],
-        recommendations: [
-          "Add error handling for potential exceptions",
-          "Improve function documentation with clear param and return types",
-          "Consider refactoring long functions into smaller, more focused ones",
-          "Add input validation to prevent security issues"
-        ],
-        snippets: [
-          {
-            title: "Missing Error Handling",
-            code: "function getData() {\n  return fetch(url).then(res => res.json());\n  // Missing error handling\n}",
-            suggestion: "function getData() {\n  return fetch(url)\n    .then(res => {\n      if (!res.ok) throw new Error('Network response failed');\n      return res.json();\n    })\n    .catch(error => {\n      console.error('Fetch error:', error);\n      throw error;\n    });\n}"
-          }
-        ]
-      };
-      
-      setQualityResults(mockResults);
+      const language = fileName?.split('.').pop() || 'javascript';
+      const results = analyzeCodeQuality(fileContent, language);
+      setQualityResults(results);
       setIsProcessing(false);
     }, 2000);
   };
