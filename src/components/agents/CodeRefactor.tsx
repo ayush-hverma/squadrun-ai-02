@@ -17,24 +17,34 @@ const refactorJavaScript = (code: string): string => {
   let refactored = code;
   
   // Replace var with const/let
-  refactored = refactored.replace(/var\s+([a-zA-Z0-9_]+)\s*=/g, 'const $1 =');
+  refactored = refactored.replace(/var\s+([a-zA-Z0-9_]+)\s*=\s*([^;]+);/g, 'const $1 = $2;');
   
   // Convert function declarations to arrow functions where appropriate
   refactored = refactored.replace(/function\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*{/g, 'const $1 = ($2) => {');
   
   // Add semicolons where missing
-  refactored = refactored.replace(/([^;{}])\n/g, '$1;\n');
+  refactored = refactored.replace(/([^;\s{}])\s*\n\s*(?![)}\],;])/g, '$1;\n');
   
   // Replace concatenation with template literals
   refactored = refactored.replace(/(['"])([^'"]*)\1\s*\+\s*([a-zA-Z0-9_]+)/g, '`$2${$3}`');
+  refactored = refactored.replace(/([a-zA-Z0-9_]+)\s*\+\s*(['"])([^'"]*)\2/g, '`${$1}$3`');
   
   // Remove unnecessary console.logs
   refactored = refactored.replace(/console\.log\([^)]*\);(\s*\n)/g, '$1');
   
   // Convert callbacks to async/await where possible
   refactored = refactored.replace(
-    /\.then\(\s*\(([^)]*)\)\s*=>\s*{([^}]*)}\s*\)/g, 
-    '\n  const $1 = await $2'
+    /\.then\(\s*(?:function\s*\(([^)]*)\)|(?:\(([^)]*)\)\s*=>))\s*{([^}]*)}\s*\)/g, 
+    async (match, p1, p2, p3) => {
+      const param = p1 || p2 || 'result';
+      return `\nconst ${param} = await `;
+    }
+  );
+  
+  // Convert traditional for loops to forEach or map
+  refactored = refactored.replace(
+    /for\s*\(\s*let\s+([a-zA-Z0-9_]+)\s*=\s*0;\s*\1\s*<\s*([a-zA-Z0-9_]+)\.length;\s*\1\+\+\s*\)\s*{([^}]*)}/g,
+    '$2.forEach(($1, index) => {$3})'
   );
   
   return refactored;
@@ -44,21 +54,35 @@ const refactorPython = (code: string): string => {
   let refactored = code;
   
   // Replace old-style string formatting with f-strings
-  refactored = refactored.replace(/([^'"]*)%\s*\(([^)]*)\)/g, 'f"$1{$2}"');
+  refactored = refactored.replace(/"([^"]*)"%\s*\(([^)]*)\)/g, 'f"$1{$2}"');
+  refactored = refactored.replace(/'([^']*)'\s*%\s*\(([^)]*)\)/g, 'f\'$1{$2}\'');
   
   // Add type hints
-  refactored = refactored.replace(/def\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\):/g, 'def $1($2) -> Any:');
+  refactored = refactored.replace(/def\s+([a-zA-Z0-9_]+)\s*\(([^):\n]*)\):/g, 'def $1($2) -> Any:');
   
   // Replace mutable default arguments
-  refactored = refactored.replace(/def\s+([a-zA-Z0-9_]+)\s*\(([^)]*),\s*([a-zA-Z0-9_]+)=\[\]/g, 'def $1($2, $3=None):\n    if $3 is None:\n        $3 = []');
+  refactored = refactored.replace(
+    /def\s+([a-zA-Z0-9_]+)\s*\(([^)]*),\s*([a-zA-Z0-9_]+)=\[\]/g, 
+    'def $1($2, $3=None):\n    if $3 is None:\n        $3 = []'
+  );
   
   // Use list comprehensions
-  refactored = refactored.replace(/([a-zA-Z0-9_]+)\s*=\s*\[\]\nfor\s+([a-zA-Z0-9_]+)\s+in\s+([^:]+):\n\s+([a-zA-Z0-9_]+)\.append\(([^)]+)\)/g, 
-    '$1 = [$5 for $2 in $3]');
+  refactored = refactored.replace(
+    /([a-zA-Z0-9_]+)\s*=\s*\[\]\s*\n\s*for\s+([a-zA-Z0-9_]+)\s+in\s+([^:]+):\s*\n\s+([a-zA-Z0-9_]+)\.append\(([^)]+)\)/g, 
+    '$1 = [$5 for $2 in $3]'
+  );
   
-  // Add docstrings
-  refactored = refactored.replace(/def\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*->\s*([^:]+):/g, 
-    'def $1($2) -> $3:\n    """$1 function.\n    \n    Args:\n        $2\n        \n    Returns:\n        $3: The result.\n    """\n');
+  // Use enumerate instead of manual indexing
+  refactored = refactored.replace(
+    /for\s+i\s+in\s+range\(len\(([a-zA-Z0-9_]+)\)\):/g,
+    'for i, item in enumerate($1):'
+  );
+  
+  // Replace if x == True with if x
+  refactored = refactored.replace(/if\s+([a-zA-Z0-9_]+)\s*==\s*True/g, 'if $1');
+  
+  // Replace if x == False with if not x
+  refactored = refactored.replace(/if\s+([a-zA-Z0-9_]+)\s*==\s*False/g, 'if not $1');
   
   return refactored;
 };
@@ -76,8 +100,19 @@ const refactorCPP = (code: string): string => {
   refactored = refactored.replace(/(std::)?([a-zA-Z0-9_:]+)\s+([a-zA-Z0-9_]+)\s*=\s*([a-zA-Z0-9_]+)\(/g, 'auto $3 = $4(');
   
   // Replace raw loops with range-based for loops where possible
-  refactored = refactored.replace(/for\s*\(\s*int\s+([a-zA-Z0-9_]+)\s*=\s*0\s*;\s*\1\s*<\s*([a-zA-Z0-9_]+)\.size\(\)\s*;\s*\1\+\+\s*\)/g, 
-    'for (const auto& element : $2)');
+  refactored = refactored.replace(
+    /for\s*\(\s*int\s+([a-zA-Z0-9_]+)\s*=\s*0\s*;\s*\1\s*<\s*([a-zA-Z0-9_]+)\.size\(\)\s*;\s*\1\+\+\s*\)/g, 
+    'for (const auto& element : $2)'
+  );
+  
+  // Convert raw pointers to smart pointers
+  refactored = refactored.replace(
+    /([a-zA-Z0-9_]+)\s*\*\s*([a-zA-Z0-9_]+)\s*=\s*new\s+([a-zA-Z0-9_]+)/g,
+    'std::unique_ptr<$1> $2 = std::make_unique<$3>'
+  );
+  
+  // Replace manual delete with smart pointers
+  refactored = refactored.replace(/delete\s+([a-zA-Z0-9_]+);/g, '// No need to delete $1 as it is managed by smart pointer');
   
   return refactored;
 };
@@ -86,14 +121,22 @@ const refactorJava = (code: string): string => {
   let refactored = code;
   
   // Replace raw loops with enhanced for loops
-  refactored = refactored.replace(/for\s*\(\s*int\s+([a-zA-Z0-9_]+)\s*=\s*0\s*;\s*\1\s*<\s*([a-zA-Z0-9_]+)\.size\(\)\s*;\s*\1\+\+\s*\)/g, 
-    'for (var element : $2)');
+  refactored = refactored.replace(
+    /for\s*\(\s*int\s+([a-zA-Z0-9_]+)\s*=\s*0\s*;\s*\1\s*<\s*([a-zA-Z0-9_]+)\.size\(\)\s*;\s*\1\+\+\s*\)/g, 
+    'for (var element : $2)'
+  );
   
   // Use var instead of explicit types
   refactored = refactored.replace(/([A-Z][a-zA-Z0-9_<>]+)\s+([a-zA-Z0-9_]+)\s*=\s*new\s+\1/g, 'var $2 = new $1');
   
   // Replace old-style concatenation with String.format
   refactored = refactored.replace(/(".*?")\s*\+\s*([a-zA-Z0-9_]+)\s*\+\s*(".*?")/g, 'String.format($1 + "%s" + $3, $2)');
+  
+  // Use streams for filtering and mapping
+  refactored = refactored.replace(
+    /List<([a-zA-Z0-9_]+)>\s+([a-zA-Z0-9_]+)\s*=\s*new\s+ArrayList<>\(\);[\s\n]*for\s*\(([a-zA-Z0-9_]+)\s+([a-zA-Z0-9_]+)\s*:\s*([a-zA-Z0-9_]+)\)\s*{\s*if\s*\(([^}]*)\)\s*{\s*([a-zA-Z0-9_]+)\.add\(([^;]*)\);\s*}\s*}/g,
+    'List<$1> $2 = $5.stream()\n  .filter($4 -> $6)\n  .map($4 -> $8)\n  .collect(Collectors.toList());'
+  );
   
   return refactored;
 };
@@ -120,9 +163,9 @@ const applyBestPractices = (code: string, language: string): string => {
     refactored = refactorJava(refactored);
   }
   
-  // Add appropriate comments for the refactored code
+  // Add appropriate comments at the top of the file
   const commentChar = language === 'py' ? '#' : '//';
-  refactored = `${commentChar} Refactored code with improved practices:\n${commentChar} - Consistent formatting and spacing\n${commentChar} - Modern language features\n${commentChar} - Simplified logic\n${commentChar} - Improved readability\n${commentChar} - Optimized performance\n\n${refactored}`;
+  refactored = `${commentChar} Refactored code with improved practices:\n${commentChar} - Converted to modern syntax\n${commentChar} - Enhanced readability\n${commentChar} - Improved performance\n${commentChar} - Applied language-specific best practices\n\n${refactored}`;
   
   return refactored;
 };
