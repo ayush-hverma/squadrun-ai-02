@@ -733,7 +733,7 @@ const modularizeFunctions = (code: string, language: string, aggressive = false)
           
           blocks.forEach((block, index) => {
             if (block.trim() && index > 0 && block.length > 100) {
-              const helperName = f"_{functionName}_helper_{index}";
+              const helperName = `_${functionName}_helper_${index}`;
               
               // Create a helper function with the same indentation level
               const helperFunction = `def ${helperName}():\n${block}\n\n`;
@@ -906,15 +906,15 @@ const addTypeAnnotations = (code: string, language: string): string => {
               if (p.includes(':')) return p.trim(); // Already has type
               
               const paramName = p.trim().split('=')[0].trim();
-              if (paramName.lower().includes('str') || paramName.endsWith('name') || paramName.endsWith('text')) {
+              if (paramName.toLowerCase().includes('str') || paramName.endsWith('name') || paramName.endsWith('text')) {
                 return `${paramName}: str`;
-              } else if (paramName.lower().includes('num') || paramName.endsWith('count') || paramName.endsWith('id')) {
+              } else if (paramName.toLowerCase().includes('num') || paramName.endsWith('count') || paramName.endsWith('id')) {
                 return `${paramName}: int`;
-              } else if (paramName.lower().includes('list') || paramName.endsWith('s')) {
+              } else if (paramName.toLowerCase().includes('list') || paramName.endsWith('s')) {
                 return `${paramName}: list`;
-              } else if (paramName.lower().includes('dict')) {
+              } else if (paramName.toLowerCase().includes('dict')) {
                 return `${paramName}: dict`;
-              } else if (paramName.lower().includes('bool') || paramName.startsWith('is_')) {
+              } else if (paramName.toLowerCase().includes('bool') || paramName.startsWith('is_')) {
                 return `${paramName}: bool`;
               }
               return `${paramName}: Any`;
@@ -961,3 +961,4 @@ export {
   addTypeAnnotations,
   removeAllComments
 };
+
