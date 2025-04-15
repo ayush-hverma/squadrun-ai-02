@@ -1,53 +1,160 @@
 
+/**
+ * Code Quality Analysis Utilities
+ * 
+ * This module provides tools for analyzing code quality across different dimensions,
+ * including readability, maintainability, security, and best practices.
+ */
+
 import { QualityMetrics, CategoryScore, QualityResults, CodeSnippet } from "@/types/codeQuality";
 import { refactorCode } from "./refactors";
-import { BookOpen, CircleCheck, CircleAlert, AlertTriangle } from "lucide-react";
+import { BookOpen, CircleCheck, CircleAlert, AlertTriangle, ShieldCheck } from "lucide-react";
 
 /**
  * Calculate code metrics based on the code content
+ * 
+ * @param code The source code to analyze
+ * @returns Metrics object with various quality scores
  */
 export const calculateCodeMetrics = (code: string): QualityMetrics => {
-  // Split code into lines
+  // Split code into lines for analysis
   const lines = code.split('\n');
+  const nonEmptyLines = lines.filter(line => line.trim().length > 0);
   
   // Calculate average line length (shorter is often better)
   const totalChars = code.length;
-  const lineLength = Math.min(100, 100 - Math.min(30, Math.max(0, (totalChars / lines.length - 40) / 2)));
+  const avgLineLength = totalChars / Math.max(1, nonEmptyLines.length);
+  const lineLengthScore = Math.min(100, 100 - Math.min(30, Math.max(0, (avgLineLength - 35) / 2)));
   
-  // Check for comments
+  // Check for comments and documentation
   const commentLines = lines.filter(line => 
     line.trim().startsWith('//') || 
     line.trim().startsWith('#') || 
     line.trim().startsWith('/*') || 
-    line.includes('*/')
+    line.trim().startsWith('*') ||
+    line.includes('*/') ||
+    line.trim().startsWith('"""') ||
+    line.includes('"""')
   ).length;
-  const commentRatio = Math.min(100, (commentLines / lines.length) * 300);
   
-  // Simple complexity heuristic (fewer nested blocks is better)
+  // Higher comment ratio is better, up to about 25-30% of code
+  const commentRatio = Math.min(100, (commentLines / Math.max(1, nonEmptyLines.length)) * 400);
+  
+  // Check for JSDoc or similar documentation patterns
+  const hasDocumentation = (
+    code.includes('/**') && code.includes('*/') ||
+    code.includes('"""') ||
+    code.includes("'''")
+  );
+  
+  // Bonus for having proper documentation
+  const documentationScore = hasDocumentation ? 15 : 0;
+  
+  // Improved comment score with documentation bonus
+  const commentScore = Math.min(100, commentRatio + documentationScore);
+  
+  // Analyze complexity based on:
+  // 1. Nesting levels (braces, indentation)
+  // 2. Function/method length
+  // 3. Conditionals and loops
   const bracesCount = (code.match(/{/g) || []).length;
-  const indentationLevel = Math.max(1, bracesCount / Math.max(1, lines.length) * 10);
-  const complexityScore = Math.max(50, 100 - indentationLevel * 5);
+  const indentationRatio = bracesCount / Math.max(1, nonEmptyLines.length);
   
-  // Check for potential security issues (very basic check)
+  // Count conditional and loop statements
+  const conditionalMatches = code.match(/if|else|switch|case|for|while|foreach|map|filter|reduce/g) || [];
+  const conditionalCount = conditionalMatches.length;
+  const conditionalRatio = conditionalCount / Math.max(1, nonEmptyLines.length);
+  
+  // Check for function/method definitions
+  const functionMatches = code.match(/function|def|method|class|interface|impl/g) || [];
+  const functionCount = functionMatches.length;
+  
+  // Complex code has high indentation, conditionals, and few functions
+  const complexityScore = Math.max(50, 100 - 
+    (indentationRatio * 20) - 
+    (conditionalRatio * 30) + 
+    (functionCount > 0 ? Math.min(20, functionCount * 2) : 0)
+  );
+  
+  // Check for potential security issues (basic checks)
   const securityIssues = [
     'eval(', 'exec(', '.innerHTML', 'document.write(', 
-    'sql.query(', 'unvalidated', 'unsanitized'
+    'sql.query(', 'unvalidated', 'unsanitized', 
+    '.dangerouslySetInnerHTML', 'shell_exec', 'system(',
+    '__import__', 'subprocess.call', 'os.system',
+    'scanf', 'gets(', 'strcpy', 'strcat', 'sprintf',
+    'deserialize', 'pickle.loads', 'yaml.load', 'fromYaml'
   ];
-  const securityIssueCount = securityIssues.reduce((count, issue) => 
-    count + (code.includes(issue) ? 1 : 0), 0);
-  const securityScore = Math.max(50, 100 - securityIssueCount * 10);
   
-  // Check for consistency in code style
-  const mixedQuotes = (code.includes("'") && code.includes('"'));
+  // Count security issues found
+  const securityIssueCount = securityIssues.reduce((count, issue) => 
+    count + (code.toLowerCase().includes(issue.toLowerCase()) ? 1 : 0), 0);
+  
+  // Reduce score for each security issue found
+  const securityScore = Math.max(60, 100 - securityIssueCount * 15);
+  
+  // Check for input validation patterns
+  const hasInputValidation = (
+    code.includes('validate') || 
+    code.includes('sanitize') || 
+    code.includes('escape') ||
+    code.includes('trim') ||
+    code.includes('parseFloat') ||
+    code.includes('parseInt') ||
+    code.includes('isNaN')
+  );
+  
+  // Bonus for having input validation
+  const securityBonus = hasInputValidation ? 10 : 0;
+  
+  // Improved security score with validation bonus
+  const securityFinalScore = Math.min(100, securityScore + securityBonus);
+  
+  // Check code style consistency
+  const mixedQuotes = (
+    (code.includes("'") && code.includes('"')) && 
+    !(code.includes("\"'") || code.includes('\'"')) // Exclude cases where both are needed
+  );
+  
   const mixedIndentation = (code.includes('    ') && code.includes('\t'));
-  const consistencyScore = mixedQuotes || mixedIndentation ? 70 : 95;
+  const inconsistentBraces = (
+    (code.includes('{\n') && code.includes('{')) ||
+    (code.includes('if (') && code.includes('if('))
+  );
+  
+  // Penalty points for inconsistent style
+  const styleIssues = (mixedQuotes ? 10 : 0) + 
+                     (mixedIndentation ? 15 : 0) + 
+                     (inconsistentBraces ? 10 : 0);
+  
+  const consistencyScore = Math.max(60, 100 - styleIssues);
+  
+  // Check for best practices
+  const bestPracticesIssues = [
+    { pattern: /var\s+[a-zA-Z0-9_]+/g, count: 0 }, // Using var instead of let/const
+    { pattern: /for\s*\(\s*var\s+\w+\s*=\s*0/g, count: 0 }, // Using traditional for loop vs array methods
+    { pattern: /console\.log/g, count: 0 }, // Leftover console.logs
+    { pattern: /alert\(/g, count: 0 }, // Using alert
+    { pattern: /[^\w\s.]\s*=\s*null/g, count: 0 }, // Explicit null assignment
+    { pattern: /catch\s*\([^)]*\)\s*{}/g, count: 0 }, // Empty catch blocks
+    { pattern: /if\s*\([^)]+\)\s*{\s*}\s*else/g, count: 0 } // Empty if blocks
+  ];
+  
+  bestPracticesIssues.forEach(issue => {
+    issue.count = (code.match(issue.pattern) || []).length;
+  });
+  
+  const bestPracticesScore = Math.max(60, 100 - bestPracticesIssues.reduce(
+    (total, issue) => total + issue.count * 5, 0
+  ));
   
   return {
-    lineLength,
-    commentRatio,
+    lineLength: lineLengthScore,
+    commentRatio: commentScore,
     complexityScore,
-    securityScore,
-    consistencyScore
+    securityScore: securityFinalScore,
+    consistencyScore,
+    bestPracticesScore: bestPracticesScore
   };
 };
 
@@ -63,18 +170,18 @@ export const generateCategoryScores = (metrics: QualityMetrics): CategoryScore[]
     },
     { 
       name: "Maintainability", 
-      score: Math.round((metrics.commentRatio + metrics.complexityScore) / 2), 
+      score: Math.round((metrics.commentRatio + metrics.complexityScore + metrics.bestPracticesScore) / 3), 
       icon: CircleCheck 
     },
     { 
       name: "Performance", 
-      score: Math.round(metrics.complexityScore), 
+      score: Math.round((metrics.complexityScore + metrics.bestPracticesScore) / 2), 
       icon: CircleCheck 
     },
     { 
       name: "Security", 
       score: Math.round(metrics.securityScore), 
-      icon: CircleAlert 
+      icon: ShieldCheck 
     },
     { 
       name: "Code Smell", 
@@ -90,29 +197,57 @@ export const generateCategoryScores = (metrics: QualityMetrics): CategoryScore[]
 export const generateRecommendations = (metrics: QualityMetrics, overallScore: number): string[] => {
   const recommendations = [];
   
-  if (metrics.commentRatio < 70) {
-    recommendations.push("Add more comments to explain complex logic and improve code understanding");
+  if (metrics.commentRatio < 75) {
+    recommendations.push(
+      "Add comprehensive documentation with JSDoc, docstrings, or function-level comments to improve code understanding"
+    );
   }
   
-  if (metrics.lineLength < 70) {
-    recommendations.push("Consider breaking long lines of code into more readable, shorter segments");
+  if (metrics.lineLength < 75) {
+    recommendations.push(
+      "Break long lines of code (>80 characters) into more readable, shorter segments for better readability"
+    );
   }
   
   if (metrics.complexityScore < 80) {
-    recommendations.push("Refactor complex functions into smaller, more focused ones");
+    recommendations.push(
+      "Refactor complex functions into smaller, single-responsibility functions with clear purposes"
+    );
   }
   
-  if (metrics.securityScore < 80) {
-    recommendations.push("Review code for potential security vulnerabilities and add input validation");
+  if (metrics.securityScore < 85) {
+    recommendations.push(
+      "Implement input validation, parameterized queries, and avoid unsafe functions that can lead to security vulnerabilities"
+    );
   }
   
-  if (metrics.consistencyScore < 80) {
-    recommendations.push("Standardize code style (quotes, indentation, naming conventions)");
+  if (metrics.consistencyScore < 85) {
+    recommendations.push(
+      "Standardize code style by using consistent quotes, indentation, naming conventions, and bracket placement"
+    );
   }
   
-  // Always recommend error handling as it's good practice
-  if (overallScore < 95) {
-    recommendations.push("Add error handling for potential exceptions");
+  if (metrics.bestPracticesScore < 85) {
+    recommendations.push(
+      "Follow language-specific best practices such as using modern syntax, avoiding deprecated methods, and utilizing built-in functions"
+    );
+  }
+  
+  // Advanced recommendations for high-scoring code to reach excellence
+  if (overallScore >= 80 && overallScore < 95) {
+    recommendations.push(
+      "Enhance error handling with specific error types, meaningful error messages, and graceful fallbacks"
+    );
+    
+    recommendations.push(
+      "Extract magic numbers and string literals into named constants for better code maintainability"
+    );
+    
+    if (metrics.complexityScore >= 80) {
+      recommendations.push(
+        "Consider implementing design patterns appropriate for your application domain to improve architecture"
+      );
+    }
   }
   
   return recommendations;
@@ -124,19 +259,63 @@ export const generateRecommendations = (metrics: QualityMetrics, overallScore: n
 export const generateCodeSnippets = (metrics: QualityMetrics, language: string): CodeSnippet[] => {
   const snippets: CodeSnippet[] = [];
   
-  if (metrics.securityScore < 80) {
-    snippets.push({
-      title: "Improve Security with Validation",
-      code: "function getData() {\n  return fetch(url).then(res => res.json());\n  // Missing error handling\n}",
-      suggestion: "function getData() {\n  return fetch(url)\n    .then(res => {\n      if (!res.ok) throw new Error('Network response failed');\n      return res.json();\n    })\n    .catch(error => {\n      console.error('Fetch error:', error);\n      throw error;\n    });\n}"
-    });
+  // Language-specific snippet examples
+  if (['js', 'jsx', 'ts', 'tsx'].includes(language)) {
+    if (metrics.securityScore < 85) {
+      snippets.push({
+        title: "Improve Security with Input Validation",
+        code: "function processUserData(userData) {\n  const query = `SELECT * FROM users WHERE id = ${userData.id}`;\n  return database.execute(query);\n}",
+        suggestion: "function processUserData(userData) {\n  // Validate input\n  if (!userData?.id || typeof userData.id !== 'number') {\n    throw new Error('Invalid user ID');\n  }\n  \n  // Use parameterized query\n  const query = 'SELECT * FROM users WHERE id = ?';\n  return database.execute(query, [userData.id]);\n}"
+      });
+    }
+    
+    if (metrics.bestPracticesScore < 85) {
+      snippets.push({
+        title: "Use Modern JavaScript Features",
+        code: "function getUsers(callback) {\n  var results = [];\n  for (var i = 0; i < users.length; i++) {\n    var user = users[i];\n    if (user.active) {\n      results.push({\n        name: user.name,\n        email: user.email\n      });\n    }\n  }\n  callback(null, results);\n}",
+        suggestion: "async function getUsers() {\n  // Use array methods instead of for loops\n  const activeUsers = users\n    .filter(user => user.active)\n    .map(({ name, email }) => ({ name, email }));\n    \n  return activeUsers;\n}"
+      });
+    }
+  } else if (['py', 'python'].includes(language)) {
+    if (metrics.complexityScore < 80) {
+      snippets.push({
+        title: "Simplify Complex Logic with Pythonic Patterns",
+        code: "def process_data(items):\n    result = []\n    for item in items:\n        if item is not None:\n            if item.status == 'active':\n                if item.value > 100:\n                    transformed = item.value * 2\n                    result.append({\n                        'id': item.id,\n                        'value': transformed\n                    })\n    return result",
+        suggestion: "def process_data(items):\n    \"\"\"Process active items with values over 100.\n    \n    Args:\n        items: Collection of data items\n        \n    Returns:\n        List of processed items with doubled values\n    \"\"\"\n    return [\n        {'id': item.id, 'value': item.value * 2}\n        for item in items\n        if item and item.status == 'active' and item.value > 100\n    ]"
+      });
+    }
+    
+    if (metrics.bestPracticesScore < 85) {
+      snippets.push({
+        title: "Improve Python Error Handling",
+        code: "def read_config(filename):\n    f = open(filename, 'r')\n    data = f.read()\n    config = json.loads(data)\n    f.close()\n    return config",
+        suggestion: "def read_config(filename):\n    \"\"\"Read and parse a JSON configuration file.\n    \n    Args:\n        filename: Path to the configuration file\n        \n    Returns:\n        Dict containing the configuration\n        \n    Raises:\n        FileNotFoundError: If the file doesn't exist\n        JSONDecodeError: If the file contains invalid JSON\n    \"\"\"\n    try:\n        with open(filename, 'r') as f:\n            return json.load(f)\n    except json.JSONDecodeError as e:\n        logging.error(f\"Invalid JSON in config file: {e}\")\n        raise"
+      });
+    }
+  } else if (['java'].includes(language)) {
+    if (metrics.bestPracticesScore < 85) {
+      snippets.push({
+        title: "Modernize Java Code",
+        code: "List<User> getActiveUsers(List<User> users) {\n    List<User> result = new ArrayList<>();\n    for (User user : users) {\n        if (user.isActive()) {\n            result.add(user);\n        }\n    }\n    return result;\n}",
+        suggestion: "List<User> getActiveUsers(List<User> users) {\n    // Use Java streams for cleaner collection operations\n    return users.stream()\n        .filter(User::isActive)\n        .collect(Collectors.toList());\n}"
+      });
+    }
+  } else if (['cpp', 'c', 'h'].includes(language)) {
+    if (metrics.securityScore < 85) {
+      snippets.push({
+        title: "Improve C++ Memory Safety",
+        code: "void processData() {\n    char* buffer = new char[100];\n    strcpy(buffer, userInput.c_str()); // Unsafe\n    // Process data\n    delete[] buffer;\n}",
+        suggestion: "void processData() {\n    // Use smart pointers and safer string handling\n    std::string buffer = userInput;\n    \n    // Validate input length to prevent buffer overflow\n    if (buffer.length() > 100) {\n        throw std::runtime_error(\"Input too long\");\n    }\n    \n    // Process data (smart pointer automatically freed)\n}"
+      });
+    }
   }
   
-  if (metrics.complexityScore < 80) {
+  // Generic snippets for any language
+  if (metrics.commentRatio < 75) {
     snippets.push({
-      title: "Simplify Complex Logic",
-      code: "function process(data) {\n  let result;\n  if (data.type === 'A') {\n    if (data.value > 10) {\n      result = data.value * 2;\n    } else {\n      result = data.value;\n    }\n  } else {\n    result = 0;\n  }\n  return result;\n}",
-      suggestion: "function process(data) {\n  // Early return pattern\n  if (data.type !== 'A') return 0;\n  \n  // Simplified conditional logic\n  return data.value > 10 ? data.value * 2 : data.value;\n}"
+      title: "Add Comprehensive Documentation",
+      code: "function calculateTotal(items) {\n  let sum = 0;\n  for (const item of items) {\n    sum += item.price * item.quantity;\n  }\n  return sum;\n}",
+      suggestion: "/**\n * Calculate the total price for a collection of items\n *\n * @param {Array<{price: number, quantity: number}>} items - The items to calculate\n * @returns {number} The total price\n */\nfunction calculateTotal(items) {\n  // Initialize sum accumulator\n  let sum = 0;\n  \n  // Add the price*quantity for each item\n  for (const item of items) {\n    sum += item.price * item.quantity;\n  }\n  \n  return sum;\n}"
     });
   }
   
@@ -147,14 +326,20 @@ export const generateCodeSnippets = (metrics: QualityMetrics, language: string):
  * Generate a summary based on the overall score
  */
 export const generateSummary = (overallScore: number, categories: CategoryScore[]): string => {
+  const lowestCategories = categories
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 2)
+    .filter(c => c.score < 85);
+  
   if (overallScore >= 90) {
-    return "Excellent code quality with good practices. Minor improvements possible.";
-  } else if (overallScore >= 75) {
-    return "Good code quality with some areas needing improvement, particularly in " + 
-      categories.filter(c => c.score < 75).map(c => c.name.toLowerCase()).join(" and ") + ".";
-  } else if (overallScore >= 60) {
-    return "Moderate code quality with several areas requiring attention, especially " + 
-      categories.filter(c => c.score < 70).map(c => c.name.toLowerCase()).join(" and ") + ".";
+    return "Excellent code quality that follows best practices. Minor improvements still possible for perfection.";
+  } else if (overallScore >= 80) {
+    const areasToImprove = lowestCategories.length > 0 
+      ? `, particularly in ${lowestCategories.map(c => c.name.toLowerCase()).join(" and ")}`
+      : '';
+    return `Good code quality with some areas needing refinement${areasToImprove}.`;
+  } else if (overallScore >= 70) {
+    return `Moderate code quality with several improvement opportunities, especially in ${lowestCategories.map(c => c.name.toLowerCase()).join(" and ")}.`;
   } else {
     return "Code needs significant improvement across multiple dimensions for better maintainability and reliability.";
   }
