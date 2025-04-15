@@ -14,17 +14,21 @@ export const refactorCode = (code: string, language: string, instructions?: stri
     case 'ts':
     case 'tsx':
       refactored = refactorJavaScript(code);
+      refactored = handleJavaScriptDependencies(refactored);
       break;
     case 'py':
       refactored = refactorPython(code);
+      refactored = handlePythonDependencies(refactored);
       break;
     case 'cpp':
     case 'c':
     case 'h':
       refactored = refactorCPP(code);
+      refactored = handleCPPDependencies(refactored);
       break;
     case 'java':
       refactored = refactorJava(code);
+      refactored = handleJavaDependencies(refactored);
       break;
     default:
       refactored = refactorGeneric(code);
@@ -34,6 +38,192 @@ export const refactorCode = (code: string, language: string, instructions?: stri
   refactored = applyCommonRefactoring(refactored, instructions);
 
   return refactored;
+};
+
+/**
+ * Detect and properly organize JavaScript dependencies
+ */
+const handleJavaScriptDependencies = (code: string): string => {
+  // Extract all import statements
+  const importRegex = /import\s+.*?from\s+['"].*?['"]/g;
+  const imports = code.match(importRegex) || [];
+  
+  // Remove existing imports
+  let codeWithoutImports = code.replace(importRegex, '');
+  
+  // Clean up multiple empty lines after removing imports
+  codeWithoutImports = codeWithoutImports.replace(/^\s*\n+/g, '');
+  
+  // Group imports by type
+  const stdLibImports: string[] = [];
+  const thirdPartyImports: string[] = [];
+  const relativeImports: string[] = [];
+  
+  imports.forEach(imp => {
+    if (imp.includes('from "react') || imp.includes("from 'react")) {
+      stdLibImports.push(imp);
+    } else if (imp.includes('from "./') || imp.includes("from './") || 
+               imp.includes('from "../') || imp.includes("from '../")) {
+      relativeImports.push(imp);
+    } else {
+      thirdPartyImports.push(imp);
+    }
+  });
+  
+  // Add standard React imports for components if needed
+  if (!stdLibImports.some(imp => imp.includes('React')) && 
+      (code.includes('extends Component') || code.includes('extends React.Component') || code.includes('JSX'))) {
+    stdLibImports.unshift("import React from 'react'");
+  }
+  
+  // Sort imports alphabetically within their groups
+  const sortedImports = [
+    ...stdLibImports.sort(),
+    '', // Empty line between groups
+    ...thirdPartyImports.sort(),
+    '', // Empty line between groups
+    ...relativeImports.sort()
+  ].filter(Boolean); // Remove empty strings if there are no imports in a group
+  
+  // Assemble the final code with organized imports
+  return sortedImports.length > 0 
+    ? sortedImports.join('\n') + '\n\n' + codeWithoutImports
+    : codeWithoutImports;
+};
+
+/**
+ * Detect and properly organize Python dependencies
+ */
+const handlePythonDependencies = (code: string): string => {
+  // Extract all import statements
+  const stdImports = [];
+  const thirdPartyImports = [];
+  const relativeImports = [];
+  
+  // Match standard library imports
+  const stdImportRegex = /^(?:import|from)\s+(?!\.)[a-zA-Z0-9_]+\s+(?:import|as)\s+.*$/gm;
+  const stdMatches = code.match(stdImportRegex) || [];
+  stdImports.push(...stdMatches);
+  
+  // Match third-party imports (non-standard, non-relative)
+  const thirdPartyRegex = /^(?:import|from)\s+(?!\.)[a-zA-Z0-9_]+\.[a-zA-Z0-9_.]+\s+(?:import|as)\s+.*$/gm;
+  const thirdPartyMatches = code.match(thirdPartyRegex) || [];
+  thirdPartyImports.push(...thirdPartyMatches);
+  
+  // Match relative imports
+  const relativeRegex = /^from\s+\.\s+import\s+.*$|^from\s+\.[\w.]+\s+import\s+.*$/gm;
+  const relativeMatches = code.match(relativeRegex) || [];
+  relativeImports.push(...relativeMatches);
+  
+  // Remove all imports from the original code
+  let codeWithoutImports = code.replace(/^(?:import|from)\s+.*$/gm, '');
+  
+  // Clean up multiple empty lines
+  codeWithoutImports = codeWithoutImports.replace(/^\s*\n+/g, '');
+  
+  // Sort imports alphabetically within their groups
+  const sortedImports = [
+    ...stdImports.sort(),
+    '', // Empty line between groups
+    ...thirdPartyImports.sort(),
+    '', // Empty line between groups
+    ...relativeImports.sort()
+  ].filter(Boolean);
+  
+  // Assemble the final code with organized imports
+  return sortedImports.length > 0 
+    ? sortedImports.join('\n') + '\n\n' + codeWithoutImports
+    : codeWithoutImports;
+};
+
+/**
+ * Detect and properly organize C/C++ dependencies
+ */
+const handleCPPDependencies = (code: string): string => {
+  // Extract all include statements
+  const stdIncludes = [];
+  const systemIncludes = [];
+  const localIncludes = [];
+  
+  // Match standard library includes
+  const stdIncludeRegex = /#include\s+<[a-zA-Z0-9_]+>/g;
+  const stdMatches = code.match(stdIncludeRegex) || [];
+  stdIncludes.push(...stdMatches);
+  
+  // Match system includes
+  const systemIncludeRegex = /#include\s+<[a-zA-Z0-9_]+\/[a-zA-Z0-9_./]+>/g;
+  const systemMatches = code.match(systemIncludeRegex) || [];
+  systemIncludes.push(...systemMatches);
+  
+  // Match local includes
+  const localIncludeRegex = /#include\s+"[a-zA-Z0-9_./]+">/g;
+  const localMatches = code.match(localIncludeRegex) || [];
+  localIncludes.push(...localMatches);
+  
+  // Remove all includes from the original code
+  let codeWithoutIncludes = code.replace(/#include\s+["<][a-zA-Z0-9_./]+[">]/g, '');
+  
+  // Clean up multiple empty lines
+  codeWithoutIncludes = codeWithoutIncludes.replace(/^\s*\n+/g, '');
+  
+  // Sort includes alphabetically within their groups
+  const sortedIncludes = [
+    ...stdIncludes.sort(),
+    '', // Empty line between groups
+    ...systemIncludes.sort(),
+    '', // Empty line between groups
+    ...localIncludes.sort()
+  ].filter(Boolean);
+  
+  // Assemble the final code with organized includes
+  return sortedIncludes.length > 0 
+    ? sortedIncludes.join('\n') + '\n\n' + codeWithoutIncludes
+    : codeWithoutIncludes;
+};
+
+/**
+ * Detect and properly organize Java dependencies
+ */
+const handleJavaDependencies = (code: string): string => {
+  // Extract all import statements
+  const javaImports = [];
+  const javaxImports = [];
+  const thirdPartyImports = [];
+  
+  // Match standard java.* imports
+  const javaImportRegex = /^import\s+java\.[a-zA-Z0-9_.]+;/gm;
+  const javaMatches = code.match(javaImportRegex) || [];
+  javaImports.push(...javaMatches);
+  
+  // Match javax.* imports
+  const javaxImportRegex = /^import\s+javax\.[a-zA-Z0-9_.]+;/gm;
+  const javaxMatches = code.match(javaxImportRegex) || [];
+  javaxImports.push(...javaxMatches);
+  
+  // Match third-party imports
+  const thirdPartyRegex = /^import\s+(?!java\.|javax\.)[a-zA-Z0-9_.]+;/gm;
+  const thirdPartyMatches = code.match(thirdPartyRegex) || [];
+  thirdPartyImports.push(...thirdPartyMatches);
+  
+  // Remove all imports from the original code
+  let codeWithoutImports = code.replace(/^import\s+[a-zA-Z0-9_.]+;/gm, '');
+  
+  // Clean up multiple empty lines
+  codeWithoutImports = codeWithoutImports.replace(/^\s*\n+/g, '');
+  
+  // Sort imports alphabetically within their groups
+  const sortedImports = [
+    ...javaImports.sort(),
+    '', // Empty line between groups
+    ...javaxImports.sort(),
+    '', // Empty line between groups
+    ...thirdPartyImports.sort()
+  ].filter(Boolean);
+  
+  // Assemble the final code with organized imports
+  return sortedImports.length > 0 
+    ? sortedImports.join('\n') + '\n\n' + codeWithoutImports
+    : codeWithoutImports;
 };
 
 /**
@@ -293,4 +483,12 @@ const addSimpleTypeHints = (code: string): string => {
   );
   
   return refactored;
+};
+
+// Re-export the utility functions from codeRefactorer
+export { 
+  extractConstants, 
+  improveVariableNames, 
+  modularizeFunctions, 
+  enhanceErrorHandling 
 };

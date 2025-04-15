@@ -20,7 +20,6 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
   const [userInstructions, setUserInstructions] = useState<string>('');
-  const [refactoringMode, setRefactoringMode] = useState<string>('standard');
   
   useEffect(() => {
     // Reset states when fileContent changes
@@ -69,13 +68,6 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     });
   };
 
-  const refactoringModes = [
-    { id: 'standard', label: 'Standard Refactoring' },
-    { id: 'aggressive', label: 'Aggressive Refactoring' },
-    { id: 'readability', label: 'Improve Readability' },
-    { id: 'modularize', label: 'Modularize Code' }
-  ];
-
   if (!fileContent) {
     return <NoFileMessage />;
   }
@@ -88,41 +80,17 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
-              <label className="text-sm text-squadrun-gray mb-2 block">
-                Refactoring Mode
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {refactoringModes.map(mode => (
-                  <Button 
-                    key={mode.id}
-                    variant={refactoringMode === mode.id ? "default" : "outline"}
-                    onClick={() => {
-                      setRefactoringMode(mode.id);
-                      
-                      // Set default instructions based on mode
-                      switch(mode.id) {
-                        case 'aggressive':
-                          setUserInstructions('Extract constants, modularize functions, improve variable names, enhance error handling');
-                          break;
-                        case 'readability':
-                          setUserInstructions('Add meaningful comments, improve variable names, consistent formatting');
-                          break;
-                        case 'modularize':
-                          setUserInstructions('Break down large functions, extract utility functions');
-                          break;
-                        default:
-                          setUserInstructions('');
-                      }
-                    }}
-                    className={refactoringMode === mode.id 
-                      ? "bg-squadrun-primary hover:bg-squadrun-vivid text-white" 
-                      : "border-squadrun-primary/20 text-squadrun-gray hover:text-white"}
-                    size="sm"
-                  >
-                    {mode.label}
-                  </Button>
-                ))}
-              </div>
+              <p className="text-sm text-squadrun-gray mb-2">
+                The refactorer will apply best practices for your code, including:
+              </p>
+              <ul className="list-disc pl-5 text-sm text-squadrun-gray space-y-1">
+                <li>Organizing imports and dependencies</li>
+                <li>Extracting constants and magic numbers</li>
+                <li>Improving variable names</li>
+                <li>Breaking down large functions</li>
+                <li>Adding proper error handling</li>
+                <li>Optimizing code structure</li>
+              </ul>
             </div>
             
             <div>
@@ -137,7 +105,7 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
           
           <div className="mb-4">
             <label className="text-sm text-squadrun-gray mb-2 block">
-              Refactoring Instructions
+              Additional Refactoring Instructions (Optional)
             </label>
             <Textarea 
               placeholder="Enter any specific refactoring instructions here..." 
@@ -146,7 +114,7 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
               className="min-h-[80px] bg-squadrun-darker border-squadrun-primary/20 text-white"
             />
             <p className="text-xs text-squadrun-gray mt-1">
-              Examples: "extract constants", "modularize functions", "improve variable names", "add type hints"
+              Examples: "extract constants", "add type hints", "improve error handling"
             </p>
           </div>
           
