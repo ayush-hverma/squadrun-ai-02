@@ -1,4 +1,3 @@
-
 /**
  * Code Quality Analysis Utilities
  * 
@@ -25,7 +24,7 @@ export const calculateCodeMetrics = (code: string): QualityMetrics => {
   const totalChars = code.length;
   const avgLineLength = totalChars / Math.max(1, nonEmptyLines.length);
   // Be more strict about line length
-  const lineLengthScore = Math.min(100, 100 - Math.min(75, Math.max(0, (avgLineLength - 30) / 1.5)));
+  const lineLengthScore = Math.min(100, 100 - Math.min(75, Math.max(0, (avgLineLength - 30) / 1.2)));
   
   // Check for comments and documentation
   const commentLines = lines.filter(line => 
@@ -40,8 +39,8 @@ export const calculateCodeMetrics = (code: string): QualityMetrics => {
     line.includes("'''")
   ).length;
   
-  // Be more strict about comments - require more comments for a good score
-  const commentRatio = Math.min(100, (commentLines / Math.max(1, nonEmptyLines.length)) * 300);
+  // Make comment ratio more strict - require more comments for a good score
+  const commentRatio = Math.min(90, (commentLines / Math.max(1, nonEmptyLines.length)) * 200);
   
   // Check for JSDoc or similar documentation patterns
   const hasDocumentation = (
@@ -59,12 +58,12 @@ export const calculateCodeMetrics = (code: string): QualityMetrics => {
     code.includes('Returns:')
   );
   
-  // Be more strict about documentation
-  const documentationScore = hasDocumentation ? 10 : 0;
-  const functionDocScore = hasFunctionDocumentation ? 15 : 0;
+  // Provide smaller documentation bonuses
+  const documentationScore = hasDocumentation ? 8 : 0;
+  const functionDocScore = hasFunctionDocumentation ? 10 : 0;
   
-  // Improved comment score with documentation bonus
-  const commentScore = Math.min(100, commentRatio + documentationScore + functionDocScore);
+  // More realistic comment score with documentation bonus
+  const commentScore = Math.min(95, commentRatio + documentationScore + functionDocScore);
   
   // Analyze complexity based on:
   // 1. Nesting levels (braces, indentation)
@@ -121,16 +120,15 @@ export const calculateCodeMetrics = (code: string): QualityMetrics => {
     ? functionLengths.reduce((sum, len) => sum + len, 0) / functionLengths.length 
     : 0;
   
-  // Penalize for long functions
-  const functionLengthPenalty = Math.min(40, Math.max(0, avgFunctionLength - 15) * 2);
+  // Greater penalty for long functions
+  const functionLengthPenalty = Math.min(50, Math.max(0, avgFunctionLength - 12) * 2.5);
   
-  // Complex code has high indentation, conditionals, and long functions
-  const complexityScore = Math.max(40, 100 - 
-    (indentationRatio *
-    30) - 
-    (conditionalRatio * 40) - 
+  // More aggressive complexity scoring
+  const complexityScore = Math.max(30, 100 - 
+    (indentationRatio * 35) - 
+    (conditionalRatio * 50) - 
     functionLengthPenalty + 
-    (functionCount > 0 ? Math.min(10, functionCount * 1) : 0)
+    (functionCount > 0 ? Math.min(8, functionCount * 0.8) : 0)
   );
   
   // Check for potential security issues (more comprehensive list)
@@ -166,7 +164,7 @@ export const calculateCodeMetrics = (code: string): QualityMetrics => {
   );
   
   // Reduce score for each security issue found
-  const securityScore = Math.max(30, 100 - securityIssueCount * 15 - (hasCredentials ? 20 : 0));
+  const securityScore = Math.max(20, 90 - securityIssueCount * 18 - (hasCredentials ? 25 : 0));
   
   // Check for input validation patterns
   const hasInputValidation = (
@@ -181,10 +179,10 @@ export const calculateCodeMetrics = (code: string): QualityMetrics => {
   );
   
   // Smaller bonus for having input validation
-  const securityBonus = hasInputValidation ? 10 : 0;
+  const securityBonus = hasInputValidation ? 8 : 0;
   
   // Improved security score with validation bonus
-  const securityFinalScore = Math.min(100, securityScore + securityBonus);
+  const securityFinalScore = Math.min(95, securityScore + securityBonus);
   
   // Check code style consistency
   const mixedQuotes = (
@@ -200,15 +198,15 @@ export const calculateCodeMetrics = (code: string): QualityMetrics => {
   
   // Check for trailing whitespace
   const linesWithTrailingSpace = lines.filter(line => line.match(/\s+$/)).length;
-  const trailingWhitespacePenalty = Math.min(25, (linesWithTrailingSpace / lines.length) * 100);
+  const trailingWhitespacePenalty = Math.min(30, (linesWithTrailingSpace / lines.length) * 100);
   
   // Penalty points for inconsistent style
-  const styleIssues = (mixedQuotes ? 15 : 0) + 
-                     (mixedIndentation ? 20 : 0) + 
-                     (inconsistentBraces ? 15 : 0) +
+  const styleIssues = (mixedQuotes ? 20 : 0) + 
+                     (mixedIndentation ? 25 : 0) + 
+                     (inconsistentBraces ? 20 : 0) +
                      trailingWhitespacePenalty;
   
-  const consistencyScore = Math.max(40, 100 - styleIssues);
+  const consistencyScore = Math.max(30, 90 - styleIssues);
   
   // Check for best practices
   const bestPracticesIssues = [
@@ -229,8 +227,8 @@ export const calculateCodeMetrics = (code: string): QualityMetrics => {
   });
   
   // More aggressive penalty for best practices issues
-  const bestPracticesScore = Math.max(30, 100 - bestPracticesIssues.reduce(
-    (total, issue) => total + issue.count * 8, 0
+  const bestPracticesScore = Math.max(25, 90 - bestPracticesIssues.reduce(
+    (total, issue) => total + issue.count * 10, 0
   ));
   
   return {
@@ -435,7 +433,6 @@ export const generateSummary = (overallScore: number, categories: CategoryScore[
  */
 export const analyzeCodeQuality = (code: string, language: string): QualityResults => {
   // Calculate metrics directly from the original code
-  // This makes the assessment more accurate by evaluating the actual code
   const metrics = calculateCodeMetrics(code);
   
   // Get refactored version for display purposes
@@ -445,26 +442,21 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
   const categories = generateCategoryScores(metrics);
   
   // Calculate overall score (weighted average with modified weights)
-  // Adjusted to be more sensitive to code quality issues
   const weights = [0.20, 0.25, 0.15, 0.25, 0.15]; // Readability, Maintainability, Performance, Security, Code Smell
   
   // Make sure the weights always sum to 1
   const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
   const normalizedWeights = weights.map(w => w / weightSum);
   
-  // Calculate weighted score
-  const overallScore = Math.round(
-    categories.reduce((sum, category, index) => sum + (category.score * normalizedWeights[index]), 0)
-  );
+  // Calculate initial weighted score
+  const rawScore = categories.reduce((sum, category, index) => sum + (category.score * normalizedWeights[index]), 0);
   
-  // Apply a scaling factor to make the scores more realistic
-  // This will map the scores from a naturally high range (where even bad code might score 75+)
-  // to a more intuitive range where excellent code is 90+, good code is 75-90, etc.
+  // Apply a realistic scaling factor
   const scaledScore = Math.min(
-    95, 
+    95,  // Cap the maximum score at 95 (nearly impossible to get perfect)
     Math.max(
-      40,
-      Math.round(overallScore * 0.8 + (overallScore > 85 ? 10 : 0))
+      20,  // Minimum score is 20 (even terrible code has some merit)
+      Math.round(rawScore * 0.70 + 12)  // Scale down scores to be more realistic
     )
   );
   
