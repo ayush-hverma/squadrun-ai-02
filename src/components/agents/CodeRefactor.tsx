@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRightCircle, Download, Refresh } from "lucide-react";
+import { ArrowRightCircle, Download, RefreshCw } from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
 import NoFileMessage from "@/components/refactor/NoFileMessage";
 import { refactorCode } from "@/utils/refactorUtils";
@@ -41,13 +41,13 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
       setRefactoredCode(result);
       toast({
         title: "Refactoring complete",
-        description: "Your code has been refactored successfully.",
+        description: "Your code has been refactored successfully."
       });
     } catch (error) {
       toast({
         title: "Refactoring failed",
         description: "An error occurred during refactoring.",
-        variant: "destructive",
+        variant: "destructive"
       });
       console.error("Refactoring error:", error);
     } finally {
@@ -68,7 +68,7 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     
     toast({
       title: "Download started",
-      description: `File saved as refactored-${fileName}`,
+      description: `File saved as refactored-${fileName}`
     });
   };
 
@@ -100,7 +100,7 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
             >
               {isRefactoring ? (
                 <>
-                  <Refresh className="mr-2 h-4 w-4 animate-spin" />
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                   Refactoring...
                 </>
               ) : (
