@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,196 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Download, PlayCircle } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import { toast } from "@/hooks/use-toast";
+import { refactorJavaScript, refactorPython, refactorCPP, refactorJava } from "@/utils/codeRefactorUtils";
 
 interface CodeRefactorProps {
   fileContent: string | null;
   fileName: string | null;
 }
-
-// Helper functions for code refactoring
-const refactorJavaScript = (code: string): string => {
-  let refactored = code;
-  
-  // Replace var with const/let
-  refactored = refactored.replace(/var\s+([a-zA-Z0-9_]+)\s*=\s*([^;]+);/g, 'const $1 = $2;');
-  
-  // Convert function declarations to arrow functions
-  refactored = refactored.replace(/function\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*{/g, 'const $1 = ($2) => {');
-  
-  // Replace for loops with array methods where possible
-  refactored = refactored.replace(
-    /for\s*\(\s*let\s+([a-zA-Z0-9_]+)\s*=\s*0;\s*\1\s*<\s*([a-zA-Z0-9_]+)\.length;\s*\1\+\+\s*\)\s*{\s*([^}]*)\s*}/g,
-    '$2.forEach((item, index) => {$3})'
-  );
-  
-  // Convert callbacks to async/await
-  refactored = refactored.replace(
-    /([a-zA-Z0-9_]+)\s*\.\s*then\s*\(\s*(?:function\s*\(([^)]*)\)|(?:\(([^)]*)\)\s*=>))\s*{([^}]*)}\s*\)/g, 
-    (match, obj, p1, p2, body) => {
-      const param = p1 || p2 || 'result';
-      return `const ${param} = await ${obj}`;
-    }
-  );
-  
-  // Replace string concatenation with template literals
-  refactored = refactored.replace(/(['"])([^'"]*)\1\s*\+\s*([a-zA-Z0-9_]+)/g, '`$2${$3}`');
-  refactored = refactored.replace(/([a-zA-Z0-9_]+)\s*\+\s*(['"])([^'"]*)\2/g, '`${$1}$3`');
-  
-  // Remove unnecessary console.logs
-  refactored = refactored.replace(/console\.log\([^)]*\);(\s*\n)/g, '$1');
-  
-  // Replace traditional conditionals with ternary where appropriate
-  refactored = refactored.replace(
-    /if\s*\(([^)]+)\)\s*{\s*return\s+([^;]+);\s*}\s*else\s*{\s*return\s+([^;]+);\s*}/g,
-    'return $1 ? $2 : $3;'
-  );
-  
-  // Use object shorthand notation
-  refactored = refactored.replace(/{\s*([a-zA-Z0-9_]+)\s*:\s*([a-zA-Z0-9_]+)\s*}/g, (match, p1, p2) => {
-    if (p1 === p2) {
-      return `{ ${p1} }`;
-    }
-    return match;
-  });
-  
-  // Add proper semicolons
-  refactored = refactored.replace(/([^;\s{}])\s*\n\s*(?![)}\],;])/g, '$1;\n');
-  
-  // Convert to ES6 import/export syntax
-  refactored = refactored.replace(/const\s+([a-zA-Z0-9_]+)\s*=\s*require\(['"]([^'"]+)['"]\);/g, 'import $1 from "$2";');
-  refactored = refactored.replace(/module\.exports\s*=\s*([a-zA-Z0-9_]+);/g, 'export default $1;');
-  
-  return refactored;
-};
-
-const refactorPython = (code: string): string => {
-  let refactored = code;
-  
-  // Replace old-style string formatting with f-strings
-  refactored = refactored.replace(/"([^"]*)"%\s*\(([^)]*)\)/g, 'f"$1{$2}"');
-  refactored = refactored.replace(/'([^']*)'\s*%\s*\(([^)]*)\)/g, "f'$1{$2}'");
-  
-  // Convert traditional for loops to list comprehensions
-  refactored = refactored.replace(
-    /([a-zA-Z0-9_]+)\s*=\s*\[\]\s*\n\s*for\s+([a-zA-Z0-9_]+)\s+in\s+([^:]+):\s*\n\s+([a-zA-Z0-9_]+)\.append\(([^)]+)\)/g, 
-    '$1 = [$5 for $2 in $3]'
-  );
-  
-  // Use enumerate instead of manual indexing
-  refactored = refactored.replace(
-    /for\s+i\s+in\s+range\(len\(([a-zA-Z0-9_]+)\)\):/g,
-    'for i, item in enumerate($1):'
-  );
-  
-  // Replace if x == True/False with if x/if not x
-  refactored = refactored.replace(/if\s+([a-zA-Z0-9_]+)\s*==\s*True/g, 'if $1');
-  refactored = refactored.replace(/if\s+([a-zA-Z0-9_]+)\s*==\s*False/g, 'if not $1');
-  
-  // Use context managers (with statements)
-  refactored = refactored.replace(
-    /([a-zA-Z0-9_]+)\s*=\s*open\(([^)]+)\)\s*\n([^]*?)([a-zA-Z0-9_]+)\.close\(\)/gs,
-    'with open($2) as $1:\n$3'
-  );
-  
-  // Use more Pythonic idioms
-  refactored = refactored.replace(/^import sys\s*\nsys\.exit\(\)/gm, 'import sys\nraise SystemExit()');
-  
-  // Add type hints
-  refactored = refactored.replace(/def\s+([a-zA-Z0-9_]+)\s*\(([^):\n]*)\):/g, (match, funcName, params) => {
-    if (!params.includes(':')) {
-      const paramsList = params.split(',').map(p => {
-        const trimmed = p.trim();
-        return trimmed ? `${trimmed}: Any` : '';
-      }).filter(Boolean);
-      
-      return `def ${funcName}(${paramsList.join(', ')}) -> Any:`;
-    }
-    return match;
-  });
-  
-  // Replace mutable default arguments
-  refactored = refactored.replace(
-    /def\s+([a-zA-Z0-9_]+)\s*\(([^)]*),\s*([a-zA-Z0-9_]+)=\[\]/g, 
-    'def $1($2, $3=None):\n    if $3 is None:\n        $3 = []'
-  );
-  
-  return refactored;
-};
-
-const refactorCPP = (code: string): string => {
-  let refactored = code;
-  
-  // Replace NULL with nullptr
-  refactored = refactored.replace(/\bNULL\b/g, 'nullptr');
-  
-  // Use auto for variable declarations where type is obvious
-  refactored = refactored.replace(/(std::)?([a-zA-Z0-9_:]+)<[^>]+>\s+([a-zA-Z0-9_]+)\s*=\s*/g, 'auto $3 = ');
-  
-  // Replace raw loops with range-based for loops
-  refactored = refactored.replace(
-    /for\s*\(\s*int\s+([a-zA-Z0-9_]+)\s*=\s*0\s*;\s*\1\s*<\s*([a-zA-Z0-9_]+)\.size\(\)\s*;\s*\1\+\+\s*\)/g, 
-    'for (const auto& element : $2)'
-  );
-  
-  // Convert raw pointers to smart pointers
-  refactored = refactored.replace(
-    /([a-zA-Z0-9_]+)\s*\*\s*([a-zA-Z0-9_]+)\s*=\s*new\s+([a-zA-Z0-9_]+)/g,
-    'std::unique_ptr<$1> $2 = std::make_unique<$3>'
-  );
-  
-  // Remove raw delete calls (assuming smart pointers are used)
-  refactored = refactored.replace(/delete\s+([a-zA-Z0-9_]+);/g, '// Smart pointer will handle memory');
-  
-  // Replace C-style casts with C++ static_cast
-  refactored = refactored.replace(/\(([a-zA-Z0-9_]+)\)\s*([a-zA-Z0-9_().]+)/g, 'static_cast<$1>($2)');
-  
-  // Ensure standard namespace is properly qualified
-  refactored = refactored.replace(/\bvector\b/g, 'std::vector');
-  refactored = refactored.replace(/\bstring\b/g, 'std::string');
-  refactored = refactored.replace(/\bmap\b/g, 'std::map');
-  
-  // Add include directives if needed
-  if (refactored.includes('unique_ptr') && !refactored.includes('#include <memory>')) {
-    refactored = '#include <memory>\n' + refactored;
-  }
-  
-  return refactored;
-};
-
-const refactorJava = (code: string): string => {
-  let refactored = code;
-  
-  // Replace raw loops with enhanced for loops
-  refactored = refactored.replace(
-    /for\s*\(\s*int\s+([a-zA-Z0-9_]+)\s*=\s*0\s*;\s*\1\s*<\s*([a-zA-Z0-9_]+)\.size\(\)\s*;\s*\1\+\+\s*\)/g, 
-    'for (var item : $2)'
-  );
-  
-  // Use var instead of explicit types where possible
-  refactored = refactored.replace(/([A-Z][a-zA-Z0-9_<>]+)\s+([a-zA-Z0-9_]+)\s*=\s*new\s+\1/g, 'var $2 = new $1');
-  
-  // Use streams for filtering and mapping
-  refactored = refactored.replace(
-    /List<([a-zA-Z0-9_]+)>\s+([a-zA-Z0-9_]+)\s*=\s*new\s+ArrayList<>\(\);[\s\n]*for\s*\(([a-zA-Z0-9_]+)\s+([a-zA-Z0-9_]+)\s*:\s*([a-zA-Z0-9_]+)\)\s*{\s*if\s*\(([^}]*)\)\s*{\s*([a-zA-Z0-9_]+)\.add\(([^;]*)\);\s*}\s*}/g,
-    'List<$1> $2 = $5.stream()\n  .filter($4 -> $6)\n  .map($4 -> $8)\n  .collect(Collectors.toList());'
-  );
-  
-  // Use String.format instead of concatenation
-  refactored = refactored.replace(/(".*?")\s*\+\s*([a-zA-Z0-9_]+)\s*\+\s*(".*?")/g, 'String.format($1 + "%s" + $3, $2)');
-  
-  // Import statements for stream operations if they are used
-  if (refactored.includes('.stream()') && !refactored.includes('import java.util.stream')) {
-    refactored = 'import java.util.stream.*;\n' + refactored;
-  }
-  
-  // Use try-with-resources
-  refactored = refactored.replace(
-    /([a-zA-Z0-9_<>]+)\s+([a-zA-Z0-9_]+)\s*=\s*new\s+([a-zA-Z0-9_<>]+)\(([^)]*)\);[\s\n]*try\s*{([^}]*)}\s*finally\s*{\s*([a-zA-Z0-9_]+)\.close\(\);\s*}/g,
-    'try ($1 $2 = new $3($4)) {$5}'
-  );
-  
-  return refactored;
-};
 
 // Function to perform the actual refactoring based on file type
 const performRefactoring = (code: string, language: string): string => {
@@ -245,10 +60,10 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
         // Calculate the number of improvements made
         const improvements = calculateImprovements(fileContent, refactored);
         
-        // Calculate quality score (85-98 range based on improvements)
-        const baseScore = 85;
-        const maxImprovement = 13;
-        const score = Math.min(98, baseScore + Math.min(improvements, maxImprovement));
+        // Calculate quality score (90-100 range based on improvements)
+        const baseScore = 90;
+        const maxImprovement = 10;
+        const score = Math.min(100, baseScore + Math.min(improvements, maxImprovement));
         
         setRefactoredCode(refactored);
         setQualityScore(score);
@@ -297,15 +112,33 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     const consoleLogs = (original.match(/console\.log\(/g) || []).length - (refactored.match(/console\.log\(/g) || []).length;
     count += consoleLogs;
     
+    // Check for for loops converted to forEach, map, etc.
+    const forLoops = (original.match(/for\s*\(/g) || []).length - (refactored.match(/for\s*\(/g) || []).length;
+    count += forLoops;
+    
+    // Check for if-else converted to ternaries
+    const ifElseBlocks = (original.match(/if\s*\([^)]*\)\s*{[^}]*}\s*else\s*{[^}]*}/g) || []).length - 
+                        (refactored.match(/if\s*\([^)]*\)\s*{[^}]*}\s*else\s*{[^}]*}/g) || []).length;
+    count += ifElseBlocks;
+    
+    // Check for object literal shorthand notation
+    const objectLiteralProps = (original.match(/([a-zA-Z0-9_]+)\s*:\s*\1/g) || []).length -
+                             (refactored.match(/([a-zA-Z0-9_]+)\s*:\s*\1/g) || []).length;
+    count += objectLiteralProps;
+    
+    // Check for async/await conversions
+    const asyncAwaitDiff = (refactored.match(/async|await/g) || []).length - 
+                          (original.match(/async|await/g) || []).length;
+    count += asyncAwaitDiff > 0 ? Math.ceil(asyncAwaitDiff / 2) : 0;
+    
     // Add some base improvements for readability enhancements
     const lineCountDiff = refactored.split('\n').length - original.split('\n').length;
     count += Math.abs(lineCountDiff) > 0 ? 1 : 0;
     
-    // For syntax-specific improvements
-    if (refactored.includes('async') && !original.includes('async')) count++;
-    if (refactored.includes('await') && !original.includes('await')) count++;
-    if (refactored.includes('forEach') && !original.includes('forEach')) count++;
-    if (refactored.includes('map(') && !original.includes('map(')) count++;
+    // Check for docstring/comment additions
+    const commentDiff = (refactored.match(/\/\*\*|\*\/|\/\/|#/g) || []).length - 
+                        (original.match(/\/\*\*|\*\/|\/\/|#/g) || []).length;
+    count += commentDiff > 0 ? Math.ceil(commentDiff / 5) : 0;
     
     // Ensure at least 1 improvement is counted if code changed
     return Math.max(1, count);
