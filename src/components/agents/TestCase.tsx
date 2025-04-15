@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,58 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
 
   const handleClear = () => {
     setGeneratedTestCases(null);
+  };
+
+  const handleGenerateTestCases = () => {
+    if (!fileContent) return;
+    
+    setIsProcessing(true);
+    
+    const language = fileName?.split('.').pop()?.toLowerCase() || 'python';
+    
+    setTimeout(() => {
+      let testCases = '';
+      
+      switch(language) {
+        case 'js':
+        case 'jsx':
+        case 'ts':
+        case 'tsx':
+          testCases = `
+// Test Case 1: Basic functionality
+test('Basic functionality works', () => {
+  // Add your test logic here
+  expect(true).toBe(true);
+});
+
+// Test Case 2: Edge case handling
+test('Handles edge cases correctly', () => {
+  // Add your test logic here
+  expect(true).toBe(true);
+});
+          `.trim();
+          break;
+        case 'py':
+          testCases = `
+# Test Case 1: Basic functionality
+def test_basic_functionality():
+    # Add your test logic here
+    assert True == True
+
+# Test Case 2: Edge case handling
+def test_edge_case_handling():
+    # Add your test logic here
+    assert True == True
+          `.trim();
+          break;
+        // Add more language-specific test case templates as needed
+        default:
+          testCases = '# No test case template available for this language';
+      }
+      
+      setGeneratedTestCases(testCases);
+      setIsProcessing(false);
+    }, 2000);
   };
 
   return (
@@ -47,7 +100,7 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
               <CardTitle className="text-lg">Generated Test Cases</CardTitle>
             </CardHeader>
             <CardContent>
-              <CodeDisplay code={generatedTestCases} language="python" />
+              <CodeDisplay code={generatedTestCases} language={fileName?.split('.').pop() || 'python'} />
             </CardContent>
           </Card>
         </div>
@@ -63,16 +116,7 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
           </Card>
           
           <Button
-            onClick={() => {
-              setIsProcessing(true);
-              setTimeout(() => {
-                setGeneratedTestCases(`
-                  def test_example():
-                      assert 1 == 1
-                `);
-                setIsProcessing(false);
-              }, 2000);
-            }}
+            onClick={handleGenerateTestCases}
             className="bg-squadrun-primary hover:bg-squadrun-vivid text-white ml-auto"
             disabled={isProcessing}
           >

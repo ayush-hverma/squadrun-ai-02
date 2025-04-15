@@ -25,9 +25,7 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     setQualityResults(null);
   };
 
-  // Function to analyze code and generate a quality score based on content
   const analyzeCodeQuality = (code: string, language: string) => {
-    // Simple metrics to evaluate
     const metrics = {
       lineLength: 0,
       commentRatio: 0,
@@ -36,14 +34,11 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       consistencyScore: 0
     };
 
-    // Split code into lines
     const lines = code.split('\n');
     
-    // Calculate average line length (shorter is often better)
     const totalChars = code.length;
     metrics.lineLength = Math.min(100, 100 - Math.min(30, Math.max(0, (totalChars / lines.length - 40) / 2)));
     
-    // Check for comments
     const commentLines = lines.filter(line => 
       line.trim().startsWith('//') || 
       line.trim().startsWith('#') || 
@@ -52,12 +47,10 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     ).length;
     metrics.commentRatio = Math.min(100, (commentLines / lines.length) * 300);
     
-    // Simple complexity heuristic (fewer nested blocks is better)
     const bracesCount = (code.match(/{/g) || []).length;
     const indentationLevel = Math.max(1, bracesCount / Math.max(1, lines.length) * 10);
     metrics.complexityScore = Math.max(50, 100 - indentationLevel * 5);
     
-    // Check for potential security issues (very basic check)
     const securityIssues = [
       'eval(', 'exec(', '.innerHTML', 'document.write(', 
       'sql.query(', 'unvalidated', 'unsanitized'
@@ -66,12 +59,10 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       count + (code.includes(issue) ? 1 : 0), 0);
     metrics.securityScore = Math.max(50, 100 - securityIssueCount * 10);
     
-    // Check for consistency in code style
     const mixedQuotes = (code.includes("'") && code.includes('"'));
     const mixedIndentation = (code.includes('    ') && code.includes('\t'));
     metrics.consistencyScore = mixedQuotes || mixedIndentation ? 70 : 90;
     
-    // Calculate category scores based on code characteristics
     const categories = [
       { 
         name: "Readability", 
@@ -100,13 +91,11 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       }
     ];
     
-    // Calculate overall score (weighted average)
     const weights = [0.25, 0.25, 0.2, 0.2, 0.1];
     const overallScore = Math.round(
       categories.reduce((sum, category, index) => sum + (category.score * weights[index]), 0)
     );
     
-    // Generate recommendations based on scores
     const recommendations = [];
     
     if (metrics.commentRatio < 70) {
@@ -129,10 +118,8 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       recommendations.push("Standardize code style (quotes, indentation, naming conventions)");
     }
     
-    // Always recommend error handling as it's good practice
     recommendations.push("Add error handling for potential exceptions");
     
-    // Generate code snippets based on the issues found
     const snippets = [];
     
     if (metrics.securityScore < 80) {
@@ -151,7 +138,6 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       });
     }
     
-    // Summary based on overall score
     let summary = "";
     if (overallScore >= 90) {
       summary = "Excellent code quality with good practices. Minor improvements possible.";
@@ -179,7 +165,6 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     
     setIsProcessing(true);
     
-    // Simulate processing delay
     setTimeout(() => {
       const language = fileName?.split('.').pop() || 'javascript';
       const results = analyzeCodeQuality(fileContent, language);
