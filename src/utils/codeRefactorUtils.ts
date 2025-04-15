@@ -1,4 +1,3 @@
-
 /**
  * Code Refactoring Utility Functions
  * 
@@ -216,11 +215,16 @@ export const refactorPython = (code: string): string => {
     (match, funcName, params) => {
       if (!params.includes(':')) {
         const typedParams = params.split(',').map(param => {
-          param = param.trim();
-          if (!param) return param;
+          const trimmedParam = param.trim();
+          if (!trimmedParam) return trimmedParam;
           
-          if (param.includes('=')) {
-            const [paramName, defaultValue] = param.split('=').map(p => p.trim());
+          // Extract the parameter name before any default value
+          const paramName = trimmedParam.includes('=') 
+            ? trimmedParam.split('=')[0].trim() 
+            : trimmedParam;
+          
+          if (trimmedParam.includes('=')) {
+            const defaultValue = trimmedParam.split('=')[1].trim();
             if (defaultValue === '[]') return `${paramName}: List[Any] = []`;
             if (defaultValue === '{}') return `${paramName}: Dict[str, Any] = {}`;
             if (defaultValue === 'None') return `${paramName}: Optional[Any] = None`;
