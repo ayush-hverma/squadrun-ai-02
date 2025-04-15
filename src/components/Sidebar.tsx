@@ -1,7 +1,7 @@
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, TestTube, Server } from "lucide-react";
+import { Code, AlertTriangle, TestTube, Server } from "lucide-react";
 
 interface NavItem {
   icon: React.ElementType;
@@ -16,6 +16,7 @@ interface SidebarProps {
 
 export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   const navItems: NavItem[] = [
+    { icon: Code, label: "Code Refactor", value: "refactor" },
     { icon: AlertTriangle, label: "Code Quality", value: "quality" },
     { icon: TestTube, label: "Test Cases", value: "testcase" },
     { icon: Server, label: "API Creator", value: "api" },
