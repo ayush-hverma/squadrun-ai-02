@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -7,8 +8,7 @@ import {
   BookOpen, 
   CircleCheck, 
   CircleAlert, 
-  PlayCircle,
-  X 
+  PlayCircle 
 } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 
@@ -21,11 +21,9 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
   const [isProcessing, setIsProcessing] = useState(false);
   const [qualityResults, setQualityResults] = useState<any | null>(null);
 
-  const handleClear = () => {
-    setQualityResults(null);
-  };
-
+  // Function to analyze code and generate a quality score based on content
   const analyzeCodeQuality = (code: string, language: string) => {
+    // Simple metrics to evaluate
     const metrics = {
       lineLength: 0,
       commentRatio: 0,
@@ -34,11 +32,14 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       consistencyScore: 0
     };
 
+    // Split code into lines
     const lines = code.split('\n');
     
+    // Calculate average line length (shorter is often better)
     const totalChars = code.length;
     metrics.lineLength = Math.min(100, 100 - Math.min(30, Math.max(0, (totalChars / lines.length - 40) / 2)));
     
+    // Check for comments
     const commentLines = lines.filter(line => 
       line.trim().startsWith('//') || 
       line.trim().startsWith('#') || 
@@ -47,10 +48,12 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     ).length;
     metrics.commentRatio = Math.min(100, (commentLines / lines.length) * 300);
     
+    // Simple complexity heuristic (fewer nested blocks is better)
     const bracesCount = (code.match(/{/g) || []).length;
     const indentationLevel = Math.max(1, bracesCount / Math.max(1, lines.length) * 10);
     metrics.complexityScore = Math.max(50, 100 - indentationLevel * 5);
     
+    // Check for potential security issues (very basic check)
     const securityIssues = [
       'eval(', 'exec(', '.innerHTML', 'document.write(', 
       'sql.query(', 'unvalidated', 'unsanitized'
@@ -59,10 +62,12 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       count + (code.includes(issue) ? 1 : 0), 0);
     metrics.securityScore = Math.max(50, 100 - securityIssueCount * 10);
     
+    // Check for consistency in code style
     const mixedQuotes = (code.includes("'") && code.includes('"'));
     const mixedIndentation = (code.includes('    ') && code.includes('\t'));
     metrics.consistencyScore = mixedQuotes || mixedIndentation ? 70 : 90;
     
+    // Calculate category scores based on code characteristics
     const categories = [
       { 
         name: "Readability", 
@@ -91,11 +96,13 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       }
     ];
     
+    // Calculate overall score (weighted average)
     const weights = [0.25, 0.25, 0.2, 0.2, 0.1];
     const overallScore = Math.round(
       categories.reduce((sum, category, index) => sum + (category.score * weights[index]), 0)
     );
     
+    // Generate recommendations based on scores
     const recommendations = [];
     
     if (metrics.commentRatio < 70) {
@@ -118,14 +125,16 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       recommendations.push("Standardize code style (quotes, indentation, naming conventions)");
     }
     
+    // Always recommend error handling as it's good practice
     recommendations.push("Add error handling for potential exceptions");
     
+    // Generate code snippets based on the issues found
     const snippets = [];
     
     if (metrics.securityScore < 80) {
       snippets.push({
         title: "Improve Security with Validation",
-        code: "function getData() {\n  return fetch(url).then(res => res.json();\n  // Missing error handling\n}",
+        code: "function getData() {\n  return fetch(url).then(res => res.json());\n  // Missing error handling\n}",
         suggestion: "function getData() {\n  return fetch(url)\n    .then(res => {\n      if (!res.ok) throw new Error('Network response failed');\n      return res.json();\n    })\n    .catch(error => {\n      console.error('Fetch error:', error);\n      throw error;\n    });\n}"
       });
     }
@@ -138,6 +147,7 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       });
     }
     
+    // Summary based on overall score
     let summary = "";
     if (overallScore >= 90) {
       summary = "Excellent code quality with good practices. Minor improvements possible.";
@@ -165,6 +175,7 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     
     setIsProcessing(true);
     
+    // Simulate processing delay
     setTimeout(() => {
       const language = fileName?.split('.').pop() || 'javascript';
       const results = analyzeCodeQuality(fileContent, language);
@@ -196,19 +207,33 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
         </p>
       </div>
       
-      {qualityResults ? (
-        <div className="flex-1 flex flex-col gap-4 overflow-auto">
-          <div className="flex items-center">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleClear} 
-              className="ml-auto text-white hover:bg-squadrun-primary/20"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
+      {!qualityResults ? (
+        <div className="flex-1 flex flex-col">
+          <Card className="mb-4 border border-squadrun-primary/20 bg-squadrun-darker/50 flex-1">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Code to Analyze</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CodeDisplay code={fileContent} language={fileName?.split('.').pop() || 'python'} />
+            </CardContent>
+          </Card>
           
+          <Button
+            onClick={handleAssess}
+            className="bg-squadrun-primary hover:bg-squadrun-vivid text-white ml-auto"
+            disabled={isProcessing}
+          >
+            {isProcessing ? (
+              <>Processing...</>
+            ) : (
+              <>
+                <PlayCircle className="mr-2 h-4 w-4" /> Assess Quality
+              </>
+            )}
+          </Button>
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col gap-4 overflow-auto">
           <div className="grid grid-cols-5 gap-4">
             <Card className="border border-squadrun-primary/20 bg-squadrun-darker/50 col-span-2">
               <CardHeader className="pb-2">
@@ -285,31 +310,6 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
               </CardContent>
             </Card>
           </div>
-        </div>
-      ) : (
-        <div className="flex-1 flex flex-col">
-          <Card className="mb-4 border border-squadrun-primary/20 bg-squadrun-darker/50 flex-1">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Code to Analyze</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CodeDisplay code={fileContent} language={fileName?.split('.').pop() || 'python'} />
-            </CardContent>
-          </Card>
-          
-          <Button
-            onClick={handleAssess}
-            className="bg-squadrun-primary hover:bg-squadrun-vivid text-white ml-auto"
-            disabled={isProcessing}
-          >
-            {isProcessing ? (
-              <>Processing...</>
-            ) : (
-              <>
-                <PlayCircle className="mr-2 h-4 w-4" /> Assess Quality
-              </>
-            )}
-          </Button>
         </div>
       )}
     </div>
