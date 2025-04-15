@@ -1,5 +1,4 @@
-
-import { refactorJavaScript, refactorPython, refactorCPP, refactorJava, refactorGeneric } from "@/utils/qualityUtils/codeRefactorer";
+import { refactorJavaScript, refactorPython, refactorCPP, refactorJava, refactorGeneric } from "@/utils/qualityUtils/refactors";
 
 /**
  * Refactor code based on programming language and user instructions
@@ -426,7 +425,7 @@ const enhanceErrorHandling = (code: string): string => {
  * Remove all comments from code
  */
 const removeAllComments = (code: string): string => {
-  // Remove multi-line comments (/* */)
+  // Remove multi-line comments (/* *)
   let result = code.replace(/\/\*[\s\S]*?\*\//g, '');
   
   // Remove single-line comments (//)
@@ -485,7 +484,7 @@ const addSimpleTypeHints = (code: string): string => {
   return refactored;
 };
 
-// Re-export the utility functions from codeRefactorer
+// Re-export the utility functions
 export { 
   extractConstants, 
   improveVariableNames, 

@@ -1,6 +1,6 @@
 
 import { QualityMetrics, CategoryScore, QualityResults, CodeSnippet } from "@/types/codeQuality";
-import { refactorCode } from "./codeRefactorer";
+import { refactorCode } from "./refactors";
 import { BookOpen, CircleCheck, CircleAlert, AlertTriangle } from "lucide-react";
 
 /**
