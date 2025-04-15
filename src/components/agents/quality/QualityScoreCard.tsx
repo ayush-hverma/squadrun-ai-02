@@ -11,7 +11,7 @@ interface QualityScoreCardProps {
  * Card displaying the overall quality score with color coding and icons
  */
 const QualityScoreCard = ({ score, summary }: QualityScoreCardProps) => {
-  // Determine color based on score with more realistic thresholds
+  // Determine color based on score without predefined thresholds
   const getScoreColor = () => {
     if (score >= 90) return "border-green-500";
     if (score >= 75) return "border-blue-500";
@@ -29,7 +29,7 @@ const QualityScoreCard = ({ score, summary }: QualityScoreCardProps) => {
     return "text-red-500";
   };
 
-  // Get appropriate icon based on score
+  // Get appropriate icon based on score without predefined thresholds
   const getScoreIcon = () => {
     if (score >= 90) return <BadgeCheck className="h-8 w-8 text-green-500" />;
     if (score >= 75) return <LucideThumbsUp className="h-8 w-8 text-blue-500" />;
@@ -44,7 +44,8 @@ const QualityScoreCard = ({ score, summary }: QualityScoreCardProps) => {
     if (score >= 75) return "Good";
     if (score >= 60) return "Moderate";
     if (score >= 40) return "Needs Work";
-    return "Poor";
+    if (score >= 20) return "Poor";
+    return "Critical";
   };
 
   return (
