@@ -5,10 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { 
   PlayCircle, 
-  X 
+  X,
+  Server,
+  Shield,
+  FileText,
+  Cloud
 } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ApiCreatorProps {
   fileContent: string | null;
@@ -17,12 +22,27 @@ interface ApiCreatorProps {
 
 export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [generatedApiCode, setGeneratedApiCode] = useState<string | null>(null);
+  const [generatedApi, setGeneratedApi] = useState<{
+    endpoints: string | null;
+    documentation: string | null;
+    security: string | null;
+    deployment: string | null;
+  }>({
+    endpoints: null,
+    documentation: null,
+    security: null,
+    deployment: null
+  });
   const [prompt, setPrompt] = useState("");
   const { toast } = useToast();
 
   const handleClear = () => {
-    setGeneratedApiCode(null);
+    setGeneratedApi({
+      endpoints: null,
+      documentation: null,
+      security: null,
+      deployment: null
+    });
   };
 
   const handleGenerateApi = () => {
@@ -39,8 +59,9 @@ export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
     
     // Simulate API generation
     setTimeout(() => {
-      const sampleApiCode = `
-// Generated API for: ${prompt}
+      // Endpoints
+      const endpointsCode = `
+// Generated API Endpoints for: ${prompt}
 
 import express from 'express';
 const router = express.Router();
@@ -84,10 +105,186 @@ router.post('/', auth, async (req, res) => {
 export default router;
       `.trim();
       
-      setGeneratedApiCode(sampleApiCode);
+      // Documentation
+      const documentationCode = `
+// API Documentation for: ${prompt}
+
+/**
+ * API Documentation
+ * 
+ * Base URL: /api
+ * 
+ * Endpoints:
+ * 
+ * 1. GET /api/items
+ *    - Description: Retrieves all items
+ *    - Parameters: None
+ *    - Response: Array of item objects
+ *    - Status Codes:
+ *      * 200: Success
+ *      * 500: Server error
+ * 
+ * 2. POST /api/items
+ *    - Description: Creates a new item
+ *    - Authentication: Required
+ *    - Request Body:
+ *      * name: String (required)
+ *      * description: String (required)
+ *    - Response: Newly created item object
+ *    - Status Codes:
+ *      * 200: Success
+ *      * 400: Bad request
+ *      * 401: Unauthorized
+ *      * 500: Server error
+ */
+      `.trim();
+      
+      // Security
+      const securityCode = `
+// API Security Configuration for: ${prompt}
+
+/**
+ * Security Implementation
+ * 
+ * 1. Authentication Middleware
+ */
+const jwt = require('jsonwebtoken');
+const config = require('config');
+
+module.exports = function(req, res, next) {
+  // Get token from header
+  const token = req.header('x-auth-token');
+
+  // Check if no token
+  if (!token) {
+    return res.status(401).json({ msg: 'No token, authorization denied' });
+  }
+
+  // Verify token
+  try {
+    const decoded = jwt.verify(token, config.get('jwtSecret'));
+    req.user = decoded.user;
+    next();
+  } catch (err) {
+    res.status(401).json({ msg: 'Token is not valid' });
+  }
+};
+
+/**
+ * 2. Rate Limiting
+ */
+const rateLimit = require('express-rate-limit');
+
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 15 minutes'
+});
+
+// Apply rate limiting to all API routes
+app.use('/api/', apiLimiter);
+
+/**
+ * 3. Input Validation
+ */
+const { check, validationResult } = require('express-validator');
+
+// Example validation for item creation
+const validateItem = [
+  check('name', 'Name is required').not().isEmpty(),
+  check('description', 'Description is required').not().isEmpty()
+];
+
+// Use in route
+router.post('/', [auth, validateItem], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  
+  // Continue with item creation...
+});
+      `.trim();
+      
+      // Deployment
+      const deploymentCode = `
+// Deployment Configuration for: ${prompt}
+
+/**
+ * Deployment Instructions
+ * 
+ * 1. Docker Configuration
+ */
+// Dockerfile
+/*
+FROM node:14-alpine
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 5000
+
+CMD ["npm", "start"]
+*/
+
+/**
+ * 2. Environment Variables
+ */
+// .env.example
+/*
+PORT=5000
+NODE_ENV=production
+MONGO_URI=mongodb://localhost:27017/yourdb
+JWT_SECRET=your_jwt_secret
+*/
+
+/**
+ * 3. CI/CD Pipeline (GitHub Actions)
+ */
+// .github/workflows/deploy.yml
+/*
+name: Deploy API
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: '14'
+      - run: npm ci
+      - run: npm test
+      - name: Deploy to production
+        uses: some-deployment-action@v1
+        with:
+          api_token: ${{ secrets.DEPLOY_TOKEN }}
+*/
+      `.trim();
+      
+      setGeneratedApi({
+        endpoints: endpointsCode,
+        documentation: documentationCode,
+        security: securityCode,
+        deployment: deploymentCode
+      });
       setIsProcessing(false);
     }, 2000);
   };
+
+  const hasGeneratedContent = generatedApi.endpoints || 
+    generatedApi.documentation || 
+    generatedApi.security || 
+    generatedApi.deployment;
 
   return (
     <div className="p-4 h-full flex flex-col">
@@ -98,7 +295,7 @@ export default router;
         </p>
       </div>
       
-      {generatedApiCode ? (
+      {hasGeneratedContent ? (
         <div className="flex-1 flex flex-col">
           <div className="flex items-center mb-4">
             <Button 
@@ -113,10 +310,41 @@ export default router;
           
           <Card className="border border-squadrun-primary/20 bg-squadrun-darker/50 flex-1">
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Generated API Code</CardTitle>
+              <CardTitle className="text-lg">Generated API</CardTitle>
             </CardHeader>
             <CardContent>
-              <CodeDisplay code={generatedApiCode} language="javascript" />
+              <Tabs defaultValue="endpoints" className="w-full">
+                <TabsList className="grid grid-cols-4 mb-4">
+                  <TabsTrigger value="endpoints" className="flex items-center gap-1">
+                    <Server className="h-4 w-4" /> Endpoints
+                  </TabsTrigger>
+                  <TabsTrigger value="documentation" className="flex items-center gap-1">
+                    <FileText className="h-4 w-4" /> Documentation
+                  </TabsTrigger>
+                  <TabsTrigger value="security" className="flex items-center gap-1">
+                    <Shield className="h-4 w-4" /> Security
+                  </TabsTrigger>
+                  <TabsTrigger value="deployment" className="flex items-center gap-1">
+                    <Cloud className="h-4 w-4" /> Deployment
+                  </TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="endpoints">
+                  <CodeDisplay code={generatedApi.endpoints || ""} language="javascript" />
+                </TabsContent>
+                
+                <TabsContent value="documentation">
+                  <CodeDisplay code={generatedApi.documentation || ""} language="javascript" />
+                </TabsContent>
+                
+                <TabsContent value="security">
+                  <CodeDisplay code={generatedApi.security || ""} language="javascript" />
+                </TabsContent>
+                
+                <TabsContent value="deployment">
+                  <CodeDisplay code={generatedApi.deployment || ""} language="javascript" />
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         </div>
