@@ -2,13 +2,12 @@
 import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import FileUpload from "@/components/FileUpload";
-import CodeRefactor from "@/components/agents/CodeRefactor";
 import CodeQuality from "@/components/agents/CodeQuality";
 import TestCase from "@/components/agents/TestCase";
 import ApiCreator from "@/components/agents/ApiCreator";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("refactor");
+  const [activeTab, setActiveTab] = useState("quality");
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
@@ -25,8 +24,6 @@ const Index = () => {
 
   const renderActiveAgent = () => {
     switch (activeTab) {
-      case "refactor":
-        return <CodeRefactor fileContent={fileContent} fileName={fileName} />;
       case "quality":
         return <CodeQuality fileContent={fileContent} fileName={fileName} />;
       case "testcase":
@@ -34,7 +31,7 @@ const Index = () => {
       case "api":
         return <ApiCreator fileContent={fileContent} fileName={fileName} />;
       default:
-        return <CodeRefactor fileContent={fileContent} fileName={fileName} />;
+        return <CodeQuality fileContent={fileContent} fileName={fileName} />;
     }
   };
 
