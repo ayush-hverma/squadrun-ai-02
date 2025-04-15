@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,8 +14,8 @@ import CodeDisplay from "../CodeDisplay";
 import { useToast } from "@/hooks/use-toast";
 
 interface ApiCreatorProps {
-  fileContent: string | null;
-  fileName: string | null;
+  fileContent?: string | null;
+  fileName?: string | null;
 }
 
 interface ApiEndpoint {
@@ -59,7 +58,6 @@ export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
   const [apiPlan, setApiPlan] = useState<ApiPlan | null>(null);
 
   const analyzeRequirements = (text: string): ApiPlan => {
-    // Check if the requirements contain specific keywords to determine API type
     const isAuthRequired = /auth|login|register|sign|user/i.test(text);
     const isEcommerce = /ecommerce|product|cart|order|payment|shop/i.test(text);
     const isTodo = /todo|task|list|item/i.test(text);
@@ -75,7 +73,6 @@ export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
     } else if (isFileSystem) {
       return generateFileSystemApi();
     } else {
-      // Default to user management API with potential customizations
       return generateUserManagementApi(isAuthRequired);
     }
   };
