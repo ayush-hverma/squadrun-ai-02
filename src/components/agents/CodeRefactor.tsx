@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowRightCircle, Download, RefreshCw } from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
 import NoFileMessage from "@/components/refactor/NoFileMessage";
-import { refactorCode } from "@/utils/refactorUtils";
+import { refactorCode } from "@/utils/qualityUtils/refactors";
 import { toast } from "sonner";
 
 interface CodeRefactorProps {
@@ -37,7 +37,7 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     
     try {
       // Perform the refactoring operation
-      const result = refactorCode(fileContent, language, userInstructions);
+      const result = refactorCode(fileContent, language);
       setRefactoredCode(result);
       toast.success("Refactoring complete", {
         description: "Your code has been refactored successfully."
@@ -99,6 +99,9 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
               </label>
               <p className="text-sm text-squadrun-gray">
                 Language-specific refactoring will be applied based on the file extension
+              </p>
+              <p className="text-sm text-squadrun-gray mt-2">
+                Supported languages: JavaScript, TypeScript, Python, C++, Java, and more
               </p>
             </div>
           </div>
