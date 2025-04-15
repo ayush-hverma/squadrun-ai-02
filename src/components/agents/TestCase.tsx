@@ -17,12 +17,14 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [testCases, setTestCases] = useState<any[] | null>(null);
   const [testResults, setTestResults] = useState<any | null>(null);
+  const [fileLanguage, setFileLanguage] = useState<string>('python');
 
   // Reset test cases and results when file changes
   useEffect(() => {
     if (fileContent) {
       setTestCases(null);
       setTestResults(null);
+      setFileLanguage(getFileLanguage());
     }
   }, [fileContent, fileName]);
 
@@ -35,8 +37,8 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
       'py': 'python',
       'js': 'javascript',
       'ts': 'typescript',
-      'jsx': 'react',
-      'tsx': 'react-ts',
+      'jsx': 'javascript',
+      'tsx': 'typescript',
       'java': 'java',
       'cpp': 'cpp',
       'c': 'c',
@@ -58,7 +60,7 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
   const generateTestCasesForLanguage = () => {
     if (!fileContent) return [];
     
-    const language = getFileLanguage();
+    const language = fileLanguage;
     const functionNames = extractFunctionNames(fileContent, language);
     const testCases = [];
     
@@ -82,8 +84,6 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
       'python': /def\s+([a-zA-Z0-9_]+)\s*\(/g,
       'javascript': /function\s+([a-zA-Z0-9_]+)\s*\(|const\s+([a-zA-Z0-9_]+)\s*=\s*(\([^)]*\)|)\s*=>/g,
       'typescript': /function\s+([a-zA-Z0-9_]+)\s*\(|const\s+([a-zA-Z0-9_]+)\s*=\s*(\([^)]*\)|)\s*=>/g,
-      'react': /function\s+([a-zA-Z0-9_]+)\s*\(|const\s+([a-zA-Z0-9_]+)\s*=\s*(\([^)]*\)|)\s*=>/g,
-      'react-ts': /function\s+([a-zA-Z0-9_]+)\s*\(|const\s+([a-zA-Z0-9_]+)\s*=\s*(\([^)]*\)|)\s*=>/g,
       'java': /(?:public|private|protected|static|\s) +[\w\<\>\[\]]+\s+([a-zA-Z0-9_]+)\s*\(/g,
       'cpp': /[\w\<\>\[\]]+\s+([a-zA-Z0-9_]+)\s*\(/g,
       'c': /[\w\<\>\[\]]+\s+([a-zA-Z0-9_]+)\s*\(/g,
@@ -146,7 +146,55 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
         performance: `@Test\npublic void test${functionName}Performance() {\n    // Arrange\n    StringBuilder sb = new StringBuilder();\n    for (int i = 0; i < 1000; i++) {\n        sb.append("x");\n    }\n    String largeInput = sb.toString();\n    \n    // Act\n    long startTime = System.currentTimeMillis();\n    String result = ${functionName}(largeInput);\n    long endTime = System.currentTimeMillis();\n    \n    // Assert\n    assertTrue(endTime - startTime < 1000); // Should complete in under 1 second\n}`,
         concurrency: `@Test\npublic void test${functionName}Concurrency() throws InterruptedException {\n    // Arrange\n    final List<String> results = new CopyOnWriteArrayList<>();\n    int threadCount = 5;\n    CountDownLatch latch = new CountDownLatch(threadCount);\n    \n    // Act\n    for (int i = 0; i < threadCount; i++) {\n        new Thread(() -> {\n            results.add(${functionName}("input"));\n            latch.countDown();\n        }).start();\n    }\n    latch.await(5, TimeUnit.SECONDS);\n    \n    // Assert\n    assertEquals(threadCount, results.size());\n}`
       },
-      // Add more languages as needed...
+      'cpp': {
+        positive: `TEST(${functionName}Test, ValidInput) {\n    // Arrange\n    std::string input = "example_input";\n    std::string expected = "expected_output";\n    \n    // Act\n    std::string result = ${functionName}(input);\n    \n    // Assert\n    EXPECT_EQ(expected, result);\n    EXPECT_FALSE(result.empty());\n}`,
+        negative: `TEST(${functionName}Test, InvalidInput) {\n    // Arrange & Act & Assert\n    EXPECT_THROW(${functionName}(nullptr), std::invalid_argument);\n}`,
+        edge: `TEST(${functionName}Test, EdgeCase) {\n    // Arrange\n    std::string input = "";\n    \n    // Act\n    std::string result = ${functionName}(input);\n    \n    // Assert\n    EXPECT_EQ("", result);\n}`,
+        performance: `TEST(${functionName}Test, Performance) {\n    // Arrange\n    std::string largeInput(1000, 'x');\n    \n    // Act\n    auto startTime = std::chrono::high_resolution_clock::now();\n    std::string result = ${functionName}(largeInput);\n    auto endTime = std::chrono::high_resolution_clock::now();\n    \n    // Assert\n    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();\n    EXPECT_LT(duration, 1000); // Should complete in under 1 second\n}`,
+        concurrency: `TEST(${functionName}Test, Concurrency) {\n    // Arrange\n    std::vector<std::string> results;\n    std::mutex mutex;\n    std::vector<std::thread> threads;\n    \n    // Act\n    for (int i = 0; i < 5; i++) {\n        threads.push_back(std::thread([&mutex, &results](){\n            std::string result = ${functionName}("input");\n            std::lock_guard<std::mutex> lock(mutex);\n            results.push_back(result);\n        }));\n    }\n    \n    for (auto& thread : threads) {\n        thread.join();\n    }\n    \n    // Assert\n    EXPECT_EQ(5, results.size());\n}`
+      },
+      'ruby': {
+        positive: `test "${functionName} with valid input" do\n    # Arrange\n    input = "example_input"\n    expected = "expected_output"\n    \n    # Act\n    result = ${functionName}(input)\n    \n    # Assert\n    assert_equal expected, result\n    assert_not_nil result\nend`,
+        negative: `test "${functionName} with invalid input" do\n    # Arrange & Act & Assert\n    assert_raises(ArgumentError) do\n        ${functionName}(nil)\n    end\nend`,
+        edge: `test "${functionName} with edge case" do\n    # Arrange\n    input = ""\n    \n    # Act\n    result = ${functionName}(input)\n    \n    # Assert\n    assert_equal "", result\nend`,
+        performance: `test "${functionName} performance" do\n    # Arrange\n    large_input = "x" * 1000\n    \n    # Act\n    start_time = Time.now\n    result = ${functionName}(large_input)\n    end_time = Time.now\n    \n    # Assert\n    assert (end_time - start_time) < 1.0  # Should complete in under 1 second\nend`,
+        concurrency: `test "${functionName} concurrency" do\n    # Arrange\n    results = []\n    threads = []\n    mutex = Mutex.new\n    \n    # Act\n    5.times do\n        threads << Thread.new do\n            result = ${functionName}("input")\n            mutex.synchronize { results << result }\n        end\n    end\n    threads.each(&:join)\n    \n    # Assert\n    assert_equal 5, results.size\nend`
+      },
+      'go': {
+        positive: `func Test${functionName}ValidInput(t *testing.T) {\n    // Arrange\n    input := "example_input"\n    expected := "expected_output"\n    \n    // Act\n    result := ${functionName}(input)\n    \n    // Assert\n    if result != expected {\n        t.Errorf("Expected %s, got %s", expected, result)\n    }\n    if result == "" {\n        t.Error("Result should not be empty")\n    }\n}`,
+        negative: `func Test${functionName}InvalidInput(t *testing.T) {\n    // Arrange & Act & Assert\n    defer func() {\n        if r := recover(); r == nil {\n            t.Error("Expected function to panic with nil input, but it didn't")\n        }\n    }()\n    ${functionName}(nil)\n}`,
+        edge: `func Test${functionName}EdgeCase(t *testing.T) {\n    // Arrange\n    input := ""\n    \n    // Act\n    result := ${functionName}(input)\n    \n    // Assert\n    if result != "" {\n        t.Errorf("Expected empty string, got %s", result)\n    }\n}`,
+        performance: `func Test${functionName}Performance(t *testing.T) {\n    // Arrange\n    largeInput := strings.Repeat("x", 1000)\n    \n    // Act\n    startTime := time.Now()\n    result := ${functionName}(largeInput)\n    endTime := time.Now()\n    \n    // Assert\n    duration := endTime.Sub(startTime)\n    if duration.Milliseconds() > 1000 {\n        t.Errorf("Function took too long: %v", duration)\n    }\n    if result == "" {\n        t.Error("Result should not be empty")\n    }\n}`,
+        concurrency: `func Test${functionName}Concurrency(t *testing.T) {\n    // Arrange\n    var wg sync.WaitGroup\n    var mu sync.Mutex\n    results := make([]string, 0, 5)\n    \n    // Act\n    for i := 0; i < 5; i++ {\n        wg.Add(1)\n        go func() {\n            defer wg.Done()\n            result := ${functionName}("input")\n            mu.Lock()\n            results = append(results, result)\n            mu.Unlock()\n        }()\n    }\n    wg.Wait()\n    \n    // Assert\n    if len(results) != 5 {\n        t.Errorf("Expected 5 results, got %d", len(results))\n    }\n}`
+      },
+      'rust': {
+        positive: `#[test]\nfn test_${functionName}_valid_input() {\n    // Arrange\n    let input = "example_input";\n    let expected = "expected_output";\n    \n    // Act\n    let result = ${functionName}(input);\n    \n    // Assert\n    assert_eq!(expected, result);\n    assert!(!result.is_empty());\n}`,
+        negative: `#[test]\n#[should_panic]\nfn test_${functionName}_invalid_input() {\n    // Arrange & Act & Assert\n    ${functionName}(None);\n}`,
+        edge: `#[test]\nfn test_${functionName}_edge_case() {\n    // Arrange\n    let input = "";\n    \n    // Act\n    let result = ${functionName}(input);\n    \n    // Assert\n    assert_eq!("", result);\n}`,
+        performance: `#[test]\nfn test_${functionName}_performance() {\n    // Arrange\n    let large_input = "x".repeat(1000);\n    \n    // Act\n    let start_time = std::time::Instant::now();\n    let result = ${functionName}(&large_input);\n    let duration = start_time.elapsed();\n    \n    // Assert\n    assert!(duration < std::time::Duration::from_secs(1)); // Should complete in under 1 second\n    assert!(!result.is_empty());\n}`,
+        concurrency: `#[test]\nfn test_${functionName}_concurrency() {\n    // Arrange\n    use std::sync::{Arc, Mutex};\n    use std::thread;\n    \n    let results = Arc::new(Mutex::new(Vec::new()));\n    let mut handles = vec![];\n    \n    // Act\n    for _ in 0..5 {\n        let results_clone = Arc::clone(&results);\n        let handle = thread::spawn(move || {\n            let result = ${functionName}("input");\n            let mut results = results_clone.lock().unwrap();\n            results.push(result);\n        });\n        handles.push(handle);\n    }\n    \n    for handle in handles {\n        handle.join().unwrap();\n    }\n    \n    // Assert\n    let final_results = results.lock().unwrap();\n    assert_eq!(5, final_results.len());\n}`
+      },
+      'c': {
+        positive: `void test_${functionName}_valid_input(void) {\n    // Arrange\n    char input[] = "example_input";\n    char expected[] = "expected_output";\n    \n    // Act\n    char* result = ${functionName}(input);\n    \n    // Assert\n    TEST_ASSERT_EQUAL_STRING(expected, result);\n    TEST_ASSERT_NOT_NULL(result);\n    free(result);\n}`,
+        negative: `void test_${functionName}_invalid_input(void) {\n    // Arrange & Act & Assert\n    TEST_ASSERT_NULL(${functionName}(NULL));\n}`,
+        edge: `void test_${functionName}_edge_case(void) {\n    // Arrange\n    char input[] = "";\n    \n    // Act\n    char* result = ${functionName}(input);\n    \n    // Assert\n    TEST_ASSERT_EQUAL_STRING("", result);\n    free(result);\n}`,
+        performance: `void test_${functionName}_performance(void) {\n    // Arrange\n    char* large_input = malloc(1001);\n    memset(large_input, 'x', 1000);\n    large_input[1000] = '\\0';\n    \n    // Act\n    clock_t start_time = clock();\n    char* result = ${functionName}(large_input);\n    clock_t end_time = clock();\n    \n    // Assert\n    double time_spent = (double)(end_time - start_time) / CLOCKS_PER_SEC;\n    TEST_ASSERT_TRUE(time_spent < 1.0); // Should complete in under 1 second\n    TEST_ASSERT_NOT_NULL(result);\n    \n    free(large_input);\n    free(result);\n}`,
+        concurrency: `// Note: C doesn't have standard threading, this would depend on your platform\nvoid test_${functionName}_basic_functionality(void) {\n    // Arrange\n    char input[] = "example_input";\n    \n    // Act\n    char* result = ${functionName}(input);\n    \n    // Assert\n    TEST_ASSERT_NOT_NULL(result);\n    free(result);\n}`
+      },
+      'csharp': {
+        positive: `[Test]\npublic void Test${functionName}ValidInput()\n{\n    // Arrange\n    string input = "example_input";\n    string expected = "expected_output";\n    \n    // Act\n    string result = ${functionName}(input);\n    \n    // Assert\n    Assert.AreEqual(expected, result);\n    Assert.IsNotNull(result);\n}`,
+        negative: `[Test]\npublic void Test${functionName}InvalidInput()\n{\n    // Arrange & Act & Assert\n    Assert.Throws<ArgumentException>(() => ${functionName}(null));\n}`,
+        edge: `[Test]\npublic void Test${functionName}EdgeCase()\n{\n    // Arrange\n    string input = "";\n    \n    // Act\n    string result = ${functionName}(input);\n    \n    // Assert\n    Assert.AreEqual("", result);\n}`,
+        performance: `[Test]\npublic void Test${functionName}Performance()\n{\n    // Arrange\n    string largeInput = new string('x', 1000);\n    \n    // Act\n    var stopwatch = Stopwatch.StartNew();\n    string result = ${functionName}(largeInput);\n    stopwatch.Stop();\n    \n    // Assert\n    Assert.Less(stopwatch.ElapsedMilliseconds, 1000); // Should complete in under 1 second\n    Assert.IsNotNull(result);\n}`,
+        concurrency: `[Test]\npublic void Test${functionName}Concurrency()\n{\n    // Arrange\n    var results = new ConcurrentBag<string>();\n    \n    // Act\n    Parallel.For(0, 5, _ =>\n    {\n        results.Add(${functionName}("input"));\n    });\n    \n    // Assert\n    Assert.AreEqual(5, results.Count);\n}`
+      },
+      'php': {
+        positive: `public function test${functionName}ValidInput(): void\n{\n    // Arrange\n    $input = "example_input";\n    $expected = "expected_output";\n    \n    // Act\n    $result = ${functionName}($input);\n    \n    // Assert\n    $this->assertEquals($expected, $result);\n    $this->assertNotEmpty($result);\n}`,
+        negative: `public function test${functionName}InvalidInput(): void\n{\n    // Arrange & Act & Assert\n    $this->expectException(\\InvalidArgumentException::class);\n    ${functionName}(null);\n}`,
+        edge: `public function test${functionName}EdgeCase(): void\n{\n    // Arrange\n    $input = "";\n    \n    // Act\n    $result = ${functionName}($input);\n    \n    // Assert\n    $this->assertEquals("", $result);\n}`,
+        performance: `public function test${functionName}Performance(): void\n{\n    // Arrange\n    $largeInput = str_repeat("x", 1000);\n    \n    // Act\n    $startTime = microtime(true);\n    $result = ${functionName}($largeInput);\n    $endTime = microtime(true);\n    \n    // Assert\n    $this->assertLessThan(1.0, $endTime - $startTime); // Should complete in under 1 second\n    $this->assertNotEmpty($result);\n}`,
+        concurrency: `public function test${functionName}BasicFunctionality(): void\n{\n    // PHP doesn't have native threading in its test framework, so we'll test basic functionality\n    // Arrange\n    $input = "example_input";\n    \n    // Act\n    $result = ${functionName}($input);\n    \n    // Assert\n    $this->assertNotEmpty($result);\n}`
+      }
     };
     
     // Default to Python if language isn't supported
@@ -175,7 +223,8 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
   // Generate generic test cases for when we can't extract function names
   const generateGenericTestCases = (language: string) => {
     const moduleName = fileName?.split('.')[0] || 'module';
-    const templates: Record<string, any> = {
+    
+    const templates: Record<string, any[]> = {
       'python': [
         { 
           name: "Test module initialization", 
@@ -200,7 +249,102 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
           code: `test('${moduleName} module has expected functionality', () => {\n  // Arrange\n  const module = require('./${moduleName}');\n  \n  // Act & Assert\n  // Replace with actual functionality test\n  expect(typeof module).toBe('object');\n});`
         }
       ],
-      // Add templates for other languages...
+      'typescript': [
+        { 
+          name: "Test module import", 
+          type: "Positive Case",
+          code: `test('${moduleName} module can be imported', () => {\n  // Arrange & Act\n  const module = require('./${moduleName}');\n  \n  // Assert\n  expect(module).toBeDefined();\n});`
+        },
+        { 
+          name: "Test module functionality", 
+          type: "Functional Test",
+          code: `test('${moduleName} module has expected functionality', () => {\n  // Arrange\n  const module = require('./${moduleName}');\n  \n  // Act & Assert\n  // Replace with actual functionality test\n  expect(typeof module).toBe('object');\n});`
+        }
+      ],
+      'java': [
+        { 
+          name: "Test class initialization", 
+          type: "Positive Case",
+          code: `@Test\npublic void test${moduleName}Initialization() {\n    // Arrange & Act\n    ${moduleName} instance = new ${moduleName}();\n    \n    // Assert\n    assertNotNull(instance);\n}`
+        },
+        { 
+          name: "Test class functionality", 
+          type: "Functional Test",
+          code: `@Test\npublic void test${moduleName}Functionality() {\n    // Arrange\n    ${moduleName} instance = new ${moduleName}();\n    \n    // Act & Assert\n    // Replace with actual functionality test\n    assertTrue(true);\n}`
+        }
+      ],
+      'cpp': [
+        { 
+          name: "Test basic initialization", 
+          type: "Positive Case",
+          code: `TEST(${moduleName}Test, Initialization) {\n    // This is a basic test to ensure the test framework works\n    EXPECT_TRUE(true);\n}`
+        },
+        { 
+          name: "Test module functionality", 
+          type: "Functional Test",
+          code: `TEST(${moduleName}Test, BasicFunctionality) {\n    // Add your specific tests for ${moduleName} functionality\n    // This is just a placeholder\n    EXPECT_TRUE(true);\n}`
+        }
+      ],
+      'ruby': [
+        { 
+          name: "Test module loading", 
+          type: "Positive Case",
+          code: `test "can load ${moduleName} module" do\n    # Arrange & Act\n    require_relative '../${moduleName}'\n    \n    # Assert\n    assert Object.const_defined?(:${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)})\nend`
+        },
+        { 
+          name: "Test module functionality", 
+          type: "Functional Test",
+          code: `test "${moduleName} has expected functionality" do\n    # Arrange\n    require_relative '../${moduleName}'\n    \n    # Act & Assert\n    # Replace with actual functionality test\n    assert true\nend`
+        }
+      ],
+      'go': [
+        { 
+          name: "Test package import", 
+          type: "Positive Case",
+          code: `func TestPackageImport(t *testing.T) {\n    // This is a basic test to ensure the test framework works\n    if false {\n        t.Error("This should not fail")\n    }\n}`
+        },
+        { 
+          name: "Test basic functionality", 
+          type: "Functional Test",
+          code: `func TestBasicFunctionality(t *testing.T) {\n    // Add your specific tests for package functionality\n    // This is just a placeholder\n    if false {\n        t.Error("This should not fail")\n    }\n}`
+        }
+      ],
+      'c': [
+        { 
+          name: "Test basic functionality", 
+          type: "Positive Case",
+          code: `void test_basic_functionality(void) {\n    // This is a basic test to ensure the test framework works\n    TEST_ASSERT_TRUE(1);\n}`
+        },
+        { 
+          name: "Test module initialization", 
+          type: "Functional Test",
+          code: `void test_module_initialization(void) {\n    // Add your specific tests for module initialization\n    // This is just a placeholder\n    TEST_ASSERT_TRUE(1);\n}`
+        }
+      ],
+      'csharp': [
+        { 
+          name: "Test class initialization", 
+          type: "Positive Case",
+          code: `[Test]\npublic void Test${moduleName}Initialization()\n{\n    // Arrange & Act\n    var instance = new ${moduleName}();\n    \n    // Assert\n    Assert.IsNotNull(instance);\n}`
+        },
+        { 
+          name: "Test class functionality", 
+          type: "Functional Test",
+          code: `[Test]\npublic void Test${moduleName}Functionality()\n{\n    // Arrange\n    var instance = new ${moduleName}();\n    \n    // Act & Assert\n    // Replace with actual functionality test\n    Assert.IsTrue(true);\n}`
+        }
+      ],
+      'php': [
+        { 
+          name: "Test class instantiation", 
+          type: "Positive Case",
+          code: `public function testClassInstantiation(): void\n{\n    // Arrange & Act\n    $instance = new ${moduleName}();\n    \n    // Assert\n    $this->assertInstanceOf(${moduleName}::class, $instance);\n}`
+        },
+        { 
+          name: "Test class functionality", 
+          type: "Functional Test",
+          code: `public function testClassFunctionality(): void\n{\n    // Arrange\n    $instance = new ${moduleName}();\n    \n    // Act & Assert\n    // Replace with actual functionality test\n    $this->assertTrue(true);\n}`
+        }
+      ],
     };
     
     return templates[language] || templates['python'];

@@ -26,6 +26,11 @@ export default function FileUpload({ onFileUpload }: FileUploadProps) {
     }
   };
 
+  // Get accepted file extensions for code files
+  const getAcceptedFileTypes = () => {
+    return ".py,.js,.ts,.jsx,.tsx,.java,.cpp,.c,.cs,.go,.rb,.rs,.php,.sh,.sql,.html,.css";
+  };
+
   return (
     <Card className="border border-squadrun-primary/20">
       <CardContent className="p-6">
@@ -35,7 +40,7 @@ export default function FileUpload({ onFileUpload }: FileUploadProps) {
             ref={fileInputRef}
             onChange={handleFileChange}
             className="hidden"
-            accept=".py,.js,.java,.cpp,.c,.go,.rb,.rs,.sh,.html,.css,.ts,.jsx,.tsx,.php,.sql"
+            accept={getAcceptedFileTypes()}
           />
           <Button 
             onClick={handleBrowseClick}
