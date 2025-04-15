@@ -52,6 +52,17 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+                squadrun: {
+                    dark: '#1A1F2C',
+                    darker: '#221F26',
+                    primary: '#9b87f5',
+                    secondary: '#7E69AB',
+                    vivid: '#8B5CF6',
+                    light: '#D6BCFA',
+                    soft: '#E5DEFF',
+                    gray: '#8E9196',
+                    softGray: '#F1F0FB',
+                },
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
