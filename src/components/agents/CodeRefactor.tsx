@@ -8,7 +8,7 @@ import { ArrowRightCircle, Download, RefreshCw } from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
 import NoFileMessage from "@/components/refactor/NoFileMessage";
 import { refactorCode } from "@/utils/refactorUtils";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 interface CodeRefactorProps {
   fileContent: string | null;
@@ -39,15 +39,12 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
       // Perform the refactoring operation
       const result = refactorCode(fileContent, language, userInstructions);
       setRefactoredCode(result);
-      toast({
-        title: "Refactoring complete",
+      toast.success("Refactoring complete", {
         description: "Your code has been refactored successfully."
       });
     } catch (error) {
-      toast({
-        title: "Refactoring failed",
-        description: "An error occurred during refactoring.",
-        variant: "destructive"
+      toast.error("Refactoring failed", {
+        description: "An error occurred during refactoring."
       });
       console.error("Refactoring error:", error);
     } finally {
@@ -66,8 +63,7 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     element.click();
     document.body.removeChild(element);
     
-    toast({
-      title: "Download started",
+    toast.success("Download started", {
       description: `File saved as refactored-${fileName}`
     });
   };
