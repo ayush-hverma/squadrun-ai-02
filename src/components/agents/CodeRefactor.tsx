@@ -20,6 +20,7 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
   const [userInstructions, setUserInstructions] = useState<string>('');
+  const [refactoringMode, setRefactoringMode] = useState<string>('standard');
   
   useEffect(() => {
     // Reset states when fileContent changes
@@ -68,6 +69,13 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     });
   };
 
+  const refactoringModes = [
+    { id: 'standard', label: 'Standard Refactoring' },
+    { id: 'aggressive', label: 'Aggressive Refactoring' },
+    { id: 'readability', label: 'Improve Readability' },
+    { id: 'modularize', label: 'Modularize Code' }
+  ];
+
   if (!fileContent) {
     return <NoFileMessage />;
   }
@@ -77,9 +85,59 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
       <Card className="border border-squadrun-primary/20">
         <CardContent className="p-6">
           <h2 className="text-xl font-bold text-white mb-4">Code Refactoring</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="text-sm text-squadrun-gray mb-2 block">
+                Refactoring Mode
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {refactoringModes.map(mode => (
+                  <Button 
+                    key={mode.id}
+                    variant={refactoringMode === mode.id ? "default" : "outline"}
+                    onClick={() => {
+                      setRefactoringMode(mode.id);
+                      
+                      // Set default instructions based on mode
+                      switch(mode.id) {
+                        case 'aggressive':
+                          setUserInstructions('Extract constants, modularize functions, improve variable names, enhance error handling');
+                          break;
+                        case 'readability':
+                          setUserInstructions('Add meaningful comments, improve variable names, consistent formatting');
+                          break;
+                        case 'modularize':
+                          setUserInstructions('Break down large functions, extract utility functions');
+                          break;
+                        default:
+                          setUserInstructions('');
+                      }
+                    }}
+                    className={refactoringMode === mode.id 
+                      ? "bg-squadrun-primary hover:bg-squadrun-vivid text-white" 
+                      : "border-squadrun-primary/20 text-squadrun-gray hover:text-white"}
+                    size="sm"
+                  >
+                    {mode.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <label className="text-sm text-squadrun-gray mb-2 block">
+                Language Detected: <span className="text-squadrun-primary font-semibold">{language.toUpperCase()}</span>
+              </label>
+              <p className="text-sm text-squadrun-gray">
+                Language-specific refactoring will be applied based on the file extension
+              </p>
+            </div>
+          </div>
+          
           <div className="mb-4">
             <label className="text-sm text-squadrun-gray mb-2 block">
-              Refactoring Instructions (Optional)
+              Refactoring Instructions
             </label>
             <Textarea 
               placeholder="Enter any specific refactoring instructions here..." 
@@ -87,7 +145,11 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
               onChange={(e) => setUserInstructions(e.target.value)}
               className="min-h-[80px] bg-squadrun-darker border-squadrun-primary/20 text-white"
             />
+            <p className="text-xs text-squadrun-gray mt-1">
+              Examples: "extract constants", "modularize functions", "improve variable names", "add type hints"
+            </p>
           </div>
+          
           <div className="flex gap-2">
             <Button 
               onClick={handleRefactor} 
