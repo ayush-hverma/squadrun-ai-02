@@ -1,8 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Cpu } from "lucide-react";
-import CodeDisplay from "../CodeDisplay";
+import { Button } from "@/components/ui/button";
+import { Cpu, X } from "lucide-react";
 import { toast } from "sonner";
 import { QualityResults } from "@/types/codeQuality";
 import { analyzeCodeQuality } from "@/utils/qualityUtils/codeAnalyzer";
@@ -15,9 +15,6 @@ interface CodeQualityProps {
   fileName: string | null;
 }
 
-/**
- * Main component for code quality assessment
- */
 export default function CodeQuality({ fileContent, fileName }: CodeQualityProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [qualityResults, setQualityResults] = useState<QualityResults | null>(null);
@@ -79,6 +76,14 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     }
   };
 
+  // New clear method to reset the state
+  const handleClear = () => {
+    setQualityResults(null);
+    toast.success("Code quality analysis cleared", {
+      description: "You can now upload a new file."
+    });
+  };
+
   // When no file is selected, show the upload prompt
   if (!fileContent) {
     return <NoCodeMessage />;
@@ -106,8 +111,22 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
           </p>
         </div>
       ) : (
-        // Show analysis results once processing is complete
-        <AnalysisView qualityResults={qualityResults} fileName={fileName} />
+        <div className="flex flex-col h-full">
+          {/* Show analysis results once processing is complete */}
+          <AnalysisView qualityResults={qualityResults} fileName={fileName} />
+          
+          {/* Add clear button */}
+          <div className="mt-4 flex justify-center">
+            <Button 
+              onClick={handleClear} 
+              variant="destructive"
+              className="bg-red-500 hover:bg-red-600"
+            >
+              <X className="mr-2 h-4 w-4" />
+              Clear Analysis
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

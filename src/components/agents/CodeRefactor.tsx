@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,7 +6,8 @@ import {
   ArrowRightCircle, 
   Download, 
   RefreshCw,
-  Cpu
+  Cpu,
+  X
 } from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
 import NoFileMessage from "@/components/refactor/NoFileMessage";
@@ -26,7 +26,6 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
   const [language, setLanguage] = useState<string>('js');
   
   useEffect(() => {
-    // Reset states when fileContent changes
     setRefactoredCode(null);
     if (fileName) {
       const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
@@ -40,29 +39,24 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     setIsRefactoring(true);
     
     try {
-      // Comprehensive instructions for refactoring
       const instructions = 'improve readability, enhance maintainability, optimize performance, fix security issues, apply DRY principles';
       
       let result: string;
       
-      // Try AI-powered refactoring first, fall back to built-in refactorer
       if (isOpenAIConfigured()) {
         try {
-          // Use OpenAI for refactoring
           result = await refactorCodeWithAI(fileContent, language);
           toast.success("AI-powered refactoring complete", {
             description: "Your code has been refactored using advanced AI techniques."
           });
         } catch (error) {
           console.warn("AI refactoring failed, falling back to built-in refactorer:", error);
-          // Fall back to built-in refactorer
           result = refactorCode(fileContent, language, instructions);
           toast.info("Using built-in refactoring tools", {
             description: "AI refactoring unavailable. Using standard refactoring techniques."
           });
         }
       } else {
-        // Use built-in refactorer
         result = refactorCode(fileContent, language, instructions);
         toast.success("Refactoring complete", {
           description: "Your code has been refactored successfully."
@@ -88,7 +82,6 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     const file = new Blob([refactoredCode], { type: "text/plain" });
     element.href = URL.createObjectURL(file);
     
-    // Add 'refactored' to the filename before the extension
     const fileNameParts = fileName.split(".");
     const extension = fileNameParts.pop();
     const newFileName = fileNameParts.join(".") + "-refactored." + extension;
@@ -100,6 +93,13 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     
     toast.success("Download started", {
       description: `File saved as ${newFileName}`
+    });
+  };
+
+  const handleClear = () => {
+    setRefactoredCode(null);
+    toast.success("Refactored code cleared", {
+      description: "You can now upload a new file."
     });
   };
 
@@ -165,14 +165,24 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
               )}
             </Button>
             {refactoredCode && (
-              <Button 
-                onClick={handleDownload} 
-                variant="outline"
-                className="border-squadrun-primary text-squadrun-primary hover:bg-squadrun-primary/10"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download Refactored Code
-              </Button>
+              <>
+                <Button 
+                  onClick={handleDownload} 
+                  variant="outline"
+                  className="border-squadrun-primary text-squadrun-primary hover:bg-squadrun-primary/10"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Refactored Code
+                </Button>
+                <Button 
+                  onClick={handleClear} 
+                  variant="destructive"
+                  className="bg-red-500 hover:bg-red-600"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Clear
+                </Button>
+              </>
             )}
           </div>
         </CardContent>
