@@ -1,7 +1,7 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlayCircle, Server, FileDown, ChevronsUpDown } from "lucide-react";
 import {
@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/accordion";
 import CodeDisplay from "../CodeDisplay";
 import { useToast } from "@/hooks/use-toast";
+import { AutogrowingTextarea } from "@/components/ui/autogrowing-textarea";
 
 interface ApiCreatorProps {
   fileContent?: string | null;
@@ -1274,11 +1275,11 @@ module.exports = router;`
             <CardTitle className="text-lg">Describe Your API Requirements</CardTitle>
           </CardHeader>
           <CardContent className="h-[calc(100%-60px)]">
-            <Textarea 
+            <AutogrowingTextarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the API you want to create. You can include details about endpoints, data models, authentication requirements, etc."
-              className="min-h-[300px] bg-squadrun-darker border-squadrun-primary/20 text-white resize-none"
+              className="bg-squadrun-darker border-squadrun-primary/20 text-white"
             />
           </CardContent>
         </Card>
