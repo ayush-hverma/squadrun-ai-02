@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cpu } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
@@ -22,6 +22,13 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
   const [isProcessing, setIsProcessing] = useState(false);
   const [qualityResults, setQualityResults] = useState<QualityResults | null>(null);
   
+  // Analyze code when file content changes
+  useEffect(() => {
+    if (fileContent && !qualityResults && !isProcessing) {
+      analyzeCode();
+    }
+  }, [fileContent, qualityResults, isProcessing]);
+
   // When a file is loaded, automatically analyze it
   const analyzeCode = async () => {
     if (!fileContent) return;
@@ -32,24 +39,30 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       const language = fileName?.split('.').pop() || 'javascript';
       let results: QualityResults;
       
-      // Try to use AI-powered analysis first, fall back to built-in analyzer
-      if (isOpenAIConfigured()) {
+      // Check if file is small enough for quick analysis
+      const isSmallFile = fileContent.split('\n').length < 500;
+      
+      if (isOpenAIConfigured() && !isSmallFile) {
         try {
+          toast.info("Analyzing code with AI...", {
+            description: "This may take a moment for larger files.",
+          });
+          
           results = await analyzeCodeQualityWithAI(fileContent, language);
-          toast.success("AI-powered code quality analysis complete", {
+          toast.success("AI-powered analysis complete", {
             description: `Overall Score: ${results.score}/100`,
           });
         } catch (error) {
-          console.warn("AI analysis failed, falling back to built-in analyzer:", error);
+          console.warn("AI analysis failed, using built-in analyzer:", error);
           results = analyzeCodeQuality(fileContent, language);
-          toast.info("Using built-in code analyzer", {
-            description: "AI analysis unavailable. Using standard analysis tools.",
+          toast.info("Using built-in analyzer", {
+            description: "AI analysis unavailable. Using standard tools.",
           });
         }
       } else {
-        // Use the built-in analyzer if OpenAI is not configured
+        // Use the faster built-in analyzer
         results = analyzeCodeQuality(fileContent, language);
-        toast.success("Code Quality Assessment Complete", {
+        toast.success("Analysis Complete", {
           description: `Overall Score: ${results.score}/100`,
         });
       }
@@ -57,21 +70,14 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       setQualityResults(results);
       
     } catch (error) {
-      console.error("Quality assessment error:", error);
+      console.error("Analysis error:", error);
       toast.error("Error Assessing Code Quality", {
-        description: "There was an issue analyzing your code. Please try again.",
+        description: "Please try again with a different file.",
       });
     } finally {
       setIsProcessing(false);
     }
   };
-
-  // Automatically analyze when a file is loaded
-  useState(() => {
-    if (fileContent && !qualityResults && !isProcessing) {
-      analyzeCode();
-    }
-  });
 
   // When no file is selected, show the upload prompt
   if (!fileContent) {
@@ -95,7 +101,7 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
           </div>
           <h2 className="text-xl font-medium text-white mb-2">Analyzing Code Quality</h2>
           <p className="text-squadrun-gray text-center max-w-md">
-            We're examining your code for quality metrics across multiple dimensions including
+            We're examining your code for quality metrics including
             readability, maintainability, performance, security, and code smell.
           </p>
         </div>
