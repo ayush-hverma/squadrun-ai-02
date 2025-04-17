@@ -15,7 +15,7 @@ interface OpenAIConfig {
 const defaultConfig: OpenAIConfig = {
   apiKey: "sk-svcacct-Gs5xM29XI4feRXOfXiuoK3yEj8an31BG8QZOWuQNOIec9K88D9XKHo7S6B2jXW6bab8oeNzOaT3BlbkFJHmVbdYTPYIdD8R8ho4sAqCvPy0vCPPjoSuyeOCMo3e6voSLxm8izpYTtK6trBysm7SUsYvQmAA", // Replace with your actual API key
   model: "gpt-4o", // Use the latest model
-  temperature: 0.2, // Lower temperature for more deterministic results
+  temperature: 0.1, // Lower temperature for more deterministic results
   maxTokens: 8192 // Sufficient tokens for code analysis
 };
 
@@ -61,7 +61,7 @@ export const analyzeCodeWithAI = async (
   // Get API key from config
   const apiKey = openAIConfig.apiKey;
   
-  if (!apiKey || apiKey === "YOUR_OPENAI_API_KEY") {
+  if (!apiKey || apiKey === "sk-svcacct-Gs5xM29XI4feRXOfXiuoK3yEj8an31BG8QZOWuQNOIec9K88D9XKHo7S6B2jXW6bab8oeNzOaT3BlbkFJHmVbdYTPYIdD8R8ho4sAqCvPy0vCPPjoSuyeOCMo3e6voSLxm8izpYTtK6trBysm7SUsYvQmAA") {
     throw new Error("OpenAI API key not configured properly in the source code. Please update the API key in openAiUtils.ts");
   }
   
