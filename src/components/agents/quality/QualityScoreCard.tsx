@@ -1,8 +1,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
-  LucideThumbsDown, 
-  LucideThumbsUp, 
+  ThumbsUp, 
+  ThumbsDown, 
   AlertTriangle, 
   AlertCircle, 
   BadgeCheck,
@@ -50,11 +50,11 @@ const QualityScoreCard = ({ score, summary }: QualityScoreCardProps) => {
   const getScoreIcon = () => {
     if (score >= 90) return <Award className="h-8 w-8 text-emerald-500" />;
     if (score >= 80) return <BadgeCheck className="h-8 w-8 text-green-500" />;
-    if (score >= 70) return <LucideThumbsUp className="h-8 w-8 text-blue-500" />;
+    if (score >= 70) return <ThumbsUp className="h-8 w-8 text-blue-500" />;
     if (score >= 60) return <Zap className="h-8 w-8 text-yellow-500" />;
     if (score >= 50) return <AlertTriangle className="h-8 w-8 text-amber-500" />;
     if (score >= 40) return <AlertCircle className="h-8 w-8 text-orange-500" />;
-    if (score >= 30) return <LucideThumbsDown className="h-8 w-8 text-red-400" />;
+    if (score >= 30) return <ThumbsDown className="h-8 w-8 text-red-400" />;
     if (score >= 20) return <XCircle className="h-8 w-8 text-red-500" />;
     return <XCircle className="h-8 w-8 text-red-600" />;
   };

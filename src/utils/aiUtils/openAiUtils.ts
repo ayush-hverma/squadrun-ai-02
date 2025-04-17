@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 
 /**
@@ -6,59 +5,49 @@ import { toast } from "sonner";
  */
 
 interface OpenAIConfig {
-  apiKey: string | null;
+  apiKey: string;
   model?: string;
   temperature?: number;
   maxTokens?: number;
 }
 
-// Default configuration
+// Default configuration with hardcoded API key
 const defaultConfig: OpenAIConfig = {
-  apiKey: null,
-  model: "gpt-4-0125-preview",  // Default to a coding-capable model
-  temperature: 0.2,             // Lower temperature for more deterministic results
-  maxTokens: 8192              // Sufficient tokens for code analysis
+  apiKey: "YOUR_OPENAI_API_KEY", // Replace with your actual API key
+  model: "gpt-4o", // Use the latest model
+  temperature: 0.2, // Lower temperature for more deterministic results
+  maxTokens: 8192 // Sufficient tokens for code analysis
 };
 
-// Global configuration that can be updated
+// Global configuration
 let openAIConfig: OpenAIConfig = { ...defaultConfig };
 
 /**
  * Set the OpenAI API key and optional configuration
  */
-export const configureOpenAI = (config: OpenAIConfig): void => {
-  openAIConfig = { ...defaultConfig, ...config };
-  
-  // Store API key in localStorage for persistence (encrypted in production)
-  if (config.apiKey) {
-    try {
-      localStorage.setItem('openai_api_key', config.apiKey);
-    } catch (error) {
-      console.error("Failed to store API key:", error);
-    }
-  }
+export const configureOpenAI = (config: Partial<OpenAIConfig>): void => {
+  openAIConfig = { ...openAIConfig, ...config };
 };
 
 /**
  * Check if OpenAI is configured with an API key
  */
 export const isOpenAIConfigured = (): boolean => {
-  return Boolean(openAIConfig.apiKey || localStorage.getItem('openai_api_key'));
+  return Boolean(openAIConfig.apiKey && openAIConfig.apiKey !== "YOUR_OPENAI_API_KEY");
 };
 
 /**
- * Get the stored API key if available
+ * Get the stored API key
  */
-export const getStoredApiKey = (): string | null => {
-  return localStorage.getItem('openai_api_key');
+export const getStoredApiKey = (): string => {
+  return openAIConfig.apiKey;
 };
 
 /**
  * Clear the stored API key
  */
 export const clearApiKey = (): void => {
-  localStorage.removeItem('openai_api_key');
-  openAIConfig.apiKey = null;
+  openAIConfig.apiKey = defaultConfig.apiKey;
 };
 
 /**
@@ -69,11 +58,11 @@ export const analyzeCodeWithAI = async (
   language: string,
   analysisType: 'quality' | 'refactor'
 ): Promise<any> => {
-  // Get API key from config or localStorage
-  const apiKey = openAIConfig.apiKey || localStorage.getItem('openai_api_key');
+  // Get API key from config
+  const apiKey = openAIConfig.apiKey;
   
-  if (!apiKey) {
-    throw new Error("OpenAI API key not configured. Please set up your API key.");
+  if (!apiKey || apiKey === "YOUR_OPENAI_API_KEY") {
+    throw new Error("OpenAI API key not configured properly in the source code. Please update the API key in openAiUtils.ts");
   }
   
   try {
@@ -132,7 +121,7 @@ const getPromptForAnalysis = (code: string, language: string, analysisType: 'qua
           {"name": "Maintainability", "score": <score from 0-100>},
           {"name": "Performance", "score": <score from 0-100>},
           {"name": "Security", "score": <score from 0-100>},
-          {"name": "Best Practices", "score": <score from 0-100>}
+          {"name": "Code Smell", "score": <score from 0-100>}
         ],
         "recommendations": [
           "<recommendation 1>",
