@@ -8,9 +8,11 @@ import {
   Download, 
   RefreshCw,
   Cpu,
-  X
+  X,
+  DiffIcon
 } from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
+import CodeComparison from "@/components/CodeComparison";
 import NoFileMessage from "@/components/refactor/NoFileMessage";
 import { refactorCode } from "@/utils/qualityUtils/refactors";
 import { refactorCodeWithAI, isOpenAIConfigured } from "@/utils/aiUtils/openAiUtils";
@@ -25,6 +27,7 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
   const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
+  const [viewMode, setViewMode] = useState<'codeView' | 'comparisonView'>('codeView');
   
   useEffect(() => {
     // Reset states when fileContent changes
@@ -75,6 +78,8 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
       }
       
       setRefactoredCode(result);
+      // Automatically switch to comparison view when refactoring completes
+      setViewMode('comparisonView');
       
     } catch (error) {
       console.error("Refactoring error:", error);
@@ -110,6 +115,7 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
 
   const handleClear = () => {
     setRefactoredCode(null);
+    setViewMode('codeView');
     toast.success("Refactoring cleared", {
       description: "You can now upload a new file."
     });
@@ -193,6 +199,14 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
                   <X className="mr-2 h-4 w-4" />
                   Clear
                 </Button>
+                <Button
+                  onClick={() => setViewMode(viewMode === 'codeView' ? 'comparisonView' : 'codeView')}
+                  variant="outline"
+                  className="border-squadrun-primary text-squadrun-primary hover:bg-squadrun-primary/10 ml-auto"
+                >
+                  <DiffIcon className="mr-2 h-4 w-4" />
+                  {viewMode === 'codeView' ? 'Show Comparison' : 'Standard View'}
+                </Button>
               </>
             )}
           </div>
@@ -200,26 +214,40 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
       </Card>
 
       <div className="flex-1 overflow-hidden">
-        <Tabs defaultValue="original" className="h-full">
-          <TabsList className="bg-squadrun-darker">
-            <TabsTrigger value="original">Original Code</TabsTrigger>
-            <TabsTrigger value="refactored" disabled={!refactoredCode}>
-              Refactored Code
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="original" className="h-[calc(100%-40px)] overflow-hidden">
-            <CodeDisplay code={fileContent} language={language} />
-          </TabsContent>
-          <TabsContent value="refactored" className="h-[calc(100%-40px)] overflow-hidden">
-            {refactoredCode ? (
-              <CodeDisplay code={refactoredCode} language={language} />
-            ) : (
-              <div className="flex items-center justify-center h-full bg-squadrun-darker rounded-md p-4">
-                <p className="text-squadrun-gray">Click "Refactor Code" to see the refactored version</p>
-              </div>
-            )}
-          </TabsContent>
-        </Tabs>
+        {viewMode === 'codeView' ? (
+          <Tabs defaultValue="original" className="h-full">
+            <TabsList className="bg-squadrun-darker">
+              <TabsTrigger value="original">Original Code</TabsTrigger>
+              <TabsTrigger value="refactored" disabled={!refactoredCode}>
+                Refactored Code
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="original" className="h-[calc(100%-40px)] overflow-hidden">
+              <CodeDisplay code={fileContent} language={language} />
+            </TabsContent>
+            <TabsContent value="refactored" className="h-[calc(100%-40px)] overflow-hidden">
+              {refactoredCode ? (
+                <CodeDisplay code={refactoredCode} language={language} />
+              ) : (
+                <div className="flex items-center justify-center h-full bg-squadrun-darker rounded-md p-4">
+                  <p className="text-squadrun-gray">Click "Refactor Code" to see the refactored version</p>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
+        ) : (
+          refactoredCode ? (
+            <CodeComparison 
+              originalCode={fileContent} 
+              refactoredCode={refactoredCode} 
+              language={language} 
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full bg-squadrun-darker rounded-md p-4">
+              <p className="text-squadrun-gray">Click "Refactor Code" to generate a comparison</p>
+            </div>
+          )
+        )}
       </div>
     </div>
   );
