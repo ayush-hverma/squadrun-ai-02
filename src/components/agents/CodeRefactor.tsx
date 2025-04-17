@@ -1,13 +1,20 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowRightCircle, Download, RefreshCw } from "lucide-react";
+import { 
+  ArrowRightCircle, 
+  Download, 
+  RefreshCw,
+  Cpu,
+  Check,
+  AlertTriangle
+} from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
 import NoFileMessage from "@/components/refactor/NoFileMessage";
-import { refactorCode } from "@/utils/qualityUtils/refactors";
+import { refactorCode } from "@/utils/refactorUtils";
 import { toast } from "sonner";
 
 interface CodeRefactorProps {
@@ -20,6 +27,13 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
   const [userInstructions, setUserInstructions] = useState<string>('');
+  const [refactorOptions, setRefactorOptions] = useState({
+    optimizeReadability: true,
+    improveMaintainability: true,
+    enhancePerformance: true,
+    fixSecurity: true,
+    applyDRY: true
+  });
   
   useEffect(() => {
     // Reset states when fileContent changes
@@ -30,23 +44,36 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     }
   }, [fileContent, fileName]);
 
-  const handleRefactor = () => {
+  const handleRefactor = async () => {
     if (!fileContent) return;
     
     setIsRefactoring(true);
     
     try {
-      // Perform the refactoring operation
-      const result = refactorCode(fileContent, language);
+      // Create refactoring instructions based on selected options
+      const instructions = [
+        ...(refactorOptions.optimizeReadability ? ['improve readability'] : []),
+        ...(refactorOptions.improveMaintainability ? ['enhance maintainability'] : []),
+        ...(refactorOptions.enhancePerformance ? ['optimize performance'] : []),
+        ...(refactorOptions.fixSecurity ? ['fix security issues'] : []),
+        ...(refactorOptions.applyDRY ? ['apply DRY principles'] : []),
+        userInstructions
+      ].filter(Boolean).join(', ');
+      
+      // Perform the refactoring operation with the comprehensive utility
+      // Small delay to show the processing state
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const result = refactorCode(fileContent, language, instructions);
       setRefactoredCode(result);
+      
       toast.success("Refactoring complete", {
         description: "Your code has been refactored successfully."
       });
     } catch (error) {
-      toast.error("Refactoring failed", {
-        description: "An error occurred during refactoring."
-      });
       console.error("Refactoring error:", error);
+      toast.error("Refactoring failed", {
+        description: error instanceof Error ? error.message : "An error occurred during refactoring."
+      });
     } finally {
       setIsRefactoring(false);
     }
@@ -58,14 +85,27 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     const element = document.createElement("a");
     const file = new Blob([refactoredCode], { type: "text/plain" });
     element.href = URL.createObjectURL(file);
-    element.download = `refactored-${fileName}`;
+    
+    // Add 'refactored' to the filename before the extension
+    const fileNameParts = fileName.split(".");
+    const extension = fileNameParts.pop();
+    const newFileName = fileNameParts.join(".") + "-refactored." + extension;
+    
+    element.download = newFileName;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
     
     toast.success("Download started", {
-      description: `File saved as refactored-${fileName}`
+      description: `File saved as ${newFileName}`
     });
+  };
+
+  const toggleOption = (option: keyof typeof refactorOptions) => {
+    setRefactorOptions(prev => ({
+      ...prev,
+      [option]: !prev[option]
+    }));
   };
 
   if (!fileContent) {
@@ -75,22 +115,70 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
   return (
     <div className="p-4 h-full flex flex-col gap-4">
       <Card className="border border-squadrun-primary/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl font-bold text-white">Code Refactoring</CardTitle>
+        </CardHeader>
         <CardContent className="p-6">
-          <h2 className="text-xl font-bold text-white mb-4">Code Refactoring</h2>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <p className="text-sm text-squadrun-gray mb-2">
-                The refactorer will apply best practices for your code, including:
+                Select refactoring options:
               </p>
-              <ul className="list-disc pl-5 text-sm text-squadrun-gray space-y-1">
-                <li>Organizing imports and dependencies</li>
-                <li>Extracting constants and magic numbers</li>
-                <li>Improving variable names</li>
-                <li>Breaking down large functions</li>
-                <li>Adding proper error handling</li>
-                <li>Optimizing code structure</li>
-              </ul>
+              <div className="space-y-2">
+                <div className="flex items-center">
+                  <Button 
+                    variant={refactorOptions.optimizeReadability ? "default" : "outline"}
+                    size="sm" 
+                    className={`${refactorOptions.optimizeReadability ? 'bg-squadrun-primary' : 'border-squadrun-primary/40'} mr-2`}
+                    onClick={() => toggleOption('optimizeReadability')}
+                  >
+                    {refactorOptions.optimizeReadability ? <Check className="h-4 w-4 mr-1" /> : null}
+                    Readability
+                  </Button>
+                  
+                  <Button 
+                    variant={refactorOptions.improveMaintainability ? "default" : "outline"}
+                    size="sm" 
+                    className={`${refactorOptions.improveMaintainability ? 'bg-squadrun-primary' : 'border-squadrun-primary/40'} mr-2`}
+                    onClick={() => toggleOption('improveMaintainability')}
+                  >
+                    {refactorOptions.improveMaintainability ? <Check className="h-4 w-4 mr-1" /> : null}
+                    Maintainability
+                  </Button>
+                  
+                  <Button 
+                    variant={refactorOptions.enhancePerformance ? "default" : "outline"}
+                    size="sm" 
+                    className={`${refactorOptions.enhancePerformance ? 'bg-squadrun-primary' : 'border-squadrun-primary/40'}`}
+                    onClick={() => toggleOption('enhancePerformance')}
+                  >
+                    {refactorOptions.enhancePerformance ? <Check className="h-4 w-4 mr-1" /> : null}
+                    Performance
+                  </Button>
+                </div>
+                
+                <div className="flex items-center">
+                  <Button 
+                    variant={refactorOptions.fixSecurity ? "default" : "outline"}
+                    size="sm" 
+                    className={`${refactorOptions.fixSecurity ? 'bg-squadrun-primary' : 'border-squadrun-primary/40'} mr-2`}
+                    onClick={() => toggleOption('fixSecurity')}
+                  >
+                    {refactorOptions.fixSecurity ? <Check className="h-4 w-4 mr-1" /> : null}
+                    Security
+                  </Button>
+                  
+                  <Button 
+                    variant={refactorOptions.applyDRY ? "default" : "outline"}
+                    size="sm" 
+                    className={`${refactorOptions.applyDRY ? 'bg-squadrun-primary' : 'border-squadrun-primary/40'}`}
+                    onClick={() => toggleOption('applyDRY')}
+                  >
+                    {refactorOptions.applyDRY ? <Check className="h-4 w-4 mr-1" /> : null}
+                    DRY Principles
+                  </Button>
+                </div>
+              </div>
             </div>
             
             <div>
@@ -98,11 +186,14 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
                 Language Detected: <span className="text-squadrun-primary font-semibold">{language.toUpperCase()}</span>
               </label>
               <p className="text-sm text-squadrun-gray">
-                Language-specific refactoring will be applied based on the file extension
+                Complete code rewrite will be performed while preserving functionality
               </p>
-              <p className="text-sm text-squadrun-gray mt-2">
-                Supported languages: JavaScript, TypeScript, Python, C++, Java, and more
-              </p>
+              <div className="mt-4 flex items-center">
+                <Cpu className="text-squadrun-primary mr-2 h-5 w-5" />
+                <span className="text-sm text-squadrun-gray">
+                  {Object.values(refactorOptions).filter(Boolean).length} refactoring options enabled
+                </span>
+              </div>
             </div>
           </div>
           
@@ -117,7 +208,7 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
               className="min-h-[80px] bg-squadrun-darker border-squadrun-primary/20 text-white"
             />
             <p className="text-xs text-squadrun-gray mt-1">
-              Examples: "extract constants", "add type hints", "improve error handling"
+              Examples: "focus on function modularization", "improve error handling", "replace deprecated APIs"
             </p>
           </div>
           

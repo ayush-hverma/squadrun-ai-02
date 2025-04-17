@@ -1,6 +1,15 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LucideThumbsDown, LucideThumbsUp, AlertTriangle, AlertCircle, BadgeCheck } from "lucide-react";
+import { 
+  LucideThumbsDown, 
+  LucideThumbsUp, 
+  AlertTriangle, 
+  AlertCircle, 
+  BadgeCheck,
+  Award,
+  XCircle,
+  Zap
+} from "lucide-react";
 
 interface QualityScoreCardProps {
   score: number;
@@ -11,41 +20,65 @@ interface QualityScoreCardProps {
  * Card displaying the overall quality score with color coding and icons
  */
 const QualityScoreCard = ({ score, summary }: QualityScoreCardProps) => {
-  // Determine color based on score without predefined thresholds
+  // Determine color based on realistic score ranges
   const getScoreColor = () => {
-    if (score >= 90) return "border-green-500";
-    if (score >= 75) return "border-blue-500";
+    if (score >= 90) return "border-emerald-500";
+    if (score >= 80) return "border-green-500";
+    if (score >= 70) return "border-blue-500";
     if (score >= 60) return "border-yellow-500";
+    if (score >= 50) return "border-amber-500";
     if (score >= 40) return "border-orange-500";
-    return "border-red-500";
+    if (score >= 30) return "border-red-400";
+    if (score >= 20) return "border-red-500";
+    return "border-red-600";
   };
 
   // Determine text color based on score
   const getTextColor = () => {
-    if (score >= 90) return "text-green-500";
-    if (score >= 75) return "text-blue-500";
+    if (score >= 90) return "text-emerald-500";
+    if (score >= 80) return "text-green-500";
+    if (score >= 70) return "text-blue-500";
     if (score >= 60) return "text-yellow-500";
+    if (score >= 50) return "text-amber-500";
     if (score >= 40) return "text-orange-500";
-    return "text-red-500";
+    if (score >= 30) return "text-red-400";
+    if (score >= 20) return "text-red-500";
+    return "text-red-600";
   };
 
-  // Get appropriate icon based on score without predefined thresholds
+  // Get appropriate icon based on score
   const getScoreIcon = () => {
-    if (score >= 90) return <BadgeCheck className="h-8 w-8 text-green-500" />;
-    if (score >= 75) return <LucideThumbsUp className="h-8 w-8 text-blue-500" />;
-    if (score >= 60) return <AlertTriangle className="h-8 w-8 text-yellow-500" />;
+    if (score >= 90) return <Award className="h-8 w-8 text-emerald-500" />;
+    if (score >= 80) return <BadgeCheck className="h-8 w-8 text-green-500" />;
+    if (score >= 70) return <LucideThumbsUp className="h-8 w-8 text-blue-500" />;
+    if (score >= 60) return <Zap className="h-8 w-8 text-yellow-500" />;
+    if (score >= 50) return <AlertTriangle className="h-8 w-8 text-amber-500" />;
     if (score >= 40) return <AlertCircle className="h-8 w-8 text-orange-500" />;
-    return <LucideThumbsDown className="h-8 w-8 text-red-500" />;
+    if (score >= 30) return <LucideThumbsDown className="h-8 w-8 text-red-400" />;
+    if (score >= 20) return <XCircle className="h-8 w-8 text-red-500" />;
+    return <XCircle className="h-8 w-8 text-red-600" />;
   };
 
-  // Get score label based on score
+  // Get score label based on score - more granular scale
   const getScoreLabel = () => {
-    if (score >= 90) return "Excellent";
+    if (score >= 95) return "Exceptional";
+    if (score >= 90) return "Outstanding";
+    if (score >= 85) return "Excellent";
+    if (score >= 80) return "Very Good";
     if (score >= 75) return "Good";
+    if (score >= 70) return "Satisfactory";
+    if (score >= 65) return "Adequate";
     if (score >= 60) return "Moderate";
+    if (score >= 55) return "Fair";
+    if (score >= 50) return "Borderline";
+    if (score >= 45) return "Concerning";
     if (score >= 40) return "Needs Work";
-    if (score >= 20) return "Poor";
-    return "Critical";
+    if (score >= 35) return "Problematic";
+    if (score >= 30) return "Poor";
+    if (score >= 25) return "Very Poor";
+    if (score >= 20) return "Critical";
+    if (score >= 10) return "Severe Issues";
+    return "Major Failures";
   };
 
   return (
