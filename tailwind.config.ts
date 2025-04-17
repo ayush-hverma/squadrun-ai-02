@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -62,6 +63,8 @@ export default {
                     soft: '#E5DEFF',
                     gray: '#8E9196',
                     softGray: '#F1F0FB',
+                    highlight: '#b4a3f9',
+                    glow: '#a594f8',
                 },
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
@@ -95,12 +98,44 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+                'pulse-glow': {
+                    '0%, 100%': { 
+                        boxShadow: '0 0 0 0 rgba(155, 135, 245, 0)' 
+                    },
+                    '50%': { 
+                        boxShadow: '0 0 20px 5px rgba(155, 135, 245, 0.3)' 
+                    }
+                },
+                'slide-in': {
+                    '0%': { 
+                        transform: 'translateX(-10px)',
+                        opacity: '0'
+                    },
+                    '100%': { 
+                        transform: 'translateX(0)',
+                        opacity: '1'
+                    }
+                },
+                'bounce-subtle': {
+                    '0%, 100%': { 
+                        transform: 'translateY(0)' 
+                    },
+                    '50%': { 
+                        transform: 'translateY(-5px)' 
+                    }
+                }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
-			}
+				'accordion-up': 'accordion-up 0.2s ease-out',
+                'pulse-glow': 'pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                'slide-in': 'slide-in 0.3s ease-out',
+                'bounce-subtle': 'bounce-subtle 2s ease-in-out infinite'
+			},
+            transitionDuration: {
+                '2000': '2000ms',
+            }
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
