@@ -1,280 +1,296 @@
 
-/**
- * Code Quality Analysis Utilities
- * 
- * This module provides tools for analyzing code quality across different dimensions,
- * including readability, maintainability, security, and best practices.
- */
+import { QualityResults, CategoryScore, CodeSnippet } from "@/types/codeQuality";
+import { 
+  BookOpen, 
+  FileCode, 
+  Zap, 
+  Shield, 
+  AlertTriangle 
+} from "lucide-react";
 
-import { QualityMetrics, CategoryScore, QualityResults, CodeSnippet } from "@/types/codeQuality";
-import { refactorCode } from "./refactors";
-import { BookOpen, CircleCheck, CircleAlert, AlertTriangle, ShieldCheck } from "lucide-react";
+const calculateReadabilityScore = (code: string): number => {
+  // Analyze code for readability
+  let score = 80; // Base score
+  
+  // Check for code complexity indicators
+  const longLines = code.split('\n').filter(line => line.length > 100).length;
+  const longFunctions = (code.match(/function\s+\w+\s*\([^)]*\)\s*{[^}]*}/g) || []).filter(fn => fn.length > 200).length;
+  const deepNesting = (code.match(/\{\s*\{\s*\{\s*\{/g) || []).length;
+  
+  // Each of these issues reduces the score
+  score -= longLines * 2; // -2 points per long line
+  score -= longFunctions * 5; // -5 points per long function
+  score -= deepNesting * 8; // -8 points per deeply nested code block
+  
+  // Check for readability improvements
+  const hasComments = (code.match(/\/\/|\/\*|\*\/|#/g) || []).length > 0;
+  const usesDescriptiveNames = (code.match(/[a-zA-Z][a-zA-Z0-9]+[A-Z][a-zA-Z0-9]*/g) || []).length > 0;
+  
+  // These improve the score
+  if (hasComments) score += 10;
+  if (usesDescriptiveNames) score += 10;
+  
+  // Ensure score is within range
+  return Math.max(0, Math.min(100, score));
+};
 
-/**
- * Calculate code metrics based on the code content
- * 
- * @param code The source code to analyze
- * @returns Metrics object with various quality scores
- */
-export const calculateCodeMetrics = (code: string): QualityMetrics => {
-  // Early return for small files (less than 10 lines)
-  if (code.split('\n').length < 10) {
-    return {
-      lineLength: 90,
-      commentRatio: 70,
-      complexityScore: 85,
-      securityScore: 80,
-      consistencyScore: 85,
-      bestPracticesScore: 80
-    };
-  }
+const calculateMaintainabilityScore = (code: string): number => {
+  // Analyze code for maintainability
+  let score = 75; // Base score
   
-  // Split code into lines for analysis - do once and reuse
-  const lines = code.split('\n');
-  const nonEmptyLines = lines.filter(line => line.trim().length > 0);
-  const totalLines = nonEmptyLines.length || 1;
+  // Check for code maintainability indicators
+  const duplicatedCodePatterns = (code.match(/(.{50,})\1+/g) || []).length;
+  const longFunctions = (code.match(/function\s+\w+\s*\([^)]*\)\s*{[^}]*}/g) || []).filter(fn => fn.length > 250).length;
+  const missingComments = code.length > 500 && (code.match(/\/\/|\/\*|\*\/|#/g) || []).length < 5;
   
-  // Calculate average line length (shorter is often better)
-  const totalChars = code.length;
-  const avgLineLength = totalChars / totalLines;
-  const lineLengthScore = 100 - Math.max(0, (avgLineLength - 30) / 1.2);
+  // Each of these issues reduces the score
+  score -= duplicatedCodePatterns * 10; // -10 points per duplicated code
+  score -= longFunctions * 5; // -5 points per long function
+  if (missingComments) score -= 15;
   
-  // Fast check for comments
-  const commentRegex = /\/\/|\/\*|\*\/|#|"""|'''/;
-  const commentLines = lines.filter(line => commentRegex.test(line.trim())).length;
-  const commentRatio = (commentLines / totalLines) * 200;
+  // Check for maintainability improvements
+  const hasStructuredCode = (code.match(/class|module|namespace|export/g) || []).length > 0;
+  const hasFunctionDocumentation = (code.match(/\/\*\*[\s\S]*?\*\/\s*function/g) || []).length > 0;
   
-  // Quick check for documentation
-  const hasDocumentation = code.includes('/**') || code.includes('"""') || code.includes("'''");
-  const hasFunctionDocumentation = code.includes('@param') || code.includes('@return') || 
-                                  code.includes(':param') || code.includes('Returns:');
+  // These improve the score
+  if (hasStructuredCode) score += 10;
+  if (hasFunctionDocumentation) score += 15;
   
-  const documentationScore = hasDocumentation ? 8 : 0;
-  const functionDocScore = hasFunctionDocumentation ? 10 : 0;
-  const commentScore = commentRatio + documentationScore + functionDocScore;
+  // Ensure score is within range
+  return Math.max(0, Math.min(100, score));
+};
+
+const calculatePerformanceScore = (code: string): number => {
+  // Analyze code for performance
+  let score = 85; // Base score
   
-  // Simplified complexity analysis
-  const bracesCount = (code.match(/{/g) || []).length;
-  const conditionalMatches = (code.match(/if|else|switch|for|while|foreach|\.map\(|\.filter\(/g) || []).length;
-  const conditionalRatio = conditionalMatches / totalLines;
+  // Check for performance issues
+  const nestedLoops = (code.match(/for\s*\([^)]*\)\s*\{[^}]*for\s*\([^)]*\)/g) || []).length;
+  const largeArrayOperations = (code.match(/\.map\(|\.filter\(|\.reduce\(/g) || []).length > 10;
+  const inefficientQueries = (code.match(/SELECT\s+\*\s+FROM|db\.find\({}\)/gi) || []).length;
   
-  // Check for function definitions - simplified pattern
-  const functionMatches = (code.match(/function|def\s+|class\s+|\)\s*{|\)\s*=>/g) || []).length;
+  // Each of these issues reduces the score
+  score -= nestedLoops * 8; // -8 points per nested loop
+  if (largeArrayOperations) score -= 10;
+  score -= inefficientQueries * 12; // -12 points per inefficient query
   
-  // Simplified complexity scoring
-  const complexityScore = 100 - 
-    (bracesCount / totalLines * 20) - 
-    (conditionalRatio * 50) + 
-    (functionMatches > 0 ? Math.min(8, functionMatches * 0.8) : 0);
+  // Check for performance optimizations
+  const usesMemoization = (code.match(/useMemo|memo|cache|memoize/g) || []).length > 0;
+  const usesAsyncAwait = (code.match(/async|await/g) || []).length > 0;
   
-  // Fast security check - look for known patterns
-  const securityKeywords = ['eval(', 'innerHTML', 'dangerouslySetInnerHTML', 'password', 'token'];
-  const securityIssueCount = securityKeywords.reduce((count, keyword) => 
-    count + (code.toLowerCase().includes(keyword.toLowerCase()) ? 1 : 0), 0);
+  // These improve the score
+  if (usesMemoization) score += 10;
+  if (usesAsyncAwait) score += 5;
   
-  const securityScore = 90 - securityIssueCount * 15;
+  // Ensure score is within range
+  return Math.max(0, Math.min(100, score));
+};
+
+const calculateSecurityScore = (code: string): number => {
+  // Analyze code for security issues
+  let score = 90; // Base score
   
-  // Quick check for input validation
-  const hasInputValidation = code.includes('validate') || code.includes('sanitize') || 
-                             code.includes('isNaN') || code.includes('typeof');
-  const securityFinalScore = securityScore + (hasInputValidation ? 8 : 0);
+  // Check for security issues
+  const unsafeEval = (code.match(/eval\s*\(/g) || []).length;
+  const unsafeInnerHTML = (code.match(/innerHTML|dangerouslySetInnerHTML/g) || []).length;
+  const sqlInjectionVulnerabilities = (code.match(/executeQuery\s*\(\s*["'`]SELECT.+\$|db\.query\s*\(\s*["'`]SELECT/g) || []).length;
   
-  // Fast style consistency check
-  const mixedQuotes = (code.includes("'") && code.includes('"'));
-  const mixedIndentation = (code.includes('    ') && code.includes('\t'));
-  const styleIssues = (mixedQuotes ? 20 : 0) + (mixedIndentation ? 25 : 0);
-  const consistencyScore = 90 - styleIssues;
+  // Each of these issues reduces the score
+  score -= unsafeEval * 25; // -25 points per eval use
+  score -= unsafeInnerHTML * 15; // -15 points per unsafe inner HTML
+  score -= sqlInjectionVulnerabilities * 30; // -30 points per SQL injection vulnerability
   
-  // Fast best practices check
-  const bestPracticesPatterns = [
-    /var\s+/g,
-    /console\.log/g,
-    /alert\(/g,
-    /TODO|FIXME/g
-  ];
+  // Check for security improvements
+  const inputValidation = (code.match(/validate|sanitize|escape/g) || []).length > 0;
+  const usesTryCatch = (code.match(/try\s*\{[\s\S]*\}\s*catch/g) || []).length > 0;
   
-  const bestPracticesIssues = bestPracticesPatterns.reduce((total, pattern) => 
-    total + (code.match(pattern) || []).length, 0);
+  // These improve the score
+  if (inputValidation) score += 10;
+  if (usesTryCatch) score += 5;
   
-  const bestPracticesScore = 90 - bestPracticesIssues * 10;
+  // Ensure score is within range
+  return Math.max(0, Math.min(100, score));
+};
+
+const calculateCodeSmellScore = (code: string): number => {
+  // Analyze code for "code smells"
+  let score = 85; // Base score
   
-  return {
-    lineLength: lineLengthScore,
-    commentRatio: commentScore,
-    complexityScore,
-    securityScore: securityFinalScore,
-    consistencyScore,
-    bestPracticesScore
-  };
+  // Check for code smell indicators
+  const magicNumbers = (code.match(/\W\d{2,}\W/g) || []).length;
+  const longMethods = (code.match(/function\s+\w+\s*\([^)]*\)\s*{[\s\S]{500,}?}/g) || []).length;
+  const globalVariables = (code.match(/var\s+\w+\s*=|let\s+\w+\s*=|const\s+\w+\s*=(?!\s*function)/g) || []).length;
+  
+  // Each of these issues reduces the score
+  score -= magicNumbers * 3; // -3 points per magic number
+  score -= longMethods * 10; // -10 points per long method
+  score -= Math.max(0, globalVariables - 5) * 2; // -2 points per global variable beyond 5
+  
+  // Check for code smell improvements
+  const usesConstants = (code.match(/const\s+[A-Z_][A-Z0-9_]*\s*=/g) || []).length > 0;
+  const usesFunctions = (code.match(/function\s+\w+|const\s+\w+\s*=\s*\([^)]*\)\s*=>/g) || []).length > 2;
+  
+  // These improve the score
+  if (usesConstants) score += 10;
+  if (usesFunctions) score += 5;
+  
+  // Ensure score is within range
+  return Math.max(0, Math.min(100, score));
 };
 
 /**
- * Generate category scores based on code metrics
- */
-export const generateCategoryScores = (metrics: QualityMetrics): CategoryScore[] => {
-  return [
-    { 
-      name: "Readability", 
-      score: Math.round((metrics.lineLength + metrics.commentRatio + metrics.consistencyScore) / 3)
-    },
-    { 
-      name: "Maintainability", 
-      score: Math.round((metrics.commentRatio + metrics.complexityScore + metrics.bestPracticesScore) / 3)
-    },
-    { 
-      name: "Performance", 
-      score: Math.round((metrics.complexityScore + metrics.bestPracticesScore) / 2)
-    },
-    { 
-      name: "Security", 
-      score: Math.round(metrics.securityScore)
-    },
-    { 
-      name: "Code Smell", 
-      score: Math.round((metrics.consistencyScore + metrics.complexityScore) / 2)
-    }
-  ];
-};
-
-/**
- * Generate code improvement recommendations based on metrics
- */
-export const generateRecommendations = (metrics: QualityMetrics, overallScore: number): string[] => {
-  const recommendations = [];
-  
-  // Only add recommendations for scores below thresholds
-  if (metrics.commentRatio < 75) {
-    recommendations.push(
-      "Add comprehensive documentation with JSDoc, docstrings, or function-level comments"
-    );
-  }
-  
-  if (metrics.lineLength < 75) {
-    recommendations.push(
-      "Break long lines of code (>80 characters) into more readable, shorter segments"
-    );
-  }
-  
-  if (metrics.complexityScore < 80) {
-    recommendations.push(
-      "Refactor complex functions into smaller, single-responsibility functions"
-    );
-  }
-  
-  if (metrics.securityScore < 85) {
-    recommendations.push(
-      "Implement input validation and avoid unsafe functions that can lead to security vulnerabilities"
-    );
-  }
-  
-  if (metrics.consistencyScore < 85) {
-    recommendations.push(
-      "Standardize code style by using consistent quotes, indentation, and naming conventions"
-    );
-  }
-  
-  if (metrics.bestPracticesScore < 85) {
-    recommendations.push(
-      "Follow language-specific best practices and avoid deprecated methods"
-    );
-  }
-  
-  // Limit to the top 3 recommendations for faster display
-  return recommendations.slice(0, 3);
-};
-
-/**
- * Generate sample code snippets for improvement - simplified for performance
- */
-export const generateCodeSnippets = (metrics: QualityMetrics, language: string): CodeSnippet[] => {
-  // Return smaller set of snippets for performance
-  const snippets: CodeSnippet[] = [];
-  
-  // Only generate snippets for the most critical issue
-  const lowestScore = Math.min(
-    metrics.commentRatio, 
-    metrics.complexityScore, 
-    metrics.securityScore, 
-    metrics.bestPracticesScore
-  );
-  
-  if (snippets.length > 0 || lowestScore > 60) {
-    return snippets.slice(0, 1); // Just return 1 snippet for performance
-  }
-  
-  // Generic code improvement example
-  if (metrics.commentRatio < 60) {
-    snippets.push({
-      title: "Add Documentation",
-      code: "function calculateTotal(items) {\n  let sum = 0;\n  for (const item of items) {\n    sum += item.price * item.quantity;\n  }\n  return sum;\n}",
-      suggestion: "/**\n * Calculate the total price\n * @param {Array} items - Items with price and quantity\n * @returns {number} Total\n */\nfunction calculateTotal(items) {\n  let sum = 0;\n  for (const item of items) {\n    sum += item.price * item.quantity;\n  }\n  return sum;\n}"
-    });
-  }
-  
-  return snippets;
-};
-
-/**
- * Generate a summary based on the overall score
- */
-export const generateSummary = (overallScore: number, categories: CategoryScore[]): string => {
-  if (overallScore >= 90) {
-    return "Excellent code quality that follows best practices.";
-  } else if (overallScore >= 80) {
-    return "Good code quality with some areas needing refinement.";
-  } else if (overallScore >= 70) {
-    return "Moderate code quality with several improvement opportunities.";
-  } else if (overallScore >= 50) {
-    return "Code needs significant improvement for better maintainability.";
-  } else {
-    return "Poor code quality with critical issues that should be addressed.";
-  }
-};
-
-/**
- * Analyze code quality and generate comprehensive results - optimized for speed
+ * Analyze code quality using various metrics
  */
 export const analyzeCodeQuality = (code: string, language: string): QualityResults => {
-  // Early return for empty code
-  if (!code || code.trim().length === 0) {
-    return {
-      score: 0,
-      summary: "No code to analyze.",
-      categories: [],
-      recommendations: ["Please provide code to analyze."],
-      snippets: [],
-      refactoredCode: ""
-    };
+  // Calculate individual scores
+  const readabilityScore = calculateReadabilityScore(code);
+  const maintainabilityScore = calculateMaintainabilityScore(code);
+  const performanceScore = calculatePerformanceScore(code);
+  const securityScore = calculateSecurityScore(code);
+  const codeSmellScore = calculateCodeSmellScore(code);
+  
+  // Calculate overall score (weighted average)
+  const overallScore = Math.round(
+    (readabilityScore * 0.25) +
+    (maintainabilityScore * 0.25) +
+    (performanceScore * 0.2) +
+    (securityScore * 0.2) +
+    (codeSmellScore * 0.1)
+  );
+  
+  // Generate results with categories
+  const categories: CategoryScore[] = [
+    {
+      name: "Readability",
+      score: readabilityScore,
+      icon: BookOpen
+    },
+    {
+      name: "Maintainability",
+      score: maintainabilityScore,
+      icon: FileCode
+    },
+    {
+      name: "Performance",
+      score: performanceScore,
+      icon: Zap
+    },
+    {
+      name: "Security",
+      score: securityScore,
+      icon: Shield
+    },
+    {
+      name: "Code Smell",
+      score: codeSmellScore,
+      icon: AlertTriangle
+    }
+  ];
+  
+  // Generate code snippets with issues
+  const snippets: CodeSnippet[] = [];
+  
+  // Look for long lines
+  code.split('\n').forEach((line, index) => {
+    if (line.length > 100) {
+      snippets.push({
+        description: "Line too long (exceeds 100 characters)",
+        code: line,
+        line: index + 1
+      });
+    }
+  });
+  
+  // Look for complex nested code
+  const nestedMatches = code.match(/(?:if|for|while)[\s\S]*?(?:if|for|while)[\s\S]*?(?:if|for|while)/g) || [];
+  nestedMatches.slice(0, 2).forEach(match => {
+    const contextLines = match.split('\n').slice(0, 3).join('\n');
+    const lineNumber = code.split('\n').findIndex(line => line.includes(contextLines.split('\n')[0])) + 1;
+    
+    snippets.push({
+      description: "Deeply nested code structures",
+      code: contextLines + '...',
+      line: lineNumber
+    });
+  });
+  
+  // Look for magic numbers
+  const magicNumberMatches = code.match(/\W\d{3,}\W/g) || [];
+  magicNumberMatches.slice(0, 3).forEach(match => {
+    const context = code.substring(
+      Math.max(0, code.indexOf(match) - 20),
+      Math.min(code.length, code.indexOf(match) + match.length + 20)
+    );
+    const lineNumber = code.substring(0, code.indexOf(match)).split('\n').length;
+    
+    snippets.push({
+      description: "Magic number should be a named constant",
+      code: context,
+      line: lineNumber
+    });
+  });
+  
+  // Generate recommendations
+  const recommendations: string[] = [];
+  
+  if (readabilityScore < 70) {
+    recommendations.push("Improve code readability by adding comments and using descriptive variable names");
+    recommendations.push("Break down complex functions into smaller, more focused ones");
   }
   
-  // Calculate metrics directly from the original code
-  const metrics = calculateCodeMetrics(code);
+  if (maintainabilityScore < 70) {
+    recommendations.push("Modularize code into smaller, reusable components");
+    recommendations.push("Add documentation to functions explaining their purpose and parameters");
+  }
   
-  // Get refactored version only for smaller files (<500 lines)
-  const refactoredCode = code.split('\n').length < 500 ? refactorCode(code, language) : code;
+  if (performanceScore < 70) {
+    recommendations.push("Avoid nested loops and optimize repeated operations");
+    recommendations.push("Consider memoization for expensive calculations");
+  }
   
-  // Calculate category scores based on code characteristics
-  const categories = generateCategoryScores(metrics);
+  if (securityScore < 80) {
+    recommendations.push("Avoid using eval() and innerHTML for security reasons");
+    recommendations.push("Implement proper input validation for all user inputs");
+  }
   
-  // Calculate overall score - simplified weighted average
-  const weights = [0.20, 0.25, 0.15, 0.25, 0.15]; // Readability, Maintainability, Performance, Security, Code Smell
-  const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
-  const normalizedWeights = weights.map(w => w / weightSum);
+  if (codeSmellScore < 70) {
+    recommendations.push("Replace magic numbers with named constants");
+    recommendations.push("Refactor long methods into smaller, focused functions");
+  }
   
-  // Calculate weighted score
-  const overallScore = Math.round(categories.reduce(
-    (sum, category, index) => sum + (category.score * normalizedWeights[index]), 
-    0
-  ));
+  // Generate a simple refactored code example
+  let refactoredCode = code;
   
-  // Generate recommendations based on scores
-  const recommendations = generateRecommendations(metrics, overallScore);
+  // Replace magic numbers with constants
+  const magicNumbers = Array.from(new Set(code.match(/\W\d{3,}\W/g) || []));
+  magicNumbers.forEach((num, index) => {
+    const cleanNum = num.replace(/\W/g, '');
+    const constantName = `CONSTANT_${cleanNum}`;
+    
+    // Only replace first occurrence to avoid over-refactoring
+    refactoredCode = refactoredCode.replace(
+      new RegExp(`\\W${cleanNum}\\W`), 
+      (match) => match.replace(cleanNum, constantName)
+    );
+    
+    // Add constant definition at the beginning
+    if (index === 0) {
+      const constantType = language === 'ts' || language === 'tsx' ? 'const' : 'const';
+      refactoredCode = `${constantType} ${constantName} = ${cleanNum};\n\n${refactoredCode}`;
+    }
+  });
   
-  // Generate code snippets - using a smaller set for performance
-  const snippets = code.split('\n').length < 300 ? generateCodeSnippets(metrics, language) : [];
-  
-  // Summary based on overall score
-  const summary = generateSummary(overallScore, categories);
+  // Add a summary based on the overall score
+  let summary = "";
+  if (overallScore >= 90) {
+    summary = "Excellent code quality. Well-structured and maintainable.";
+  } else if (overallScore >= 75) {
+    summary = "Good code quality with some room for improvement.";
+  } else if (overallScore >= 60) {
+    summary = "Moderate code quality. Several areas need attention.";
+  } else {
+    summary = "Poor code quality. Significant refactoring recommended.";
+  }
   
   return {
     score: overallScore,

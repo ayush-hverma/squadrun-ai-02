@@ -7,11 +7,12 @@ import {
   ArrowRightCircle, 
   Download, 
   RefreshCw,
-  Cpu
+  Cpu,
+  X
 } from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
 import NoFileMessage from "@/components/refactor/NoFileMessage";
-import { refactorCode } from "@/utils/refactorUtils";
+import { refactorCode } from "@/utils/qualityUtils/refactors";
 import { refactorCodeWithAI, isOpenAIConfigured } from "@/utils/aiUtils/openAiUtils";
 import { toast } from "sonner";
 
@@ -48,6 +49,10 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
       // Try AI-powered refactoring first, fall back to built-in refactorer
       if (isOpenAIConfigured()) {
         try {
+          toast.info("Starting AI-powered refactoring", {
+            description: "This may take a moment for larger files."
+          });
+          
           // Use OpenAI for refactoring
           result = await refactorCodeWithAI(fileContent, language);
           toast.success("AI-powered refactoring complete", {
@@ -56,14 +61,14 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
         } catch (error) {
           console.warn("AI refactoring failed, falling back to built-in refactorer:", error);
           // Fall back to built-in refactorer
-          result = refactorCode(fileContent, language, instructions);
+          result = refactorCode(fileContent, language);
           toast.info("Using built-in refactoring tools", {
             description: "AI refactoring unavailable. Using standard refactoring techniques."
           });
         }
       } else {
         // Use built-in refactorer
-        result = refactorCode(fileContent, language, instructions);
+        result = refactorCode(fileContent, language);
         toast.success("Refactoring complete", {
           description: "Your code has been refactored successfully."
         });
@@ -100,6 +105,13 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     
     toast.success("Download started", {
       description: `File saved as ${newFileName}`
+    });
+  };
+
+  const handleClear = () => {
+    setRefactoredCode(null);
+    toast.success("Refactoring cleared", {
+      description: "You can now upload a new file."
     });
   };
 
@@ -165,14 +177,23 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
               )}
             </Button>
             {refactoredCode && (
-              <Button 
-                onClick={handleDownload} 
-                variant="outline"
-                className="border-squadrun-primary text-squadrun-primary hover:bg-squadrun-primary/10"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download Refactored Code
-              </Button>
+              <>
+                <Button 
+                  onClick={handleDownload} 
+                  variant="outline"
+                  className="border-squadrun-primary text-squadrun-primary hover:bg-squadrun-primary/10"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Refactored Code
+                </Button>
+                <Button 
+                  onClick={handleClear}
+                  variant="destructive"
+                >
+                  <X className="mr-2 h-4 w-4" />
+                  Clear
+                </Button>
+              </>
             )}
           </div>
         </CardContent>
