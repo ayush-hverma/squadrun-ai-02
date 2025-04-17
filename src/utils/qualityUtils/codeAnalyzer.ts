@@ -1,4 +1,3 @@
-
 import { QualityResults, CategoryScore, CodeSnippet } from "@/types/codeQuality";
 import { 
   BookOpen, 
@@ -194,9 +193,9 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
   code.split('\n').forEach((line, index) => {
     if (line.length > 100) {
       snippets.push({
-        description: "Line too long (exceeds 100 characters)",
+        title: "Line too long (exceeds 100 characters)",
         code: line,
-        line: index + 1
+        suggestion: line.substring(0, 50) + "...\n// Consider breaking this line into multiple statements"
       });
     }
   });
@@ -205,12 +204,14 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
   const nestedMatches = code.match(/(?:if|for|while)[\s\S]*?(?:if|for|while)[\s\S]*?(?:if|for|while)/g) || [];
   nestedMatches.slice(0, 2).forEach(match => {
     const contextLines = match.split('\n').slice(0, 3).join('\n');
-    const lineNumber = code.split('\n').findIndex(line => line.includes(contextLines.split('\n')[0])) + 1;
     
     snippets.push({
-      description: "Deeply nested code structures",
+      title: "Deeply nested code structures",
       code: contextLines + '...',
-      line: lineNumber
+      suggestion: "// Consider extracting nested conditions into named functions\n" +
+                  "function checkConditionA() { /* first condition */ }\n" +
+                  "function checkConditionB() { /* second condition */ }\n" +
+                  "if (checkConditionA() && checkConditionB()) { /* code */ }"
     });
   });
   
@@ -221,12 +222,11 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
       Math.max(0, code.indexOf(match) - 20),
       Math.min(code.length, code.indexOf(match) + match.length + 20)
     );
-    const lineNumber = code.substring(0, code.indexOf(match)).split('\n').length;
     
     snippets.push({
-      description: "Magic number should be a named constant",
+      title: "Magic number should be a named constant",
       code: context,
-      line: lineNumber
+      suggestion: "const MEANINGFUL_CONSTANT_NAME = " + match.trim() + ";\n// Then use MEANINGFUL_CONSTANT_NAME instead"
     });
   });
   
