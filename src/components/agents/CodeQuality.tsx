@@ -1,7 +1,7 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Cpu } from "lucide-react";
+import { Cpu, Search } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import { toast } from "sonner";
 import { QualityResults } from "@/types/codeQuality";
@@ -9,31 +9,23 @@ import { analyzeCodeQuality } from "@/utils/qualityUtils/codeAnalyzer";
 import { analyzeCodeQualityWithAI, isOpenAIConfigured } from "@/utils/aiUtils/openAiUtils";
 import NoCodeMessage from "./quality/NoCodeMessage";
 import AnalysisView from "./quality/AnalysisView";
+import { Button } from "@/components/ui/button";
 
 interface CodeQualityProps {
   fileContent: string | null;
   fileName: string | null;
 }
 
-/**
- * Main component for code quality assessment
- */
 export default function CodeQuality({ fileContent, fileName }: CodeQualityProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [qualityResults, setQualityResults] = useState<QualityResults | null>(null);
   
-  // Analyze code when file content changes
-  useEffect(() => {
-    if (fileContent && !qualityResults && !isProcessing) {
-      analyzeCode();
-    }
-  }, [fileContent, qualityResults, isProcessing]);
-
-  // When a file is loaded, automatically analyze it
-  const analyzeCode = async () => {
+  // Manually trigger code quality assessment
+  const handleAssessQuality = async () => {
     if (!fileContent) return;
     
     setIsProcessing(true);
+    setQualityResults(null);
     
     try {
       const language = fileName?.split('.').pop() || 'javascript';
@@ -79,6 +71,14 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     }
   };
 
+  // Clear the current analysis
+  const handleClear = () => {
+    setQualityResults(null);
+    toast.success("Analysis Cleared", {
+      description: "You can now upload a new file.",
+    });
+  };
+
   // When no file is selected, show the upload prompt
   if (!fileContent) {
     return <NoCodeMessage />;
@@ -94,21 +94,45 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       </div>
       
       {!qualityResults ? (
-        // Show loading view during analysis
+        // Show analysis button when no results are present
         <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="animate-spin mb-4">
-            <Cpu className="h-16 w-16 text-squadrun-primary" />
-          </div>
-          <h2 className="text-xl font-medium text-white mb-2">Analyzing Code Quality</h2>
-          <p className="text-squadrun-gray text-center max-w-md">
-            We're examining your code for quality metrics including
-            readability, maintainability, performance, security, and code smell.
-          </p>
+          <Button 
+            onClick={handleAssessQuality} 
+            disabled={isProcessing}
+            className="bg-squadrun-primary hover:bg-squadrun-vivid text-white"
+          >
+            <Search className="mr-2 h-4 w-4" />
+            Assess Quality
+          </Button>
+          {isProcessing && (
+            <div className="mt-4 flex flex-col items-center">
+              <div className="animate-spin mb-4">
+                <Cpu className="h-16 w-16 text-squadrun-primary" />
+              </div>
+              <h2 className="text-xl font-medium text-white mb-2">Analyzing Code Quality</h2>
+              <p className="text-squadrun-gray text-center max-w-md">
+                We're examining your code for quality metrics including
+                readability, maintainability, performance, security, and code smell.
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         // Show analysis results once processing is complete
-        <AnalysisView qualityResults={qualityResults} fileName={fileName} />
+        <div className="flex-1 flex flex-col">
+          <AnalysisView qualityResults={qualityResults} fileName={fileName} />
+          <div className="mt-4 flex justify-center">
+            <Button 
+              onClick={handleClear} 
+              variant="destructive"
+              className="w-full max-w-md"
+            >
+              Clear Analysis
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
 }
+
