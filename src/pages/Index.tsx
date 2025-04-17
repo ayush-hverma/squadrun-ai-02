@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import FileUpload from "@/components/FileUpload";
 import CodeRefactor from "@/components/agents/CodeRefactor";
@@ -11,15 +11,6 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("refactor");
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [isChangingTab, setIsChangingTab] = useState(false);
-
-  const handleTabChange = (tab: string) => {
-    setIsChangingTab(true);
-    setTimeout(() => {
-      setActiveTab(tab);
-      setIsChangingTab(false);
-    }, 200);
-  };
 
   const handleFileUpload = (file: File) => {
     setFileName(file.name);
@@ -47,28 +38,16 @@ const Index = () => {
     }
   };
 
-  useEffect(() => {
-    // Add page transition effect when component mounts
-    const contentEl = document.querySelector('.content-container');
-    if (contentEl) {
-      contentEl.classList.add('opacity-0');
-      setTimeout(() => {
-        contentEl.classList.remove('opacity-0');
-        contentEl.classList.add('animate-in');
-      }, 100);
-    }
-  }, []);
-
   return (
     <div className="flex h-screen bg-squadrun-dark overflow-hidden">
-      <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
+      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
       
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="p-4 border-b border-squadrun-primary/20">
           <FileUpload onFileUpload={handleFileUpload} />
         </div>
         
-        <div className={`flex-1 overflow-auto content-container transition-opacity duration-300 ${isChangingTab ? 'opacity-0' : 'opacity-100'}`}>
+        <div className="flex-1 overflow-auto">
           {renderActiveAgent()}
         </div>
       </div>

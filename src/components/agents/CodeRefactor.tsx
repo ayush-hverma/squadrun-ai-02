@@ -1,24 +1,31 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowRightCircle, Download, RefreshCw, Cpu, X } from "lucide-react";
+import { 
+  ArrowRightCircle, 
+  Download, 
+  RefreshCw,
+  Cpu,
+  X
+} from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
 import NoFileMessage from "@/components/refactor/NoFileMessage";
 import { refactorCode } from "@/utils/qualityUtils/refactors";
 import { refactorCodeWithAI, isOpenAIConfigured } from "@/utils/aiUtils/openAiUtils";
 import { toast } from "sonner";
+
 interface CodeRefactorProps {
   fileContent: string | null;
   fileName: string | null;
 }
-export default function CodeRefactor({
-  fileContent,
-  fileName
-}: CodeRefactorProps) {
+
+export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProps) {
   const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
+  
   useEffect(() => {
     // Reset states when fileContent changes
     setRefactoredCode(null);
@@ -27,21 +34,25 @@ export default function CodeRefactor({
       setLanguage(fileExtension);
     }
   }, [fileContent, fileName]);
+
   const handleRefactor = async () => {
     if (!fileContent) return;
+    
     setIsRefactoring(true);
+    
     try {
       // Comprehensive instructions for refactoring
       const instructions = 'improve readability, enhance maintainability, optimize performance, fix security issues, apply DRY principles';
+      
       let result: string;
-
+      
       // Try AI-powered refactoring first, fall back to built-in refactorer
       if (isOpenAIConfigured()) {
         try {
           toast.info("Starting AI-powered refactoring", {
             description: "This may take a moment for larger files."
           });
-
+          
           // Use OpenAI for refactoring
           result = await refactorCodeWithAI(fileContent, language);
           toast.success("AI-powered refactoring complete", {
@@ -62,7 +73,9 @@ export default function CodeRefactor({
           description: "Your code has been refactored successfully."
         });
       }
+      
       setRefactoredCode(result);
+      
     } catch (error) {
       console.error("Refactoring error:", error);
       toast.error("Refactoring failed", {
@@ -72,36 +85,42 @@ export default function CodeRefactor({
       setIsRefactoring(false);
     }
   };
+
   const handleDownload = () => {
     if (!refactoredCode || !fileName) return;
+    
     const element = document.createElement("a");
-    const file = new Blob([refactoredCode], {
-      type: "text/plain"
-    });
+    const file = new Blob([refactoredCode], { type: "text/plain" });
     element.href = URL.createObjectURL(file);
-
+    
     // Add 'refactored' to the filename before the extension
     const fileNameParts = fileName.split(".");
     const extension = fileNameParts.pop();
     const newFileName = fileNameParts.join(".") + "-refactored." + extension;
+    
     element.download = newFileName;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+    
     toast.success("Download started", {
       description: `File saved as ${newFileName}`
     });
   };
+
   const handleClear = () => {
     setRefactoredCode(null);
     toast.success("Refactoring cleared", {
       description: "You can now upload a new file."
     });
   };
+
   if (!fileContent) {
     return <NoFileMessage />;
   }
-  return <div className="p-4 h-full flex flex-col gap-4">
+
+  return (
+    <div className="p-4 h-full flex flex-col gap-4">
       <Card className="border border-squadrun-primary/20">
         <CardHeader className="pb-2">
           <CardTitle className="text-xl font-bold text-white">Code Refactoring</CardTitle>
@@ -140,31 +159,68 @@ export default function CodeRefactor({
           </div>
           
           <div className="flex gap-2">
-            <Button onClick={handleRefactor} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white" disabled={isRefactoring}>
-              {isRefactoring ? <>
+            <Button 
+              onClick={handleRefactor} 
+              className="bg-squadrun-primary hover:bg-squadrun-vivid text-white"
+              disabled={isRefactoring}
+            >
+              {isRefactoring ? (
+                <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                   Refactoring...
-                </> : <>
+                </>
+              ) : (
+                <>
                   <ArrowRightCircle className="mr-2 h-4 w-4" />
                   Refactor Code
-                </>}
+                </>
+              )}
             </Button>
-            {refactoredCode && <>
-                <Button onClick={handleDownload} variant="outline" className="border-squadrun-primary text-squadrun-primary hover:bg-squadrun-primary/10">
+            {refactoredCode && (
+              <>
+                <Button 
+                  onClick={handleDownload} 
+                  variant="outline"
+                  className="border-squadrun-primary text-squadrun-primary hover:bg-squadrun-primary/10"
+                >
                   <Download className="mr-2 h-4 w-4" />
                   Download Refactored Code
                 </Button>
-                <Button onClick={handleClear} variant="destructive">
+                <Button 
+                  onClick={handleClear}
+                  variant="destructive"
+                >
                   <X className="mr-2 h-4 w-4" />
                   Clear
                 </Button>
-              </>}
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
 
       <div className="flex-1 overflow-hidden">
-        
+        <Tabs defaultValue="original" className="h-full">
+          <TabsList className="bg-squadrun-darker">
+            <TabsTrigger value="original">Original Code</TabsTrigger>
+            <TabsTrigger value="refactored" disabled={!refactoredCode}>
+              Refactored Code
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="original" className="h-[calc(100%-40px)] overflow-hidden">
+            <CodeDisplay code={fileContent} language={language} />
+          </TabsContent>
+          <TabsContent value="refactored" className="h-[calc(100%-40px)] overflow-hidden">
+            {refactoredCode ? (
+              <CodeDisplay code={refactoredCode} language={language} />
+            ) : (
+              <div className="flex items-center justify-center h-full bg-squadrun-darker rounded-md p-4">
+                <p className="text-squadrun-gray">Click "Refactor Code" to see the refactored version</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
-    </div>;
+    </div>
+  );
 }

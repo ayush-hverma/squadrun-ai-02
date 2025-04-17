@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -75,28 +74,6 @@
   }
 }
 
-@layer components {
-  .scrollbar-thin {
-    scrollbar-width: thin;
-  }
-  
-  .scrollbar-thumb-squadrun-primary\/20 {
-    scrollbar-color: rgba(155, 135, 245, 0.2) transparent;
-  }
-  
-  .scrollbar-track-transparent {
-    scrollbar-track-color: transparent;
-  }
-  
-  .page-transition {
-    @apply transition-all duration-300 animate-in fade-in slide-in-from-bottom-5;
-  }
-  
-  .card-hover {
-    @apply transition-all duration-300 hover:shadow-md hover:shadow-squadrun-primary/10 hover:border-squadrun-primary/30;
-  }
-}
-
 @layer base {
   * {
     @apply border-border;
@@ -104,33 +81,5 @@
 
   body {
     @apply bg-background text-foreground;
-  }
-}
-
-@keyframes pulse-border {
-  0%, 100% {
-    border-color: rgba(155, 135, 245, 0.3);
-  }
-  50% {
-    border-color: rgba(155, 135, 245, 0.8);
-  }
-}
-
-.pulse-border {
-  animation: pulse-border 2s infinite;
-}
-
-.animate-in {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
