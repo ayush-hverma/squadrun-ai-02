@@ -1,15 +1,13 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { 
   ArrowRightCircle, 
   Download, 
   RefreshCw,
   Cpu,
-  X,
-  DiffIcon
+  X
 } from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
 import CodeComparison from "@/components/CodeComparison";
@@ -27,7 +25,6 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
   const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
-  const [viewMode, setViewMode] = useState<'codeView' | 'comparisonView'>('codeView');
   
   useEffect(() => {
     // Reset states when fileContent changes
@@ -78,8 +75,6 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
       }
       
       setRefactoredCode(result);
-      // Automatically switch to comparison view when refactoring completes
-      setViewMode('comparisonView');
       
     } catch (error) {
       console.error("Refactoring error:", error);
@@ -115,7 +110,6 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
 
   const handleClear = () => {
     setRefactoredCode(null);
-    setViewMode('codeView');
     toast.success("Refactoring cleared", {
       description: "You can now upload a new file."
     });
@@ -127,126 +121,94 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
 
   return (
     <div className="p-4 h-full flex flex-col gap-4">
-      <Card className="border border-squadrun-primary/20">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-xl font-bold text-white">Code Refactoring</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            <div>
-              <p className="text-sm text-squadrun-gray mb-2">
-                The refactoring engine will automatically apply best practices for:
-              </p>
-              <div className="space-y-2">
-                <ul className="list-disc list-inside text-squadrun-gray">
-                  <li>Enhancing readability</li>
-                  <li>Improving maintainability</li>
-                  <li>Optimizing performance</li>
-                  <li>Fixing security issues</li>
-                  <li>Applying DRY principles</li>
-                </ul>
+      {!refactoredCode ? (
+        <Card className="border border-squadrun-primary/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xl font-bold text-white">Code Refactoring</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <p className="text-sm text-squadrun-gray mb-2">
+                  The refactoring engine will automatically apply best practices for:
+                </p>
+                <div className="space-y-2">
+                  <ul className="list-disc list-inside text-squadrun-gray">
+                    <li>Enhancing readability</li>
+                    <li>Improving maintainability</li>
+                    <li>Optimizing performance</li>
+                    <li>Fixing security issues</li>
+                    <li>Applying DRY principles</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-sm text-squadrun-gray mb-2">
+                  Language Detected: <span className="text-squadrun-primary font-semibold">{language.toUpperCase()}</span>
+                </p>
+                <p className="text-sm text-squadrun-gray">
+                  Complete code rewrite will be performed while preserving functionality
+                </p>
+                <div className="mt-4 flex items-center">
+                  <Cpu className="text-squadrun-primary mr-2 h-5 w-5" />
+                  <span className="text-sm text-squadrun-gray">
+                    {isOpenAIConfigured() ? "AI-powered refactoring available" : "Using built-in refactoring tools"}
+                  </span>
+                </div>
               </div>
             </div>
             
-            <div>
-              <p className="text-sm text-squadrun-gray mb-2">
-                Language Detected: <span className="text-squadrun-primary font-semibold">{language.toUpperCase()}</span>
-              </p>
-              <p className="text-sm text-squadrun-gray">
-                Complete code rewrite will be performed while preserving functionality
-              </p>
-              <div className="mt-4 flex items-center">
-                <Cpu className="text-squadrun-primary mr-2 h-5 w-5" />
-                <span className="text-sm text-squadrun-gray">
-                  {isOpenAIConfigured() ? "AI-powered refactoring available" : "Using built-in refactoring tools"}
-                </span>
-              </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleRefactor} 
+                className="bg-squadrun-primary hover:bg-squadrun-vivid text-white"
+                disabled={isRefactoring}
+              >
+                {isRefactoring ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Refactoring...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRightCircle className="mr-2 h-4 w-4" />
+                    Refactor Code
+                  </>
+                )}
+              </Button>
             </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <Button 
-              onClick={handleRefactor} 
-              className="bg-squadrun-primary hover:bg-squadrun-vivid text-white"
-              disabled={isRefactoring}
-            >
-              {isRefactoring ? (
-                <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Refactoring...
-                </>
-              ) : (
-                <>
-                  <ArrowRightCircle className="mr-2 h-4 w-4" />
-                  Refactor Code
-                </>
-              )}
-            </Button>
-            {refactoredCode && (
-              <>
-                <Button 
-                  onClick={handleDownload} 
-                  variant="outline"
-                  className="border-squadrun-primary text-squadrun-primary hover:bg-squadrun-primary/10"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Refactored Code
-                </Button>
-                <Button 
-                  onClick={handleClear}
-                  variant="destructive"
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Clear
-                </Button>
-                <Button
-                  onClick={() => setViewMode(viewMode === 'codeView' ? 'comparisonView' : 'codeView')}
-                  variant="outline"
-                  className="border-squadrun-primary text-squadrun-primary hover:bg-squadrun-primary/10 ml-auto"
-                >
-                  <DiffIcon className="mr-2 h-4 w-4" />
-                  {viewMode === 'codeView' ? 'Show Comparison' : 'Standard View'}
-                </Button>
-              </>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex flex-row gap-4 items-center">
+          <Button 
+            onClick={handleDownload} 
+            variant="outline"
+            className="border-squadrun-primary text-squadrun-primary hover:bg-squadrun-primary/10"
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Download Refactored Code
+          </Button>
+          <Button 
+            onClick={handleClear}
+            variant="destructive"
+          >
+            <X className="mr-2 h-4 w-4" />
+            Clear & Start Over
+          </Button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-hidden">
-        {viewMode === 'codeView' ? (
-          <Tabs defaultValue="original" className="h-full">
-            <TabsList className="bg-squadrun-darker">
-              <TabsTrigger value="original">Original Code</TabsTrigger>
-              <TabsTrigger value="refactored" disabled={!refactoredCode}>
-                Refactored Code
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="original" className="h-[calc(100%-40px)] overflow-hidden">
-              <CodeDisplay code={fileContent} language={language} />
-            </TabsContent>
-            <TabsContent value="refactored" className="h-[calc(100%-40px)] overflow-hidden">
-              {refactoredCode ? (
-                <CodeDisplay code={refactoredCode} language={language} />
-              ) : (
-                <div className="flex items-center justify-center h-full bg-squadrun-darker rounded-md p-4">
-                  <p className="text-squadrun-gray">Click "Refactor Code" to see the refactored version</p>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+        {refactoredCode ? (
+          <CodeComparison 
+            originalCode={fileContent} 
+            refactoredCode={refactoredCode} 
+            language={language} 
+          />
         ) : (
-          refactoredCode ? (
-            <CodeComparison 
-              originalCode={fileContent} 
-              refactoredCode={refactoredCode} 
-              language={language} 
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full bg-squadrun-darker rounded-md p-4">
-              <p className="text-squadrun-gray">Click "Refactor Code" to generate a comparison</p>
-            </div>
-          )
+          <CodeDisplay code={fileContent} language={language} />
         )}
       </div>
     </div>
