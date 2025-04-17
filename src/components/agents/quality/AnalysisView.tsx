@@ -4,7 +4,6 @@ import QualityScoreCard from "./QualityScoreCard";
 import CategoryBreakdown from "./CategoryBreakdown";
 import RecommendationsCard from "./RecommendationsCard";
 import CodeSnippetsCard from "./CodeSnippetsCard";
-import RefactoredCodeCard from "./RefactoredCodeCard";
 
 interface AnalysisViewProps {
   qualityResults: QualityResults;
@@ -28,16 +27,9 @@ const AnalysisView = ({ qualityResults, fileName }: AnalysisViewProps) => {
         <RecommendationsCard recommendations={qualityResults.recommendations} />
         <CodeSnippetsCard snippets={qualityResults.snippets} language={language} />
       </div>
-
-      <div className="grid grid-cols-1 gap-4">
-        <RefactoredCodeCard 
-          refactoredCode={qualityResults.refactoredCode} 
-          language={language} 
-          fileName={fileName} 
-        />
-      </div>
     </div>
   );
 };
 
 export default AnalysisView;
+
