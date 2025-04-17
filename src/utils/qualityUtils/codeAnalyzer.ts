@@ -8,7 +8,7 @@
 
 import { QualityMetrics, CategoryScore, QualityResults, CodeSnippet } from "@/types/codeQuality";
 import { refactorCode } from "./refactors";
-import { BookOpen, CircleCheck, ShieldCheck, AlertTriangle, Zap } from "lucide-react";
+import { BookOpen, CircleCheck, CircleAlert, AlertTriangle, ShieldCheck } from "lucide-react";
 
 /**
  * Calculate code metrics based on the code content
@@ -115,28 +115,23 @@ export const generateCategoryScores = (metrics: QualityMetrics): CategoryScore[]
   return [
     { 
       name: "Readability", 
-      score: Math.round((metrics.lineLength + metrics.commentRatio + metrics.consistencyScore) / 3),
-      icon: BookOpen
+      score: Math.round((metrics.lineLength + metrics.commentRatio + metrics.consistencyScore) / 3)
     },
     { 
       name: "Maintainability", 
-      score: Math.round((metrics.commentRatio + metrics.complexityScore + metrics.bestPracticesScore) / 3),
-      icon: CircleCheck
+      score: Math.round((metrics.commentRatio + metrics.complexityScore + metrics.bestPracticesScore) / 3)
     },
     { 
       name: "Performance", 
-      score: Math.round((metrics.complexityScore + metrics.bestPracticesScore) / 2),
-      icon: Zap
+      score: Math.round((metrics.complexityScore + metrics.bestPracticesScore) / 2)
     },
     { 
       name: "Security", 
-      score: Math.round(metrics.securityScore),
-      icon: ShieldCheck
+      score: Math.round(metrics.securityScore)
     },
     { 
       name: "Code Smell", 
-      score: Math.round((metrics.consistencyScore + metrics.complexityScore) / 2),
-      icon: AlertTriangle
+      score: Math.round((metrics.consistencyScore + metrics.complexityScore) / 2)
     }
   ];
 };
