@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cpu, Search } from "lucide-react";
@@ -33,6 +34,7 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       
       const isSmallFile = fileContent.split('\n').length < 500;
       
+      // In the future, we can add model-specific logic here based on the selected model
       if (isOpenAIConfigured() && !isSmallFile) {
         try {
           toast.info("Analyzing code with AI...", {

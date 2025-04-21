@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-import { Gemini, Openai, Groq } from "lucide-react";
+import { Brain, Sparkles, Zap } from "lucide-react";
 
 type ModelOption = "gemini" | "openai" | "groq";
 
@@ -9,17 +9,17 @@ const MODEL_OPTIONS: { label: string; value: ModelOption; icon: React.ReactNode 
   {
     label: "Gemini",
     value: "gemini",
-    icon: <Gemini className="mr-2 h-5 w-5 text-blue-400" />,
+    icon: <Brain className="mr-2 h-5 w-5 text-blue-400" />,
   },
   {
     label: "OpenAI",
     value: "openai",
-    icon: <Openai className="mr-2 h-5 w-5 text-green-500" />,
+    icon: <Sparkles className="mr-2 h-5 w-5 text-green-500" />,
   },
   {
     label: "Groq",
     value: "groq",
-    icon: <Groq className="mr-2 h-5 w-5 text-orange-400" />,
+    icon: <Zap className="mr-2 h-5 w-5 text-orange-400" />,
   },
 ];
 
