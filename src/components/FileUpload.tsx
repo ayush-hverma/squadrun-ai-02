@@ -40,7 +40,7 @@ export default function FileUpload({ onFileUpload }: FileUploadProps) {
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       setFileName(files[0].name);
@@ -55,7 +55,7 @@ export default function FileUpload({ onFileUpload }: FileUploadProps) {
 
   return (
     <Card className="border border-squadrun-primary/30 shadow-lg transition-all duration-300 hover:shadow-squadrun-primary/20">
-      <CardContent className="p-6">
+      <CardContent className="p-3">
         <div 
           className={`flex flex-col items-center transition-all duration-300 
             ${isDragging ? 'scale-102 border-2 border-dashed border-squadrun-primary bg-squadrun-primary/10 rounded-md' : ''}`}
@@ -74,21 +74,21 @@ export default function FileUpload({ onFileUpload }: FileUploadProps) {
             <div className="rounded-full bg-squadrun-primary/20 p-4 transition-all duration-300 hover:bg-squadrun-primary/30">
               <Upload className="h-8 w-8 text-squadrun-primary" />
             </div>
-            
+
             <Button 
               onClick={handleBrowseClick}
               className="bg-squadrun-primary hover:bg-squadrun-vivid transition-all duration-300 shadow-md hover:shadow-lg text-white w-full"
             >
               Browse Files
             </Button>
-            
+
             {!fileName && (
               <p className="text-squadrun-gray text-sm mt-2 text-center">
                 Drag and drop any code file here<br />or click Browse Files
               </p>
             )}
           </div>
-          
+
           {fileName && (
             <div className="mt-4 px-4 py-3 bg-squadrun-primary/10 rounded-md text-white w-full text-center animate-fade-in transition-all duration-300 hover:bg-squadrun-primary/20">
               <span className="text-squadrun-primary font-medium">Selected:</span> {fileName}
@@ -99,3 +99,4 @@ export default function FileUpload({ onFileUpload }: FileUploadProps) {
     </Card>
   );
 }
+
