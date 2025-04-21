@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -662,20 +663,20 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
                 </CardContent>
               </Card>
             </TabsContent>}
-      </Tabs>
+        </Tabs>
       
-      {!testResults ? <Button onClick={handleRunTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white mt-4 ml-auto" disabled={isRunning}>
-          {isRunning ? <>Running tests...</> : <>
-              <PlayCircle className="mr-2 h-4 w-4" /> Run Tests
-            </>}
-        </Button> : <div className="flex justify-end mt-4">
-          
-          <Button onClick={handleRunTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white" disabled={isRunning}>
+        {!testResults ? <Button onClick={handleRunTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white mt-4 ml-auto" disabled={isRunning}>
             {isRunning ? <>Running tests...</> : <>
-                <PlayCircle className="mr-2 h-4 w-4" /> Run Tests Again
+                <PlayCircle className="mr-2 h-4 w-4" /> Run Tests
               </>}
-          </Button>
-        </div>}
-    </div>
+          </Button> : <div className="flex justify-end mt-4">
+            
+            <Button onClick={handleRunTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white" disabled={isRunning}>
+              {isRunning ? <>Running tests...</> : <>
+                  <PlayCircle className="mr-2 h-4 w-4" /> Run Tests Again
+                </>}
+            </Button>
+          </div>}
+      </div>}
   </div>;
 }
