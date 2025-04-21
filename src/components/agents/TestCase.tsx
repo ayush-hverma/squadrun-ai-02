@@ -5,21 +5,21 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, XCircle, PlayCircle, TestTube } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
+import ModelPicker from "@/components/ModelPicker";
+
 interface TestCaseProps {
   fileContent: string | null;
   fileName: string | null;
 }
-export default function TestCase({
-  fileContent,
-  fileName
-}: TestCaseProps) {
+
+export default function TestCase({ fileContent, fileName }: TestCaseProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [testCases, setTestCases] = useState<any[] | null>(null);
   const [testResults, setTestResults] = useState<any | null>(null);
   const [fileLanguage, setFileLanguage] = useState<string>('python');
+  const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
 
-  // Reset test cases and results when file changes
   useEffect(() => {
     if (fileContent) {
       setTestCases(null);
@@ -27,11 +27,11 @@ export default function TestCase({
       setFileLanguage(getFileLanguage());
     }
   }, [fileContent, fileName]);
+
   const getFileLanguage = () => {
     if (!fileName) return 'python';
     const extension = fileName.split('.').pop()?.toLowerCase() || '';
 
-    // Map file extensions to language names
     const extensionMap: Record<string, string> = {
       'py': 'python',
       'js': 'javascript',
@@ -54,27 +54,23 @@ export default function TestCase({
     return extensionMap[extension] || 'python';
   };
 
-  // Generate test case templates based on file language and content
   const generateTestCasesForLanguage = () => {
     if (!fileContent) return [];
     const language = fileLanguage;
     const functionNames = extractFunctionNames(fileContent, language);
     const testCases = [];
 
-    // Generate test cases for each detected function
     for (let i = 0; i < Math.min(functionNames.length, 5); i++) {
       const fn = functionNames[i];
       testCases.push(...generateTestsForFunction(fn, language, i + 1));
     }
 
-    // If no functions found, generate generic test cases
     if (testCases.length === 0) {
       testCases.push(...generateGenericTestCases(language));
     }
     return testCases;
   };
 
-  // Extract function names from code based on language
   const extractFunctionNames = (code: string, language: string): string[] => {
     const patterns: Record<string, RegExp> = {
       'python': /def\s+([a-zA-Z0-9_]+)\s*\(/g,
@@ -93,14 +89,12 @@ export default function TestCase({
     const functionNames = [];
     let match;
     while ((match = pattern.exec(code)) !== null) {
-      // For JavaScript/TypeScript patterns that capture multiple groups
       const name = match[1] || match[2] || 'main';
       if (name && !functionNames.includes(name)) {
         functionNames.push(name);
       }
     }
 
-    // If no functions found, add a generic function name
     if (functionNames.length === 0) {
       const fileClassName = fileName?.split('.')[0] || 'main';
       functionNames.push(fileClassName);
@@ -108,7 +102,6 @@ export default function TestCase({
     return functionNames;
   };
 
-  // Generate tests for a specific function
   const generateTestsForFunction = (functionName: string, language: string, id: number) => {
     const testTemplates = {
       'python': {
@@ -305,7 +298,7 @@ export default function TestCase({
           description: "Ensures the function performs efficiently with large inputs."
         },
         concurrency: {
-          code: `// Note: C doesn't have standard threading, this would depend on your platform\nvoid test_${functionName}_basic_functionality(void) {\n    // Arrange\n    char input[] = "example_input";\n    \n    // Act\n    char* result = ${functionName}(input);\n    \n    // Assert\n    TEST_ASSERT_NOT_NULL(result);\n    free(result);\n}`,
+          code: `void test_${functionName}_basic_functionality(void) {\n    // Arrange\n    char input[] = "example_input";\n    \n    // Act\n    char* result = ${functionName}(input);\n    \n    // Assert\n    TEST_ASSERT_NOT_NULL(result);\n    free(result);\n}`,
           description: "Basic test for function functionality (C lacks standard threading support)."
         }
       },
@@ -355,12 +348,10 @@ export default function TestCase({
       }
     };
 
-    // Default to Python if language isn't supported
     const templates = testTemplates[language] || testTemplates['python'];
     const testTypes = ['positive', 'negative', 'edge', 'performance', 'concurrency'];
     const result = [];
 
-    // Select a few test types based on ID to ensure variety
     const selectedTypes = testTypes.filter((_, index) => index === id % testTypes.length || index === (id + 2) % testTypes.length);
     for (const type of selectedTypes) {
       const testName = `Test ${functionName} ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}`;
@@ -377,7 +368,6 @@ export default function TestCase({
     return result;
   };
 
-  // Generate generic test cases for when we can't extract function names
   const generateGenericTestCases = (language: string) => {
     const moduleName = fileName?.split('.')[0] || 'module';
     const templates: Record<string, any[]> = {
@@ -494,31 +484,28 @@ export default function TestCase({
     };
     return templates[language] || templates['python'];
   };
+
   const handleGenerateTests = () => {
     if (!fileContent) return;
     setIsGenerating(true);
 
-    // Simulate API call delay
     setTimeout(() => {
       const generatedTestCases = generateTestCasesForLanguage();
       setTestCases(generatedTestCases);
       setIsGenerating(false);
     }, 1500);
   };
+
   const handleRunTests = () => {
     if (!testCases) return;
     setIsRunning(true);
 
-    // Simulate API call delay
     setTimeout(() => {
-      // Generate mock results based on the test cases
       const totalTests = testCases.length;
       const passedTests = Math.floor(totalTests * 0.7) + Math.floor(Math.random() * (totalTests * 0.3));
       const failedTests = totalTests - passedTests;
 
-      // Create detailed results with random pass/fail distribution
       const details = testCases.map((test, index) => {
-        // Determine if this test passed (weighted random)
         const passed = index < passedTests || Math.random() > 0.3;
         return {
           id: test.id,
@@ -528,7 +515,6 @@ export default function TestCase({
         };
       });
 
-      // Calculate a somewhat realistic coverage percentage
       const coverage = Math.floor(65 + passedTests / totalTests * 25 + Math.random() * 10);
       const mockResults = {
         passed: passedTests,
@@ -542,7 +528,6 @@ export default function TestCase({
     }, 2000);
   };
 
-  // Generate realistic-looking failure messages
   const getRandomFailureReason = (testType: string) => {
     const failures = {
       'Positive Case': ["Assertion failed: Expected 'expected_output', got 'actual_output'", "Function returned null", "Expected true but got false"],
@@ -554,137 +539,143 @@ export default function TestCase({
     const failureCategory = failures[testType as keyof typeof failures] || failures['Positive Case'];
     return failureCategory[Math.floor(Math.random() * failureCategory.length)];
   };
+
   if (!fileContent) {
     return <div className="flex h-full items-center justify-center">
-        <Card className="w-96 bg-squadrun-darker/50 border border-squadrun-primary/20">
-          <CardContent className="p-6 text-center">
-            <p className="text-squadrun-gray">
-              Please upload a code file to generate test cases
-            </p>
+      <Card className="w-96 bg-squadrun-darker/50 border border-squadrun-primary/20">
+        <CardContent className="p-6 text-center">
+          <p className="text-squadrun-gray">
+            Please upload a code file to generate test cases
+          </p>
+        </CardContent>
+      </Card>
+    </div>;
+  }
+
+  return <div className="p-4 h-full flex flex-col">
+    <div className="mb-3 flex items-center">
+      <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
+      <ModelPicker value={model} onChange={setModel} />
+    </div>
+    <div className="mb-4">
+      <h1 className="text-2xl font-bold text-white mb-2">Test Case Generator</h1>
+      <p className="text-squadrun-gray">
+        Generate and run comprehensive test cases for your code to ensure quality and reliability.
+      </p>
+    </div>
+    
+    {!testCases ? <div className="flex-1 flex flex-col">
+        <Card className="mb-4 border border-squadrun-primary/20 bg-squadrun-darker/50 flex-1">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Code to Test</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CodeDisplay code={fileContent} language={fileName?.split('.').pop() || 'python'} />
           </CardContent>
         </Card>
-      </div>;
-  }
-  return <div className="p-4 h-full flex flex-col">
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-white mb-2">Test Case Generator</h1>
-        <p className="text-squadrun-gray">
-          Generate and run comprehensive test cases for your code to ensure quality and reliability.
-        </p>
-      </div>
-      
-      {!testCases ? <div className="flex-1 flex flex-col">
-          <Card className="mb-4 border border-squadrun-primary/20 bg-squadrun-darker/50 flex-1">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Code to Test</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CodeDisplay code={fileContent} language={fileName?.split('.').pop() || 'python'} />
-            </CardContent>
-          </Card>
+        
+        <Button onClick={handleGenerateTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white ml-auto" disabled={isGenerating}>
+          {isGenerating ? <>Generating...</> : <>
+              <TestTube className="mr-2 h-4 w-4" /> Generate Test Cases
+            </>}
+        </Button>
+      </div> : <div className="flex-1 flex flex-col">
+        <Tabs defaultValue="testcases" className="flex-1 flex flex-col">
+          <TabsList className="mb-4">
+            <TabsTrigger value="testcases">Test Cases</TabsTrigger>
+            <TabsTrigger value="original">Original Code</TabsTrigger>
+            {testResults && <TabsTrigger value="results">Test Results</TabsTrigger>}
+          </TabsList>
           
-          <Button onClick={handleGenerateTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white ml-auto" disabled={isGenerating}>
-            {isGenerating ? <>Generating...</> : <>
-                <TestTube className="mr-2 h-4 w-4" /> Generate Test Cases
-              </>}
-          </Button>
-        </div> : <div className="flex-1 flex flex-col">
-          <Tabs defaultValue="testcases" className="flex-1 flex flex-col">
-            <TabsList className="mb-4">
-              <TabsTrigger value="testcases">Test Cases</TabsTrigger>
-              <TabsTrigger value="original">Original Code</TabsTrigger>
-              {testResults && <TabsTrigger value="results">Test Results</TabsTrigger>}
-            </TabsList>
-            
-            <TabsContent value="original" className="flex-1 mt-0">
-              <Card className="border border-squadrun-primary/20 bg-squadrun-darker/50 h-full">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Original Code</CardTitle>
-                </CardHeader>
-                <CardContent className="h-[calc(100%-60px)] overflow-auto">
-                  <CodeDisplay code={fileContent} language={fileName?.split('.').pop() || 'python'} />
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="testcases" className="flex-1 mt-0">
-              <Card className="border border-squadrun-primary/20 bg-squadrun-darker/50 h-full">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Generated Test Cases</CardTitle>
-                </CardHeader>
-                <CardContent className="h-[calc(100%-60px)] overflow-auto">
-                  <div className="space-y-4">
-                    {testCases.map(test => <div key={test.id} className="border border-squadrun-primary/10 rounded-md p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <h3 className="font-medium text-white">{test.name}</h3>
-                            <p className="text-xs text-squadrun-gray">{test.type}</p>
-                            <p className="text-sm text-squadrun-gray mt-1">{test.description}</p>
-                          </div>
-                          {testResults && <div>
-                              {testResults.details.find((r: any) => r.id === test.id)?.passed ? <CheckCircle className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-red-500" />}
-                            </div>}
+          <TabsContent value="original" className="flex-1 mt-0">
+            <Card className="border border-squadrun-primary/20 bg-squadrun-darker/50 h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Original Code</CardTitle>
+              </CardHeader>
+              <CardContent className="h-[calc(100%-60px)] overflow-auto">
+                <CodeDisplay code={fileContent} language={fileName?.split('.').pop() || 'python'} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="testcases" className="flex-1 mt-0">
+            <Card className="border border-squadrun-primary/20 bg-squadrun-darker/50 h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Generated Test Cases</CardTitle>
+              </CardHeader>
+              <CardContent className="h-[calc(100%-60px)] overflow-auto">
+                <div className="space-y-4">
+                  {testCases.map(test => <div key={test.id} className="border border-squadrun-primary/10 rounded-md p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <h3 className="font-medium text-white">{test.name}</h3>
+                          <p className="text-xs text-squadrun-gray">{test.type}</p>
+                          <p className="text-sm text-squadrun-gray mt-1">{test.description}</p>
                         </div>
-                        <CodeDisplay code={test.code} language={fileName?.split('.').pop() || 'python'} />
+                        {testResults && <div>
+                            {testResults.details.find((r: any) => r.id === test.id)?.passed ? <CheckCircle className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-red-500" />}
+                          </div>}
+                      </div>
+                      <CodeDisplay code={test.code} language={fileName?.split('.').pop() || 'python'} />
+                    </div>)}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {testResults && <TabsContent value="results" className="flex-1 mt-0">
+              <Card className="border border-squadrun-primary/20 bg-squadrun-darker/50 h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Test Results</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[calc(100%-60px)] overflow-auto">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="bg-squadrun-primary/10 rounded-md p-4">
+                      <h3 className="text-sm font-medium text-white mb-1">Test Summary</h3>
+                      <div className="flex justify-between text-sm text-squadrun-gray mb-3">
+                        <span>Passed: {testResults.passed}/{testResults.total}</span>
+                        <span>Failed: {testResults.failed}/{testResults.total}</span>
+                      </div>
+                      <Progress value={testResults.passed / testResults.total * 100} className="h-2 bg-squadrun-darker" />
+                    </div>
+                    
+                    <div className="bg-squadrun-primary/10 rounded-md p-4">
+                      <h3 className="text-sm font-medium text-white mb-1">Code Coverage</h3>
+                      <div className="flex justify-between text-sm text-squadrun-gray mb-3">
+                        <span>Coverage: {testResults.coverage}%</span>
+                      </div>
+                      <Progress value={testResults.coverage} className="h-2 bg-squadrun-darker" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {testResults.details.map((result: any) => <div key={result.id} className={`border p-3 rounded-md ${result.passed ? "border-green-500/20 bg-green-500/5" : "border-red-500/20 bg-red-500/5"}`}>
+                        <div className="flex items-center">
+                          {result.passed ? <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> : <XCircle className="h-5 w-5 text-red-500 mr-2" />}
+                          <div>
+                            <h3 className="font-medium text-white">{result.name}</h3>
+                            <p className="text-xs text-squadrun-gray">{result.message}</p>
+                          </div>
+                        </div>
                       </div>)}
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
-            
-            {testResults && <TabsContent value="results" className="flex-1 mt-0">
-                <Card className="border border-squadrun-primary/20 bg-squadrun-darker/50 h-full">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg">Test Results</CardTitle>
-                  </CardHeader>
-                  <CardContent className="h-[calc(100%-60px)] overflow-auto">
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div className="bg-squadrun-primary/10 rounded-md p-4">
-                        <h3 className="text-sm font-medium text-white mb-1">Test Summary</h3>
-                        <div className="flex justify-between text-sm text-squadrun-gray mb-3">
-                          <span>Passed: {testResults.passed}/{testResults.total}</span>
-                          <span>Failed: {testResults.failed}/{testResults.total}</span>
-                        </div>
-                        <Progress value={testResults.passed / testResults.total * 100} className="h-2 bg-squadrun-darker" />
-                      </div>
-                      
-                      <div className="bg-squadrun-primary/10 rounded-md p-4">
-                        <h3 className="text-sm font-medium text-white mb-1">Code Coverage</h3>
-                        <div className="flex justify-between text-sm text-squadrun-gray mb-3">
-                          <span>Coverage: {testResults.coverage}%</span>
-                        </div>
-                        <Progress value={testResults.coverage} className="h-2 bg-squadrun-darker" />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {testResults.details.map((result: any) => <div key={result.id} className={`border p-3 rounded-md ${result.passed ? "border-green-500/20 bg-green-500/5" : "border-red-500/20 bg-red-500/5"}`}>
-                          <div className="flex items-center">
-                            {result.passed ? <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> : <XCircle className="h-5 w-5 text-red-500 mr-2" />}
-                            <div>
-                              <h3 className="font-medium text-white">{result.name}</h3>
-                              <p className="text-xs text-squadrun-gray">{result.message}</p>
-                            </div>
-                          </div>
-                        </div>)}
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>}
-          </Tabs>
+            </TabsContent>}
+      </Tabs>
+      
+      {!testResults ? <Button onClick={handleRunTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white mt-4 ml-auto" disabled={isRunning}>
+          {isRunning ? <>Running tests...</> : <>
+              <PlayCircle className="mr-2 h-4 w-4" /> Run Tests
+            </>}
+        </Button> : <div className="flex justify-end mt-4">
           
-          {!testResults ? <Button onClick={handleRunTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white mt-4 ml-auto" disabled={isRunning}>
-              {isRunning ? <>Running tests...</> : <>
-                  <PlayCircle className="mr-2 h-4 w-4" /> Run Tests
-                </>}
-            </Button> : <div className="flex justify-end mt-4">
-              
-              <Button onClick={handleRunTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white" disabled={isRunning}>
-                {isRunning ? <>Running tests...</> : <>
-                    <PlayCircle className="mr-2 h-4 w-4" /> Run Tests Again
-                  </>}
-              </Button>
-            </div>}
+          <Button onClick={handleRunTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white" disabled={isRunning}>
+            {isRunning ? <>Running tests...</> : <>
+                <PlayCircle className="mr-2 h-4 w-4" /> Run Tests Again
+              </>}
+          </Button>
         </div>}
-    </div>;
+    </div>
+  </div>;
 }

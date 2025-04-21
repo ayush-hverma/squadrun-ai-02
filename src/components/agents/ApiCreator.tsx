@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +12,7 @@ import {
 import CodeDisplay from "../CodeDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { AutogrowingTextarea } from "@/components/ui/autogrowing-textarea";
+import ModelPicker from "@/components/ModelPicker";
 
 interface ApiCreatorProps {
   fileContent?: string | null;
@@ -57,6 +57,7 @@ export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
   );
   const [isProcessing, setIsProcessing] = useState(false);
   const [apiPlan, setApiPlan] = useState<ApiPlan | null>(null);
+  const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
 
   const analyzeRequirements = (text: string): ApiPlan => {
     const isAuthRequired = /auth|login|register|sign|user/i.test(text);
@@ -1303,6 +1304,11 @@ module.exports = router;`
 
   return (
     <div className="p-4 h-full flex flex-col">
+      <div className="mb-3 flex items-center">
+        <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
+        <ModelPicker value={model} onChange={setModel} />
+      </div>
+      
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-white mb-2">API Implementation Plan</h1>
         <p className="text-squadrun-gray">

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ import NoFileMessage from "@/components/refactor/NoFileMessage";
 import { refactorCode } from "@/utils/qualityUtils/refactors";
 import { refactorCodeWithAI, isOpenAIConfigured } from "@/utils/aiUtils/openAiUtils";
 import { toast } from "sonner";
+import ModelPicker from "@/components/ModelPicker";
 
 interface CodeRefactorProps {
   fileContent: string | null;
@@ -25,9 +25,9 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
   const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
-  
+  const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
+
   useEffect(() => {
-    // Reset states when fileContent changes
     setRefactoredCode(null);
     if (fileName) {
       const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
@@ -41,33 +41,28 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     setIsRefactoring(true);
     
     try {
-      // Comprehensive instructions for refactoring
       const instructions = 'improve readability, enhance maintainability, optimize performance, fix security issues, apply DRY principles';
       
       let result: string;
       
-      // Try AI-powered refactoring first, fall back to built-in refactorer
       if (isOpenAIConfigured()) {
         try {
           toast.info("Starting AI-powered refactoring", {
             description: "This may take a moment for larger files."
           });
           
-          // Use OpenAI for refactoring
           result = await refactorCodeWithAI(fileContent, language);
           toast.success("AI-powered refactoring complete", {
             description: "Your code has been refactored using advanced AI techniques."
           });
         } catch (error) {
           console.warn("AI refactoring failed, falling back to built-in refactorer:", error);
-          // Fall back to built-in refactorer
           result = refactorCode(fileContent, language);
           toast.info("Using built-in refactoring tools", {
             description: "AI refactoring unavailable. Using standard refactoring techniques."
           });
         }
       } else {
-        // Use built-in refactorer
         result = refactorCode(fileContent, language);
         toast.success("Refactoring complete", {
           description: "Your code has been refactored successfully."
@@ -93,7 +88,6 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
     const file = new Blob([refactoredCode], { type: "text/plain" });
     element.href = URL.createObjectURL(file);
     
-    // Add 'refactored' to the filename before the extension
     const fileNameParts = fileName.split(".");
     const extension = fileNameParts.pop();
     const newFileName = fileNameParts.join(".") + "-refactored." + extension;
@@ -121,6 +115,10 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
 
   return (
     <div className="p-4 h-full flex flex-col gap-4">
+      <div className="mb-3 flex items-center">
+        <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
+        <ModelPicker value={model} onChange={setModel} />
+      </div>
       {!refactoredCode ? (
         <Card className="border border-squadrun-primary/20">
           <CardHeader className="pb-2">

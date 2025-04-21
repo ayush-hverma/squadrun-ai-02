@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cpu, Search } from "lucide-react";
@@ -10,6 +9,7 @@ import { analyzeCodeQualityWithAI, isOpenAIConfigured } from "@/utils/aiUtils/op
 import NoCodeMessage from "./quality/NoCodeMessage";
 import AnalysisView from "./quality/AnalysisView";
 import { Button } from "@/components/ui/button";
+import ModelPicker from "@/components/ModelPicker";
 
 interface CodeQualityProps {
   fileContent: string | null;
@@ -19,8 +19,8 @@ interface CodeQualityProps {
 export default function CodeQuality({ fileContent, fileName }: CodeQualityProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [qualityResults, setQualityResults] = useState<QualityResults | null>(null);
-  
-  // Manually trigger code quality assessment
+  const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
+
   const handleAssessQuality = async () => {
     if (!fileContent) return;
     
@@ -31,7 +31,6 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       const language = fileName?.split('.').pop() || 'javascript';
       let results: QualityResults;
       
-      // Check if file is small enough for quick analysis
       const isSmallFile = fileContent.split('\n').length < 500;
       
       if (isOpenAIConfigured() && !isSmallFile) {
@@ -52,7 +51,6 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
           });
         }
       } else {
-        // Use the faster built-in analyzer
         results = analyzeCodeQuality(fileContent, language);
         toast.success("Analysis Complete", {
           description: `Overall Score: ${results.score}/100`,
@@ -71,7 +69,6 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     }
   };
 
-  // Clear the current analysis
   const handleClear = () => {
     setQualityResults(null);
     toast.success("Analysis Cleared", {
@@ -79,13 +76,16 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     });
   };
 
-  // When no file is selected, show the upload prompt
   if (!fileContent) {
     return <NoCodeMessage />;
   }
 
   return (
     <div className="p-4 h-full flex flex-col">
+      <div className="mb-3 flex items-center">
+        <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
+        <ModelPicker value={model} onChange={setModel} />
+      </div>
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-white mb-2">Code Quality Assessment</h1>
         <p className="text-squadrun-gray">
@@ -94,7 +94,6 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       </div>
       
       {!qualityResults ? (
-        // Show analysis button when no results are present
         <div className="flex-1 flex flex-col items-center justify-center">
           <Button 
             onClick={handleAssessQuality} 
@@ -118,7 +117,6 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
           )}
         </div>
       ) : (
-        // Show analysis results once processing is complete
         <div className="flex-1 flex flex-col">
           <AnalysisView qualityResults={qualityResults} fileName={fileName} />
           <div className="mt-4 flex justify-center">
@@ -135,4 +133,3 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     </div>
   );
 }
-
