@@ -1,6 +1,7 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Cpu, Code, X } from "lucide-react";
+import { Cpu, Code } from "lucide-react";
 import { toast } from "sonner";
 import ModelPicker from "@/components/ModelPicker";
 import FileUploadButton from "@/components/FileUploadButton";
@@ -97,15 +98,6 @@ components:
     }
   };
 
-  const handleClear = () => {
-    setFileContent(null);
-    setFileName(null);
-    setApiSpec(null);
-    toast.success("API spec cleared", {
-      description: "You can now upload a new file.",
-    });
-  };
-
   if (!fileContent) {
     return (
       <div className="p-4 h-full flex flex-col">
@@ -129,15 +121,6 @@ components:
         </div>
         <div className="flex gap-2">
           <FileUploadButton onFileUpload={handleFileUpload} />
-          {apiSpec && (
-            <Button 
-              onClick={handleClear}
-              variant="destructive"
-            >
-              <X className="mr-2 h-4 w-4" />
-              Clear
-            </Button>
-          )}
         </div>
       </div>
       
