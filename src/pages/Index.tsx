@@ -2,14 +2,16 @@
 import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import FileUpload from "@/components/FileUpload";
-import CodeInspector from "@/components/agents/CodeInspector";
-import ApiCreator from "@/components/agents/ApiCreator";
+import UnifiedAgent from "@/components/agents/UnifiedAgent";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("inspector");
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+
+  // Only one agent present -- UnifiedAgent
+  const activeTab = "inspector";
+  const handleTabChange = () => {};
 
   const handleFileUpload = (file: File) => {
     setFileName(file.name);
@@ -19,27 +21,6 @@ const Index = () => {
       setFileContent(content);
     };
     reader.readAsText(file);
-  };
-
-  const handleTabChange = (tab: string) => {
-    if (tab !== activeTab) {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setActiveTab(tab);
-        setIsTransitioning(false);
-      }, 300);
-    }
-  };
-
-  const renderActiveAgent = () => {
-    switch (activeTab) {
-      case "inspector":
-        return <CodeInspector fileContent={fileContent} fileName={fileName} />;
-      case "api":
-        return <ApiCreator fileContent={fileContent} fileName={fileName} />;
-      default:
-        return <CodeInspector fileContent={fileContent} fileName={fileName} />;
-    }
   };
 
   return (
@@ -56,7 +37,7 @@ const Index = () => {
             isTransitioning ? "opacity-0" : "opacity-100"
           }`}
         >
-          {renderActiveAgent()}
+          <UnifiedAgent fileContent={fileContent} fileName={fileName} />
         </div>
       </div>
     </div>
@@ -64,3 +45,4 @@ const Index = () => {
 };
 
 export default Index;
+
