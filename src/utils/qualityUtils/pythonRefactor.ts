@@ -1,4 +1,5 @@
-import { RefactoringOptions } from './index';
+
+import { RefactoringOptions } from './refactors';
 
 /**
  * Refactor Python code to follow best practices
@@ -696,3 +697,124 @@ const refactorNotebookCell = (code: string, options?: RefactoringOptions, magicN
   if (options?.focus?.performance) {
     refactored = refactored.replace(
       /for\s+([a-zA-Z0-9_]+)\s+in\s+range\(len\(([a-zA-Z0-9_]+)\)\):/g,
+      'for $1, item in enumerate($2):'
+    );
+  }
+  
+  // Convert dictionary creation to dict comprehensions
+  if (options?.focus?.codeSmell) {
+    refactored = refactored.replace(
+      /([a-zA-Z0-9_]+)\s*=\s*{}\s*\n\s*for\s+([a-zA-Z0-9_]+)\s+in\s+([^:]+):\s*\n\s+([a-zA-Z0-9_]+)\[([^]]+)\]\s*=\s*([^#\n]+)/g,
+      '$1 = {$5: $6 for $2 in $3}'
+    );
+  }
+  
+  // Add missing type hints for Python code in notebooks
+  if (options?.techniques?.improveTyping) {
+    // Add simple type hints to function parameters
+    refactored = refactored.replace(
+      /def\s+([a-zA-Z0-9_]+)\s*\(([^:)]*)\):/g,
+      (match, funcName, params) => {
+        if (!params.includes(':')) {
+          // Only add type hints if they don't exist
+          const typedParams = params.split(',')
+            .filter(p => p.trim())
+            .map(p => {
+              const paramName = p.trim().split('=')[0].trim();
+              if (paramName.toLowerCase().includes('str') || paramName.endsWith('name') || paramName.endsWith('text')) {
+                return `${paramName}: str`;
+              } else if (paramName.toLowerCase().includes('num') || paramName.endsWith('count') || paramName.endsWith('id')) {
+                return `${paramName}: int`;
+              } else if (paramName.toLowerCase().includes('list') || paramName.endsWith('s')) {
+                return `${paramName}: list`;
+              } else if (paramName.toLowerCase().includes('dict')) {
+                return `${paramName}: dict`;
+              } else if (paramName.toLowerCase().includes('bool') || paramName.startsWith('is_') || paramName.startsWith('has_')) {
+                return `${paramName}: bool`;
+              }
+              return `${paramName}: any`;
+            })
+            .join(', ');
+          
+          return `def ${funcName}(${typedParams}):`;
+        }
+        return match;
+      }
+    );
+  }
+  
+  // Add docstrings, but more concise for notebooks
+  if (options?.techniques?.addDocumentation) {
+    refactored = refactored.replace(
+      /def\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\):/g,
+      (match, funcName, params) => {
+        if (!match.includes('"""')) {
+          return `def ${funcName}(${params}):\n    """${funcName} function."""\n`;
+        }
+        return match;
+      }
+    );
+  }
+  
+  // Make sure imports are at the top
+  if (options?.techniques?.organizeImports) {
+    const lines = refactored.split('\n');
+    const importLines: string[] = [];
+    const nonImportLines: string[] = [];
+    
+    for (const line of lines) {
+      if (line.trim().startsWith('import ') || line.trim().startsWith('from ')) {
+        importLines.push(line);
+      } else {
+        nonImportLines.push(line);
+      }
+    }
+    
+    if (importLines.length > 0) {
+      refactored = [...importLines, '', ...nonImportLines].join('\n');
+    }
+  }
+  
+  // Use context managers for file operations and resource handling
+  if (options?.focus?.security) {
+    refactored = refactored.replace(
+      /([a-zA-Z0-9_]+)\s*=\s*open\(([^)]+)\)\s*\n([^]*?)([a-zA-Z0-9_]+)\.close\(\)/gs,
+      'with open($2) as $1:\n$3'
+    );
+  }
+  
+  // Improve pandas operations
+  if (refactored.includes('import pandas') || refactored.includes('from pandas')) {
+    // Use more efficient pandas operations
+    refactored = refactored.replace(
+      /for\s+index\s*,\s*row\s+in\s+([a-zA-Z0-9_]+)\.iterrows\(\):/g,
+      '# Vectorized operations are more efficient than row iterations\n# Original: for index, row in $1.iterrows():'
+    );
+  }
+  
+  // Jupyter-specific: Add Markdown comments above cells with complex operations
+  if (options?.techniques?.addDocumentation) {
+    if (refactored.includes('plt.') && !refactored.includes('# Visualization:')) {
+      refactored = '# Visualization: Data plot\n' + refactored;
+    }
+    
+    if ((refactored.includes('.groupby(') || refactored.includes('.agg(')) && 
+        !refactored.includes('# Data Aggregation:')) {
+      refactored = '# Data Aggregation: Group and summarize data\n' + refactored;
+    }
+    
+    if (refactored.includes('model.fit(') && !refactored.includes('# Model Training:')) {
+      refactored = '# Model Training: Fit model to training data\n' + refactored;
+    }
+  }
+  
+  return refactored;
+};
+
+// Used for testing
+const validate_input = (input: string): string => {
+  if (input.length > 1000) {
+    throw new Error('Input too long');
+  }
+  return input.replace(/[<>]/g, '').trim();
+};

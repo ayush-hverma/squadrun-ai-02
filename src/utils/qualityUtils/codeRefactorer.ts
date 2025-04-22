@@ -21,4 +21,4 @@ export {
 export type { RefactoringOptions } from './refactors';
 
 // Export the new Python-specific utilities
-export { refactorPython } from './pythonRefactor';
+export { refactorPython as refactorPythonCode } from './pythonRefactor';
