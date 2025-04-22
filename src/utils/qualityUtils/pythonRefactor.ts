@@ -709,9 +709,8 @@ const refactorNotebookCell = (code: string, options?: RefactoringOptions, magicN
     );
   }
   
-  // Add missing type hints for Python code in notebooks
-  if (options?.techniques?.improveTyping) {
-    // Add simple type hints to function parameters
+  // Add simple type hints to function parameters
+  if (options?.techniques?.addTyping) {
     refactored = refactored.replace(
       /def\s+([a-zA-Z0-9_]+)\s*\(([^:)]*)\):/g,
       (match, funcName, params) => {
@@ -744,7 +743,7 @@ const refactorNotebookCell = (code: string, options?: RefactoringOptions, magicN
   }
   
   // Add docstrings, but more concise for notebooks
-  if (options?.techniques?.addDocumentation) {
+  if (options?.techniques?.addComments) {
     refactored = refactored.replace(
       /def\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\):/g,
       (match, funcName, params) => {
@@ -757,7 +756,7 @@ const refactorNotebookCell = (code: string, options?: RefactoringOptions, magicN
   }
   
   // Make sure imports are at the top
-  if (options?.techniques?.organizeImports) {
+  if (options?.techniques?.formatCode) {
     const lines = refactored.split('\n');
     const importLines: string[] = [];
     const nonImportLines: string[] = [];
@@ -793,7 +792,7 @@ const refactorNotebookCell = (code: string, options?: RefactoringOptions, magicN
   }
   
   // Jupyter-specific: Add Markdown comments above cells with complex operations
-  if (options?.techniques?.addDocumentation) {
+  if (options?.techniques?.addComments) {
     if (refactored.includes('plt.') && !refactored.includes('# Visualization:')) {
       refactored = '# Visualization: Data plot\n' + refactored;
     }
@@ -818,3 +817,4 @@ const validate_input = (input: string): string => {
   }
   return input.replace(/[<>]/g, '').trim();
 };
+
