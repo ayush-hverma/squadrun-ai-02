@@ -1,6 +1,6 @@
 
 /**
- * Re-export all refactoring functions from the refactors folder
+ * Re-export all refactoring functions and utilities from the refactors folder
  */
 export {
   refactorCode,
@@ -8,5 +8,12 @@ export {
   refactorPython,
   refactorCPP,
   refactorJava,
-  refactorGeneric
+  refactorGeneric,
+  calculateCodeQualityMetrics,
+  calculateReadabilityScore,
+  calculateMaintainabilityScore,
+  calculatePerformanceScore,
+  calculateSecurityScore,
+  calculateCodeSmellScore,
+  RefactoringOptions
 } from './refactors';
