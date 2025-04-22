@@ -4,7 +4,6 @@ import Sidebar from "@/components/Sidebar";
 import FileUpload from "@/components/FileUpload";
 import UnifiedAgent from "@/components/agents/UnifiedAgent";
 import ApiCreator from "@/components/agents/ApiCreator";
-import CodeInspector from "@/components/agents/CodeInspector";
 
 const Index = () => {
   const [fileContent, setFileContent] = useState<string | null>(null);
@@ -39,13 +38,17 @@ const Index = () => {
       <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className={`flex-1 overflow-auto transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-0" : "opacity-100"}`}>
+        <div className="p-1 border-b border-squadrun-primary/20 bg-squadrun-darker/50 py-1 px-1 mx-0 my-0">
+          <FileUpload onFileUpload={handleFileUpload} />
+        </div>
+
+        <div
+          className={`flex-1 overflow-auto transition-opacity duration-300 ease-in-out ${
+            isTransitioning ? "opacity-0" : "opacity-100"
+          }`}
+        >
           {activeTab === "inspector" ? (
-            <CodeInspector
-              fileContent={fileContent}
-              fileName={fileName}
-              onFileUpload={handleFileUpload}
-            />
+            <UnifiedAgent fileContent={fileContent} fileName={fileName} />
           ) : (
             <ApiCreator />
           )}
