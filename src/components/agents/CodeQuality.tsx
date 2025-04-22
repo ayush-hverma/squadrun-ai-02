@@ -33,9 +33,13 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       let results: QualityResults;
       
       const isSmallFile = fileContent.split('\n').length < 500;
+      const isNotebook = language === 'ipynb' || 
+                        (fileContent.trim().startsWith('{') && 
+                         fileContent.includes('"cell_type"') && 
+                         fileContent.includes('"source"'));
       
       // In the future, we can add model-specific logic here based on the selected model
-      if (isOpenAIConfigured() && !isSmallFile) {
+      if (isOpenAIConfigured() && !isSmallFile && !isNotebook) {
         try {
           toast.info("Analyzing code with AI...", {
             description: "This may take a moment for larger files.",
@@ -53,10 +57,18 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
           });
         }
       } else {
+        // For notebooks, always use the built-in analyzer which is now optimized for them
         results = analyzeCodeQuality(fileContent, language);
-        toast.success("Analysis Complete", {
-          description: `Overall Score: ${results.score}/100`,
-        });
+        
+        if (isNotebook) {
+          toast.success("Jupyter Notebook Analysis Complete", {
+            description: `Overall Score: ${results.score}/100`,
+          });
+        } else {
+          toast.success("Analysis Complete", {
+            description: `Overall Score: ${results.score}/100`,
+          });
+        }
       }
       
       setQualityResults(results);
@@ -92,6 +104,7 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
         <h1 className="text-2xl font-bold text-white mb-2">Code Quality Assessment</h1>
         <p className="text-squadrun-gray">
           Analyzing your code for readability, maintainability, performance, security and code smell.
+          {fileName?.endsWith('.ipynb') && " Jupyter Notebooks are fully supported."}
         </p>
       </div>
       
@@ -110,9 +123,11 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
               <div className="animate-spin mb-4">
                 <Cpu className="h-16 w-16 text-squadrun-primary" />
               </div>
-              <h2 className="text-xl font-medium text-white mb-2">Analyzing Code Quality</h2>
+              <h2 className="text-xl font-medium text-white mb-2">
+                {fileName?.endsWith('.ipynb') ? "Analyzing Notebook Quality" : "Analyzing Code Quality"}
+              </h2>
               <p className="text-squadrun-gray text-center max-w-md">
-                We're examining your code for quality metrics including
+                We're examining your {fileName?.endsWith('.ipynb') ? "notebook" : "code"} for quality metrics including
                 readability, maintainability, performance, security, and code smell.
               </p>
             </div>
@@ -135,3 +150,4 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     </div>
   );
 }
+
