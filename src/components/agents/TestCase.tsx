@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, XCircle, PlayCircle, TestTube } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import ModelPicker from "@/components/ModelPicker";
+import NoCodeMessage from "../agents/quality/NoCodeMessage";
 
 interface TestCaseProps {
   fileContent: string | null;
@@ -155,7 +156,7 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
         },
         negative: {
           code: `test('${functionName} throws error for invalid input', () => {\n  // Arrange & Act & Assert\n  expect(() => {\n    ${functionName}(null as any);\n  }).toThrow();\n});`,
-          description: "Checks that the function properly handles invalid input by throwing an error."
+          description: "Checks that the function properly handles invalid input by throwing an appropriate exception."
         },
         edge: {
           code: `test('${functionName} handles edge cases', () => {\n  // Arrange\n  const input = '';\n  \n  // Act\n  const result = ${functionName}(input);\n  \n  // Assert\n  expect(result).toBe('');\n});`,
