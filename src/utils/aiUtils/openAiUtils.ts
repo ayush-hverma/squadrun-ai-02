@@ -211,3 +211,66 @@ export const analyzeCodeQualityWithAI = async (code: string, language: string) =
     throw error;
   }
 };
+
+/**
+ * Get code completions from OpenAI
+ */
+export const getCodeCompletion = async (
+  prompt: string,
+  language: string,
+  maxTokens: number = 500
+): Promise<string> => {
+  const apiKey = openAIConfig.apiKey;
+  
+  if (!apiKey || apiKey === "YOUR_OPENAI_API_KEY") {
+    throw new Error("OpenAI API key not configured");
+  }
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: openAIConfig.model || "gpt-4-0125-preview",
+        messages: [
+          {
+            role: "system",
+            content: `You are a helpful code completion assistant. Complete the code in ${language} following best practices.`
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.2, // Lower temperature for more focused completions
+        stop: ["```"] // Stop at code block endings
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || "Failed to get completion from OpenAI");
+    }
+
+    const data = await response.json();
+    const completion = data.choices[0]?.message?.content;
+    
+    if (!completion) {
+      throw new Error("No completion received from OpenAI");
+    }
+
+    // Clean up the response by removing markdown code blocks if present
+    return completion.replace(/```[a-z]*\n?|```$/g, '').trim();
+    
+  } catch (error) {
+    console.error("OpenAI code completion error:", error);
+    toast.error("Code completion failed", {
+      description: error instanceof Error ? error.message : "Failed to get code completion"
+    });
+    throw error;
+  }
+};

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -542,15 +541,7 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
   };
 
   if (!fileContent) {
-    return <div className="flex h-full items-center justify-center">
-      <Card className="w-96 bg-squadrun-darker/50 border border-squadrun-primary/20">
-        <CardContent className="p-6 text-center">
-          <p className="text-squadrun-gray">
-            Please upload a code file to generate test cases
-          </p>
-        </CardContent>
-      </Card>
-    </div>;
+    return <NoCodeMessage>Please upload a file to generate test cases</NoCodeMessage>;
   }
 
   return <div className="p-4 h-full flex flex-col">
@@ -566,7 +557,7 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
     </div>
     
     {!testCases ? <div className="flex-1 flex flex-col">
-        <Card className="mb-4 border border-squadrun-primary/20 bg-squadrun-darker/50 flex-1">
+        <Card className="mb-4 border border-squadrun-primary/20 bg-squadrun-darker/50 h-full">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Code to Test</CardTitle>
           </CardHeader>
