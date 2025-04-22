@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useCodeRefactor } from "@/hooks/useCodeRefactor";
 import { PreRefactorView } from "./refactor/PreRefactorView";
@@ -10,23 +11,12 @@ interface CodeRefactorProps {
   fileContent: string | null;
   fileName: string | null;
   onFileUpload: (file: File) => void;
-  onClear: () => void;
 }
 
-export default function CodeRefactor({
-  fileContent,
-  fileName,
-  onFileUpload,
-  onClear
-}: CodeRefactorProps) {
+export default function CodeRefactor({ fileContent, fileName, onFileUpload }: CodeRefactorProps) {
   const [language, setLanguage] = useState<string>('js');
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
-  const {
-    refactoredCode,
-    isRefactoring,
-    handleRefactor,
-    clearRefactoredCode
-  } = useCodeRefactor();
+  const { refactoredCode, isRefactoring, handleRefactor, clearRefactoredCode } = useCodeRefactor();
 
   useEffect(() => {
     if (fileName) {
@@ -37,23 +27,19 @@ export default function CodeRefactor({
 
   const handleDownload = () => {
     if (!refactoredCode || !fileName) return;
+    
     const element = document.createElement("a");
-    const file = new Blob([refactoredCode], {
-      type: "text/plain"
-    });
+    const file = new Blob([refactoredCode], { type: "text/plain" });
     element.href = URL.createObjectURL(file);
+    
     const fileNameParts = fileName.split(".");
     const extension = fileNameParts.pop();
     const newFileName = fileNameParts.join(".") + "-refactored." + extension;
+    
     element.download = newFileName;
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-  };
-
-  const handleClearAndReset = () => {
-    clearRefactoredCode();
-    onClear();
   };
 
   if (!fileContent) {
@@ -70,19 +56,23 @@ export default function CodeRefactor({
 
   return (
     <div className="p-4 h-full flex flex-col gap-4">
+      <div className="mb-3 flex items-center">
+        <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
+        <ModelPicker value={model} onChange={setModel} />
+      </div>
+      
       {!refactoredCode ? (
         <PreRefactorView 
-          onRefactor={() => handleRefactor(fileContent, language)} 
-          isRefactoring={isRefactoring} 
-          onClear={handleClearAndReset}
+          onRefactor={() => handleRefactor(fileContent, language)}
+          isRefactoring={isRefactoring}
         />
       ) : (
         <PostRefactorView 
-          originalCode={fileContent} 
-          refactoredCode={refactoredCode} 
-          language={language} 
-          onDownload={handleDownload} 
-          onClear={handleClearAndReset}
+          originalCode={fileContent}
+          refactoredCode={refactoredCode}
+          language={language}
+          onDownload={handleDownload}
+          onClear={clearRefactoredCode}
         />
       )}
     </div>

@@ -2,27 +2,18 @@
 import React from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRightCircle, RefreshCw, Cpu, Eraser } from "lucide-react";
+import { ArrowRightCircle, RefreshCw, Cpu } from "lucide-react";
 
 interface PreRefactorViewProps {
   onRefactor: () => void;
   isRefactoring: boolean;
-  onClear: () => void;
 }
 
-export const PreRefactorView = ({ onRefactor, isRefactoring, onClear }: PreRefactorViewProps) => {
+export const PreRefactorView = ({ onRefactor, isRefactoring }: PreRefactorViewProps) => {
   return (
     <Card className="border border-squadrun-primary/20">
-      <CardHeader className="pb-2 flex flex-row justify-between items-center">
+      <CardHeader className="pb-2">
         <CardTitle className="text-xl font-bold text-white">Code Refactoring</CardTitle>
-        <Button
-          onClick={onClear}
-          variant="outline"
-          className="border-destructive/30 text-destructive hover:bg-destructive/20 transition-all duration-200"
-        >
-          <Eraser className="mr-2 h-4 w-4" />
-          Clear & Start Over
-        </Button>
       </CardHeader>
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

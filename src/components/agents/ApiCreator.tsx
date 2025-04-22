@@ -3,15 +3,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlayCircle, Server, FileDown, ChevronsUpDown } from "lucide-react";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import CodeDisplay from "../CodeDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { AutogrowingTextarea } from "@/components/ui/autogrowing-textarea";
 import ModelPicker from "@/components/ModelPicker";
+
 interface ApiCreatorProps {
   fileContent?: string | null;
   fileName?: string | null;
 }
+
 interface ApiEndpoint {
   method: string;
   path: string;
@@ -19,10 +26,12 @@ interface ApiEndpoint {
   requestBody: string;
   response: string;
 }
+
 interface DataModel {
   name: string;
   schema: string;
 }
+
 interface ApiPlan {
   overview: {
     purpose: string;
@@ -40,23 +49,23 @@ interface ApiPlan {
   security: string[];
   deployment: string[];
 }
-export default function ApiCreator({
-  fileContent,
-  fileName
-}: ApiCreatorProps) {
-  const {
-    toast
-  } = useToast();
-  const [description, setDescription] = useState<string>(fileContent ? `Create an API based on this code:\n\n${fileContent.substring(0, 200)}...` : "");
+
+export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
+  const { toast } = useToast();
+  const [description, setDescription] = useState<string>(
+    fileContent ? `Create an API based on this code:\n\n${fileContent.substring(0, 200)}...` : ""
+  );
   const [isProcessing, setIsProcessing] = useState(false);
   const [apiPlan, setApiPlan] = useState<ApiPlan | null>(null);
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
+
   const analyzeRequirements = (text: string): ApiPlan => {
     const isAuthRequired = /auth|login|register|sign|user/i.test(text);
     const isEcommerce = /ecommerce|product|cart|order|payment|shop/i.test(text);
     const isTodo = /todo|task|list|item/i.test(text);
     const isBlog = /blog|post|article|comment/i.test(text);
     const isFileSystem = /file|upload|download|storage/i.test(text);
+    
     if (isEcommerce) {
       return generateEcommerceApi();
     } else if (isTodo) {
@@ -69,6 +78,7 @@ export default function ApiCreator({
       return generateUserManagementApi(isAuthRequired);
     }
   };
+
   const generateUserManagementApi = (includeAuth: boolean = true): ApiPlan => {
     return {
       overview: {
@@ -76,34 +86,40 @@ export default function ApiCreator({
         techStack: "Node.js, Express, MongoDB, JWT authentication",
         architecture: "RESTful API with MVC pattern"
       },
-      endpoints: [{
-        method: "POST",
-        path: "/api/auth/register",
-        description: "Register a new user",
-        requestBody: "{ \"username\": \"string\", \"email\": \"string\", \"password\": \"string\" }",
-        response: "{ \"id\": \"string\", \"username\": \"string\", \"email\": \"string\", \"token\": \"string\" }"
-      }, {
-        method: "POST",
-        path: "/api/auth/login",
-        description: "Authenticate a user",
-        requestBody: "{ \"email\": \"string\", \"password\": \"string\" }",
-        response: "{ \"id\": \"string\", \"username\": \"string\", \"token\": \"string\" }"
-      }, {
-        method: "GET",
-        path: "/api/users/profile",
-        description: "Get user profile",
-        requestBody: "No body (JWT in Authorization header)",
-        response: "{ \"id\": \"string\", \"username\": \"string\", \"email\": \"string\", \"profile\": { ... } }"
-      }, {
-        method: "PUT",
-        path: "/api/users/profile",
-        description: "Update user profile",
-        requestBody: "{ \"username\": \"string\", \"bio\": \"string\", ... }",
-        response: "{ \"id\": \"string\", \"username\": \"string\", \"profile\": { ... } }"
-      }],
-      dataModels: [{
-        name: "User",
-        schema: `const userSchema = new mongoose.Schema({
+      endpoints: [
+        { 
+          method: "POST", 
+          path: "/api/auth/register", 
+          description: "Register a new user", 
+          requestBody: "{ \"username\": \"string\", \"email\": \"string\", \"password\": \"string\" }",
+          response: "{ \"id\": \"string\", \"username\": \"string\", \"email\": \"string\", \"token\": \"string\" }"
+        },
+        { 
+          method: "POST", 
+          path: "/api/auth/login", 
+          description: "Authenticate a user", 
+          requestBody: "{ \"email\": \"string\", \"password\": \"string\" }",
+          response: "{ \"id\": \"string\", \"username\": \"string\", \"token\": \"string\" }"
+        },
+        { 
+          method: "GET", 
+          path: "/api/users/profile", 
+          description: "Get user profile", 
+          requestBody: "No body (JWT in Authorization header)",
+          response: "{ \"id\": \"string\", \"username\": \"string\", \"email\": \"string\", \"profile\": { ... } }"
+        },
+        { 
+          method: "PUT", 
+          path: "/api/users/profile", 
+          description: "Update user profile", 
+          requestBody: "{ \"username\": \"string\", \"bio\": \"string\", ... }",
+          response: "{ \"id\": \"string\", \"username\": \"string\", \"profile\": { ... } }"
+        }
+      ],
+      dataModels: [
+        {
+          name: "User",
+          schema: `const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
@@ -115,7 +131,8 @@ export default function ApiCreator({
     avatar: String
   }
 });`
-      }],
+        }
+      ],
       implementation: {
         setup: `// Install dependencies
 npm init -y
@@ -142,6 +159,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`,
+        
         authentication: `// models/User.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
@@ -178,6 +196,7 @@ userSchema.methods.comparePassword = async function(password) {
 };
 
 module.exports = mongoose.model('User', userSchema);`,
+        
         middleware: `// middleware/auth.js
 const jwt = require('jsonwebtoken');
 
@@ -200,10 +219,22 @@ module.exports = function(req, res, next) {
   }
 };`
       },
-      security: ["Use HTTPS in production", "Implement rate limiting", "Validate all inputs", "Apply proper authentication/authorization", "Use environment variables for secrets"],
-      deployment: ["Set up CI/CD pipeline with GitHub Actions", "Deploy API on AWS, Heroku, or similar cloud provider", "Configure environment variables in deployment platform", "Set up monitoring with tools like New Relic or DataDog"]
+      security: [
+        "Use HTTPS in production",
+        "Implement rate limiting",
+        "Validate all inputs",
+        "Apply proper authentication/authorization", 
+        "Use environment variables for secrets"
+      ],
+      deployment: [
+        "Set up CI/CD pipeline with GitHub Actions",
+        "Deploy API on AWS, Heroku, or similar cloud provider",
+        "Configure environment variables in deployment platform",
+        "Set up monitoring with tools like New Relic or DataDog"
+      ]
     };
   };
+
   const generateTodoApi = (): ApiPlan => {
     return {
       overview: {
@@ -211,34 +242,40 @@ module.exports = function(req, res, next) {
         techStack: "Node.js, Express, MongoDB, JWT authentication",
         architecture: "RESTful API with CRUD operations"
       },
-      endpoints: [{
-        method: "GET",
-        path: "/api/tasks",
-        description: "Get all tasks for the authenticated user",
-        requestBody: "No body (JWT in Authorization header)",
-        response: "[{ \"id\": \"string\", \"title\": \"string\", \"completed\": boolean, \"createdAt\": \"date\" }]"
-      }, {
-        method: "POST",
-        path: "/api/tasks",
-        description: "Create a new task",
-        requestBody: "{ \"title\": \"string\", \"description\": \"string\", \"dueDate\": \"date\" }",
-        response: "{ \"id\": \"string\", \"title\": \"string\", \"description\": \"string\", \"completed\": false }"
-      }, {
-        method: "PUT",
-        path: "/api/tasks/:id",
-        description: "Update an existing task",
-        requestBody: "{ \"title\": \"string\", \"description\": \"string\", \"completed\": boolean }",
-        response: "{ \"id\": \"string\", \"title\": \"string\", \"description\": \"string\", \"completed\": boolean }"
-      }, {
-        method: "DELETE",
-        path: "/api/tasks/:id",
-        description: "Delete a task",
-        requestBody: "No body (JWT in Authorization header)",
-        response: "{ \"message\": \"Task deleted\" }"
-      }],
-      dataModels: [{
-        name: "Task",
-        schema: `const taskSchema = new mongoose.Schema({
+      endpoints: [
+        { 
+          method: "GET", 
+          path: "/api/tasks", 
+          description: "Get all tasks for the authenticated user", 
+          requestBody: "No body (JWT in Authorization header)",
+          response: "[{ \"id\": \"string\", \"title\": \"string\", \"completed\": boolean, \"createdAt\": \"date\" }]"
+        },
+        { 
+          method: "POST", 
+          path: "/api/tasks", 
+          description: "Create a new task", 
+          requestBody: "{ \"title\": \"string\", \"description\": \"string\", \"dueDate\": \"date\" }",
+          response: "{ \"id\": \"string\", \"title\": \"string\", \"description\": \"string\", \"completed\": false }"
+        },
+        { 
+          method: "PUT", 
+          path: "/api/tasks/:id", 
+          description: "Update an existing task", 
+          requestBody: "{ \"title\": \"string\", \"description\": \"string\", \"completed\": boolean }",
+          response: "{ \"id\": \"string\", \"title\": \"string\", \"description\": \"string\", \"completed\": boolean }"
+        },
+        { 
+          method: "DELETE", 
+          path: "/api/tasks/:id", 
+          description: "Delete a task", 
+          requestBody: "No body (JWT in Authorization header)",
+          response: "{ \"message\": \"Task deleted\" }"
+        }
+      ],
+      dataModels: [
+        {
+          name: "Task",
+          schema: `const taskSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -264,7 +301,8 @@ module.exports = function(req, res, next) {
     default: Date.now
   }
 });`
-      }],
+        }
+      ],
       implementation: {
         setup: `// Install dependencies
 npm init -y
@@ -291,6 +329,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`,
+        
         routes: `// routes/tasks.js
 const express = require('express');
 const router = express.Router();
@@ -384,10 +423,21 @@ router.delete('/:id', auth, async (req, res) => {
 
 module.exports = router;`
       },
-      security: ["Implement JWT authentication", "Validate task ownership for all operations", "Sanitize and validate input data", "Implement rate limiting for API endpoints"],
-      deployment: ["Deploy using Docker containers", "Set up MongoDB Atlas for database hosting", "Implement CI/CD pipeline with automated testing", "Set up monitoring for API performance"]
+      security: [
+        "Implement JWT authentication",
+        "Validate task ownership for all operations",
+        "Sanitize and validate input data",
+        "Implement rate limiting for API endpoints"
+      ],
+      deployment: [
+        "Deploy using Docker containers",
+        "Set up MongoDB Atlas for database hosting",
+        "Implement CI/CD pipeline with automated testing",
+        "Set up monitoring for API performance"
+      ]
     };
   };
+
   const generateEcommerceApi = (): ApiPlan => {
     return {
       overview: {
@@ -395,34 +445,40 @@ module.exports = router;`
         techStack: "Node.js, Express, MongoDB, Stripe for payments",
         architecture: "RESTful API with product catalog, cart, and order management"
       },
-      endpoints: [{
-        method: "GET",
-        path: "/api/products",
-        description: "Get all products with optional filtering",
-        requestBody: "No body, query parameters for filtering",
-        response: "[{ \"id\": \"string\", \"name\": \"string\", \"price\": number, \"description\": \"string\", \"image\": \"string\" }]"
-      }, {
-        method: "GET",
-        path: "/api/products/:id",
-        description: "Get a single product by ID",
-        requestBody: "No body",
-        response: "{ \"id\": \"string\", \"name\": \"string\", \"price\": number, \"description\": \"string\", \"image\": \"string\", \"stock\": number }"
-      }, {
-        method: "POST",
-        path: "/api/cart",
-        description: "Add item to cart",
-        requestBody: "{ \"productId\": \"string\", \"quantity\": number }",
-        response: "{ \"items\": [{ \"product\": {...}, \"quantity\": number, \"price\": number }], \"total\": number }"
-      }, {
-        method: "POST",
-        path: "/api/orders",
-        description: "Create an order from cart",
-        requestBody: "{ \"shippingAddress\": { \"street\": \"string\", \"city\": \"string\", \"postalCode\": \"string\", \"country\": \"string\" }, \"paymentMethod\": \"string\" }",
-        response: "{ \"id\": \"string\", \"items\": [...], \"total\": number, \"status\": \"string\", \"createdAt\": \"date\" }"
-      }],
-      dataModels: [{
-        name: "Product",
-        schema: `const productSchema = new mongoose.Schema({
+      endpoints: [
+        { 
+          method: "GET", 
+          path: "/api/products", 
+          description: "Get all products with optional filtering", 
+          requestBody: "No body, query parameters for filtering",
+          response: "[{ \"id\": \"string\", \"name\": \"string\", \"price\": number, \"description\": \"string\", \"image\": \"string\" }]"
+        },
+        { 
+          method: "GET", 
+          path: "/api/products/:id", 
+          description: "Get a single product by ID", 
+          requestBody: "No body",
+          response: "{ \"id\": \"string\", \"name\": \"string\", \"price\": number, \"description\": \"string\", \"image\": \"string\", \"stock\": number }"
+        },
+        { 
+          method: "POST", 
+          path: "/api/cart", 
+          description: "Add item to cart", 
+          requestBody: "{ \"productId\": \"string\", \"quantity\": number }",
+          response: "{ \"items\": [{ \"product\": {...}, \"quantity\": number, \"price\": number }], \"total\": number }"
+        },
+        { 
+          method: "POST", 
+          path: "/api/orders", 
+          description: "Create an order from cart", 
+          requestBody: "{ \"shippingAddress\": { \"street\": \"string\", \"city\": \"string\", \"postalCode\": \"string\", \"country\": \"string\" }, \"paymentMethod\": \"string\" }",
+          response: "{ \"id\": \"string\", \"items\": [...], \"total\": number, \"status\": \"string\", \"createdAt\": \"date\" }"
+        }
+      ],
+      dataModels: [
+        {
+          name: "Product",
+          schema: `const productSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true
@@ -455,9 +511,10 @@ module.exports = router;`
     default: Date.now
   }
 });`
-      }, {
-        name: "Order",
-        schema: `const orderSchema = new mongoose.Schema({
+        },
+        {
+          name: "Order",
+          schema: `const orderSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -511,7 +568,8 @@ module.exports = router;`
     default: Date.now
   }
 });`
-      }],
+        }
+      ],
       implementation: {
         setup: `// Install dependencies
 npm init -y
@@ -540,6 +598,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`,
+        
         routes: `// routes/products.js
 const express = require('express');
 const router = express.Router();
@@ -612,10 +671,21 @@ router.post('/', [auth, admin], async (req, res) => {
 
 module.exports = router;`
       },
-      security: ["Implement secure payment processing with Stripe", "Apply role-based access control for admin operations", "Validate products stock before order placement", "Implement transaction history for order tracking"],
-      deployment: ["Set up separate environments for development, staging, and production", "Implement automated database backups", "Set up order notification system via email", "Configure CDN for product images"]
+      security: [
+        "Implement secure payment processing with Stripe",
+        "Apply role-based access control for admin operations",
+        "Validate products stock before order placement",
+        "Implement transaction history for order tracking"
+      ],
+      deployment: [
+        "Set up separate environments for development, staging, and production",
+        "Implement automated database backups",
+        "Set up order notification system via email",
+        "Configure CDN for product images"
+      ]
     };
   };
+
   const generateBlogApi = (): ApiPlan => {
     return {
       overview: {
@@ -623,34 +693,40 @@ module.exports = router;`
         techStack: "Node.js, Express, MongoDB, JWT authentication",
         architecture: "RESTful API with content management features"
       },
-      endpoints: [{
-        method: "GET",
-        path: "/api/posts",
-        description: "Get all blog posts with pagination",
-        requestBody: "No body, query parameters for pagination",
-        response: "{ \"posts\": [{ \"id\": \"string\", \"title\": \"string\", \"excerpt\": \"string\", \"author\": {...} }], \"total\": number, \"page\": number, \"totalPages\": number }"
-      }, {
-        method: "GET",
-        path: "/api/posts/:id",
-        description: "Get a single blog post with comments",
-        requestBody: "No body",
-        response: "{ \"id\": \"string\", \"title\": \"string\", \"content\": \"string\", \"author\": {...}, \"comments\": [...] }"
-      }, {
-        method: "POST",
-        path: "/api/posts",
-        description: "Create a new blog post",
-        requestBody: "{ \"title\": \"string\", \"content\": \"string\", \"tags\": [\"string\"] }",
-        response: "{ \"id\": \"string\", \"title\": \"string\", \"content\": \"string\", \"createdAt\": \"date\" }"
-      }, {
-        method: "POST",
-        path: "/api/posts/:id/comments",
-        description: "Add a comment to a blog post",
-        requestBody: "{ \"content\": \"string\" }",
-        response: "{ \"id\": \"string\", \"content\": \"string\", \"author\": {...}, \"createdAt\": \"date\" }"
-      }],
-      dataModels: [{
-        name: "Post",
-        schema: `const postSchema = new mongoose.Schema({
+      endpoints: [
+        { 
+          method: "GET", 
+          path: "/api/posts", 
+          description: "Get all blog posts with pagination", 
+          requestBody: "No body, query parameters for pagination",
+          response: "{ \"posts\": [{ \"id\": \"string\", \"title\": \"string\", \"excerpt\": \"string\", \"author\": {...} }], \"total\": number, \"page\": number, \"totalPages\": number }"
+        },
+        { 
+          method: "GET", 
+          path: "/api/posts/:id", 
+          description: "Get a single blog post with comments", 
+          requestBody: "No body",
+          response: "{ \"id\": \"string\", \"title\": \"string\", \"content\": \"string\", \"author\": {...}, \"comments\": [...] }"
+        },
+        { 
+          method: "POST", 
+          path: "/api/posts", 
+          description: "Create a new blog post", 
+          requestBody: "{ \"title\": \"string\", \"content\": \"string\", \"tags\": [\"string\"] }",
+          response: "{ \"id\": \"string\", \"title\": \"string\", \"content\": \"string\", \"createdAt\": \"date\" }"
+        },
+        { 
+          method: "POST", 
+          path: "/api/posts/:id/comments", 
+          description: "Add a comment to a blog post", 
+          requestBody: "{ \"content\": \"string\" }",
+          response: "{ \"id\": \"string\", \"content\": \"string\", \"author\": {...}, \"createdAt\": \"date\" }"
+        }
+      ],
+      dataModels: [
+        {
+          name: "Post",
+          schema: `const postSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true
@@ -684,9 +760,10 @@ module.exports = router;`
     }
   ]
 });`
-      }, {
-        name: "Comment",
-        schema: `const commentSchema = new mongoose.Schema({
+        },
+        {
+          name: "Comment",
+          schema: `const commentSchema = new mongoose.Schema({
   content: {
     type: String,
     required: true
@@ -706,7 +783,8 @@ module.exports = router;`
     default: Date.now
   }
 });`
-      }],
+        }
+      ],
       implementation: {
         setup: `// Install dependencies
 npm init -y
@@ -734,6 +812,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`,
+        
         routes: `// routes/posts.js
 const express = require('express');
 const router = express.Router();
@@ -855,10 +934,21 @@ router.post('/:id/comments', auth, async (req, res) => {
 
 module.exports = router;`
       },
-      security: ["Implement content validation", "Add CSRF protection", "Configure rate limiting for comments", "Add moderation features for comments"],
-      deployment: ["Set up content backup strategy", "Configure caching for popular blog posts", "Set up SEO-friendly URL structure", "Implement analytics for tracking post engagement"]
+      security: [
+        "Implement content validation",
+        "Add CSRF protection",
+        "Configure rate limiting for comments",
+        "Add moderation features for comments"
+      ],
+      deployment: [
+        "Set up content backup strategy",
+        "Configure caching for popular blog posts",
+        "Set up SEO-friendly URL structure",
+        "Implement analytics for tracking post engagement"
+      ]
     };
   };
+
   const generateFileSystemApi = (): ApiPlan => {
     return {
       overview: {
@@ -866,34 +956,40 @@ module.exports = router;`
         techStack: "Node.js, Express, MongoDB, AWS S3 for storage",
         architecture: "RESTful API with file management capabilities"
       },
-      endpoints: [{
-        method: "POST",
-        path: "/api/files/upload",
-        description: "Upload a file",
-        requestBody: "FormData with 'file' field",
-        response: "{ \"id\": \"string\", \"filename\": \"string\", \"url\": \"string\", \"size\": number, \"mimetype\": \"string\" }"
-      }, {
-        method: "GET",
-        path: "/api/files",
-        description: "Get list of user's files",
-        requestBody: "No body (JWT in Authorization header)",
-        response: "[{ \"id\": \"string\", \"filename\": \"string\", \"url\": \"string\", \"size\": number, \"uploaded\": \"date\" }]"
-      }, {
-        method: "GET",
-        path: "/api/files/:id",
-        description: "Get file details",
-        requestBody: "No body",
-        response: "{ \"id\": \"string\", \"filename\": \"string\", \"url\": \"string\", \"size\": number, \"mimetype\": \"string\", \"uploaded\": \"date\" }"
-      }, {
-        method: "DELETE",
-        path: "/api/files/:id",
-        description: "Delete a file",
-        requestBody: "No body (JWT in Authorization header)",
-        response: "{ \"message\": \"File deleted successfully\" }"
-      }],
-      dataModels: [{
-        name: "File",
-        schema: `const fileSchema = new mongoose.Schema({
+      endpoints: [
+        { 
+          method: "POST", 
+          path: "/api/files/upload", 
+          description: "Upload a file", 
+          requestBody: "FormData with 'file' field",
+          response: "{ \"id\": \"string\", \"filename\": \"string\", \"url\": \"string\", \"size\": number, \"mimetype\": \"string\" }"
+        },
+        { 
+          method: "GET", 
+          path: "/api/files", 
+          description: "Get list of user's files", 
+          requestBody: "No body (JWT in Authorization header)",
+          response: "[{ \"id\": \"string\", \"filename\": \"string\", \"url\": \"string\", \"size\": number, \"uploaded\": \"date\" }]"
+        },
+        { 
+          method: "GET", 
+          path: "/api/files/:id", 
+          description: "Get file details", 
+          requestBody: "No body",
+          response: "{ \"id\": \"string\", \"filename\": \"string\", \"url\": \"string\", \"size\": number, \"mimetype\": \"string\", \"uploaded\": \"date\" }"
+        },
+        { 
+          method: "DELETE", 
+          path: "/api/files/:id", 
+          description: "Delete a file", 
+          requestBody: "No body (JWT in Authorization header)",
+          response: "{ \"message\": \"File deleted successfully\" }"
+        }
+      ],
+      dataModels: [
+        {
+          name: "File",
+          schema: `const fileSchema = new mongoose.Schema({
   filename: {
     type: String,
     required: true
@@ -936,7 +1032,8 @@ module.exports = router;`
     default: Date.now
   }
 });`
-      }],
+        }
+      ],
       implementation: {
         setup: `// Install dependencies
 npm init -y
@@ -963,6 +1060,7 @@ mongoose.connect(process.env.MONGO_URI)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`,
+        
         routes: `// config/s3.js
 const aws = require('aws-sdk');
 const multer = require('multer');
@@ -1119,29 +1217,42 @@ router.delete('/:id', auth, async (req, res) => {
 
 module.exports = router;`
       },
-      security: ["Implement file type validation", "Set up file size limits", "Configure proper AWS IAM permissions", "Add virus scanning for uploaded files"],
-      deployment: ["Set up CDN for faster file delivery", "Configure S3 lifecycle policies for storage optimization", "Set up file access logging", "Implement backup strategy for critical files"]
+      security: [
+        "Implement file type validation",
+        "Set up file size limits",
+        "Configure proper AWS IAM permissions",
+        "Add virus scanning for uploaded files"
+      ],
+      deployment: [
+        "Set up CDN for faster file delivery",
+        "Configure S3 lifecycle policies for storage optimization",
+        "Set up file access logging",
+        "Implement backup strategy for critical files"
+      ]
     };
   };
+
   const handleCreateApi = () => {
     if (description.trim() === "") return;
+    
     setIsProcessing(true);
-
+    
     // Create a timeout to simulate processing
     setTimeout(() => {
       try {
         // Analyze the requirements and generate an appropriate API plan
         const generatedApiPlan = analyzeRequirements(description);
         setApiPlan(generatedApiPlan);
+        
         toast({
           title: "API Plan Generated",
-          description: "Your custom API plan has been created based on your requirements."
+          description: "Your custom API plan has been created based on your requirements.",
         });
       } catch (error) {
         toast({
           title: "Error",
           description: "Failed to generate API plan. Please try again.",
-          variant: "destructive"
+          variant: "destructive",
         });
         console.error("Error generating API plan:", error);
       } finally {
@@ -1149,8 +1260,10 @@ module.exports = router;`
       }
     }, 2000);
   };
+
   if (!apiPlan) {
-    return <div className="p-4 h-full flex flex-col">
+    return (
+      <div className="p-4 h-full flex flex-col">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-white mb-2">API Creator</h1>
           <p className="text-squadrun-gray">
@@ -1163,19 +1276,38 @@ module.exports = router;`
             <CardTitle className="text-lg">Describe Your API Requirements</CardTitle>
           </CardHeader>
           <CardContent className="h-[calc(100%-60px)]">
-            <AutogrowingTextarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the API you want to create. You can include details about endpoints, data models, authentication requirements, etc." className="bg-squadrun-darker border-squadrun-primary/20 text-white" />
+            <AutogrowingTextarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe the API you want to create. You can include details about endpoints, data models, authentication requirements, etc."
+              className="bg-squadrun-darker border-squadrun-primary/20 text-white"
+            />
           </CardContent>
         </Card>
         
-        <Button onClick={handleCreateApi} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white mt-4 ml-auto" disabled={isProcessing || description.trim() === ""}>
-          {isProcessing ? <>Processing...</> : <>
+        <Button
+          onClick={handleCreateApi}
+          className="bg-squadrun-primary hover:bg-squadrun-vivid text-white mt-4 ml-auto"
+          disabled={isProcessing || description.trim() === ""}
+        >
+          {isProcessing ? (
+            <>Processing...</>
+          ) : (
+            <>
               <Server className="mr-2 h-4 w-4" /> Generate API Plan
-            </>}
+            </>
+          )}
         </Button>
-      </div>;
+      </div>
+    );
   }
-  return <div className="p-4 h-full flex flex-col">
-      
+
+  return (
+    <div className="p-4 h-full flex flex-col">
+      <div className="mb-3 flex items-center">
+        <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
+        <ModelPicker value={model} onChange={setModel} />
+      </div>
       
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-white mb-2">API Implementation Plan</h1>
@@ -1225,9 +1357,16 @@ module.exports = router;`
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {apiPlan.endpoints.map((endpoint: ApiEndpoint, index: number) => <div key={index} className="border border-squadrun-primary/10 rounded-md p-4">
+                  {apiPlan.endpoints.map((endpoint: ApiEndpoint, index: number) => (
+                    <div key={index} className="border border-squadrun-primary/10 rounded-md p-4">
                       <div className="flex items-center mb-2">
-                        <span className={`px-2 py-1 text-xs rounded mr-2 ${endpoint.method === 'GET' ? 'bg-blue-500/20 text-blue-300' : endpoint.method === 'POST' ? 'bg-green-500/20 text-green-300' : endpoint.method === 'PUT' ? 'bg-yellow-500/20 text-yellow-300' : endpoint.method === 'DELETE' ? 'bg-red-500/20 text-red-300' : 'bg-purple-500/20 text-purple-300'}`}>
+                        <span className={`px-2 py-1 text-xs rounded mr-2 ${
+                          endpoint.method === 'GET' ? 'bg-blue-500/20 text-blue-300' :
+                          endpoint.method === 'POST' ? 'bg-green-500/20 text-green-300' :
+                          endpoint.method === 'PUT' ? 'bg-yellow-500/20 text-yellow-300' :
+                          endpoint.method === 'DELETE' ? 'bg-red-500/20 text-red-300' :
+                          'bg-purple-500/20 text-purple-300'
+                        }`}>
                           {endpoint.method}
                         </span>
                         <span className="text-white font-mono">{endpoint.path}</span>
@@ -1247,7 +1386,8 @@ module.exports = router;`
                           </div>
                         </div>
                       </div>
-                    </div>)}
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -1260,10 +1400,12 @@ module.exports = router;`
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {apiPlan.dataModels.map((model: DataModel, index: number) => <div key={index} className="border border-squadrun-primary/10 rounded-md p-4">
+                  {apiPlan.dataModels.map((model: DataModel, index: number) => (
+                    <div key={index} className="border border-squadrun-primary/10 rounded-md p-4">
                       <h3 className="text-sm font-medium text-white mb-2">{model.name} Schema</h3>
                       <CodeDisplay code={model.schema} language="javascript" />
-                    </div>)}
+                    </div>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -1284,30 +1426,36 @@ module.exports = router;`
                       <CodeDisplay code={apiPlan.implementation.setup} language="javascript" />
                     </AccordionContent>
                   </AccordionItem>
-                  {apiPlan.implementation.authentication && <AccordionItem value="auth">
+                  {apiPlan.implementation.authentication && (
+                    <AccordionItem value="auth">
                       <AccordionTrigger className="text-sm font-medium text-white">
                         User Authentication
                       </AccordionTrigger>
                       <AccordionContent>
                         <CodeDisplay code={apiPlan.implementation.authentication} language="javascript" />
                       </AccordionContent>
-                    </AccordionItem>}
-                  {apiPlan.implementation.middleware && <AccordionItem value="middleware">
+                    </AccordionItem>
+                  )}
+                  {apiPlan.implementation.middleware && (
+                    <AccordionItem value="middleware">
                       <AccordionTrigger className="text-sm font-medium text-white">
                         Authentication Middleware
                       </AccordionTrigger>
                       <AccordionContent>
                         <CodeDisplay code={apiPlan.implementation.middleware} language="javascript" />
                       </AccordionContent>
-                    </AccordionItem>}
-                  {apiPlan.implementation.routes && <AccordionItem value="routes">
+                    </AccordionItem>
+                  )}
+                  {apiPlan.implementation.routes && (
+                    <AccordionItem value="routes">
                       <AccordionTrigger className="text-sm font-medium text-white">
                         Route Implementation
                       </AccordionTrigger>
                       <AccordionContent>
                         <CodeDisplay code={apiPlan.implementation.routes} language="javascript" />
                       </AccordionContent>
-                    </AccordionItem>}
+                    </AccordionItem>
+                  )}
                 </Accordion>
               </CardContent>
             </Card>
@@ -1321,7 +1469,9 @@ module.exports = router;`
                 </CardHeader>
                 <CardContent>
                   <ul className="list-disc pl-5 space-y-2 text-squadrun-gray">
-                    {apiPlan.security.map((item: string, index: number) => <li key={index} className="text-sm">{item}</li>)}
+                    {apiPlan.security.map((item: string, index: number) => (
+                      <li key={index} className="text-sm">{item}</li>
+                    ))}
                   </ul>
                 </CardContent>
               </Card>
@@ -1332,7 +1482,9 @@ module.exports = router;`
                 </CardHeader>
                 <CardContent>
                   <ul className="list-disc pl-5 space-y-2 text-squadrun-gray">
-                    {apiPlan.deployment.map((item: string, index: number) => <li key={index} className="text-sm">{item}</li>)}
+                    {apiPlan.deployment.map((item: string, index: number) => (
+                      <li key={index} className="text-sm">{item}</li>
+                    ))}
                   </ul>
                 </CardContent>
               </Card>
@@ -1342,12 +1494,19 @@ module.exports = router;`
       </div>
       
       <div className="flex justify-end mt-4">
-        <Button variant="outline" className="text-squadrun-gray mr-2 border-squadrun-primary/20 hover:bg-squadrun-primary/10" onClick={() => setApiPlan(null)}>
+        <Button
+          variant="outline" 
+          className="text-squadrun-gray mr-2 border-squadrun-primary/20 hover:bg-squadrun-primary/10"
+          onClick={() => setApiPlan(null)}
+        >
           <ChevronsUpDown className="mr-2 h-4 w-4" /> Edit Requirements
         </Button>
-        <Button className="bg-squadrun-primary hover:bg-squadrun-vivid text-white">
+        <Button
+          className="bg-squadrun-primary hover:bg-squadrun-vivid text-white"
+        >
           <FileDown className="mr-2 h-4 w-4" /> Download API Blueprint
         </Button>
       </div>
-    </div>;
+    </div>
+  );
 }
