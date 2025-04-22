@@ -1,10 +1,14 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Cpu, FileUp } from "lucide-react";
+import { Cpu, FileUp, CheckCircle, XCircle, PlayCircle, TestTube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import NoCodeMessage from "@/components/agents/quality/NoCodeMessage";
 import ModelPicker from "@/components/ModelPicker";
+import CodeDisplay from "@/components/CodeDisplay";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 
 interface TestCaseProps {
   fileContent: string | null;
