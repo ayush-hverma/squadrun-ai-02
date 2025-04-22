@@ -1,6 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import FileUpload from "@/components/FileUpload";
 import CodeRefactor from "@/components/agents/CodeRefactor";
 import CodeQuality from "@/components/agents/CodeQuality";
 import TestCase from "@/components/agents/TestCase";
@@ -12,16 +13,6 @@ const Index = () => {
   const [fileName, setFileName] = useState<string | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  const handleTabChange = (tab: string) => {
-    if (tab !== activeTab) {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setActiveTab(tab);
-        setIsTransitioning(false);
-      }, 300);
-    }
-  };
-
   const handleFileUpload = (file: File) => {
     setFileName(file.name);
     const reader = new FileReader();
@@ -32,36 +23,48 @@ const Index = () => {
     reader.readAsText(file);
   };
 
-  const handleClear = () => {
-    setFileContent(null);
-    setFileName(null);
+  const handleTabChange = (tab: string) => {
+    if (tab !== activeTab) {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setActiveTab(tab);
+        setIsTransitioning(false);
+      }, 300);
+    }
   };
 
   const renderActiveAgent = () => {
     switch (activeTab) {
       case "refactor":
-        return <CodeRefactor fileContent={fileContent} fileName={fileName} onFileUpload={handleFileUpload} onClear={handleClear} />;
+        return <CodeRefactor fileContent={fileContent} fileName={fileName} />;
       case "quality":
-        return <CodeQuality fileContent={fileContent} fileName={fileName} onFileUpload={handleFileUpload} onClear={handleClear} />;
+        return <CodeQuality fileContent={fileContent} fileName={fileName} />;
       case "testcase":
-        return <TestCase fileContent={fileContent} fileName={fileName} onFileUpload={handleFileUpload} onClear={handleClear} />;
+        return <TestCase fileContent={fileContent} fileName={fileName} />;
       case "api":
         return <ApiCreator fileContent={fileContent} fileName={fileName} />;
       default:
-        return <CodeRefactor fileContent={fileContent} fileName={fileName} onFileUpload={handleFileUpload} onClear={handleClear} />;
+        return <CodeRefactor fileContent={fileContent} fileName={fileName} />;
     }
   };
 
   return (
     <div className="flex h-screen bg-squadrun-dark overflow-hidden">
       <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
-      <main className="flex-1 flex flex-col overflow-hidden p-6">
-        <div className={`flex-1 overflow-auto transition-all duration-300 ease-in-out rounded-xl bg-squadrun-darker/50 backdrop-blur-sm border border-squadrun-primary/10 p-6 ${
-          isTransitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
-        }`}>
+
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="p-1 border-b border-squadrun-primary/20 bg-squadrun-darker/50 py-1 px-1 mx-0 my-0">
+          <FileUpload onFileUpload={handleFileUpload} />
+        </div>
+
+        <div
+          className={`flex-1 overflow-auto transition-opacity duration-300 ease-in-out ${
+            isTransitioning ? "opacity-0" : "opacity-100"
+          }`}
+        >
           {renderActiveAgent()}
         </div>
-      </main>
+      </div>
     </div>
   );
 };
