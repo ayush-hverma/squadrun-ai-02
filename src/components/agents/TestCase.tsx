@@ -27,11 +27,17 @@ export default function TestCase({
   const [fileLanguage, setFileLanguage] = useState<string>('python');
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
 
+  const fileInputRef = useState<React.RefObject<HTMLInputElement>>(() => React.createRef())[0];
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
       onFileUpload(files[0]);
     }
+  };
+
+  const handleBrowseClick = () => {
+    fileInputRef.current?.click();
   };
 
   useEffect(() => {
@@ -352,4 +358,102 @@ export default function TestCase({
           description: "Tests the function's behavior with edge case inputs (empty string)."
         },
         performance: {
-          code: `public function test${functionName}Performance(): void\n{\n    // Arrange\n    $largeInput = str_repeat("x", 1000);\n    \n    // Act\n    $startTime = microtime(true);\n    $result = ${functionName}($largeInput);\n
+          code: `public function test${functionName}Performance(): void\n{\n    // Arrange\n    $largeInput = str_repeat("x", 1000);\n    \n    // Act\n    $startTime = microtime(true);\n    $result = ${functionName}($largeInput);\n    $endTime = microtime(true);\n    \n    // Assert\n    $this->assertLessThan(1.0, $endTime - $startTime); // Should complete in under 1 second\n    $this->assertNotEmpty($result);\n}`,
+          description: "Ensures the function performs efficiently with large inputs."
+        },
+        concurrency: {
+          code: `public function test${functionName}Concurrency(): void\n{\n    // Note: This is a simplified concurrency test as PHP has limited threading\n    // Arrange\n    $results = [];\n    \n    // Act\n    for ($i = 0; $i < 5; $i++) {\n        $results[] = ${functionName}("input");\n    }\n    \n    // Assert\n    $this->assertCount(5, $results);\n}`,
+          description: "Validates that the function works correctly with sequential calls (PHP has limited native threading)."
+        }
+      }
+    };
+    
+    const languageTemplates = testTemplates[language] || testTemplates['python'];
+    
+    return [
+      {
+        id: `${id}-1`,
+        title: "Positive Test",
+        code: languageTemplates.positive.code,
+        description: languageTemplates.positive.description,
+        type: 'positive'
+      },
+      {
+        id: `${id}-2`,
+        title: "Negative Test",
+        code: languageTemplates.negative.code,
+        description: languageTemplates.negative.description,
+        type: 'negative'
+      },
+      {
+        id: `${id}-3`,
+        title: "Edge Case Test",
+        code: languageTemplates.edge.code,
+        description: languageTemplates.edge.description,
+        type: 'edge'
+      },
+      {
+        id: `${id}-4`,
+        title: "Performance Test",
+        code: languageTemplates.performance.code,
+        description: languageTemplates.performance.description,
+        type: 'performance'
+      },
+      {
+        id: `${id}-5`,
+        title: "Concurrency Test",
+        code: languageTemplates.concurrency.code,
+        description: languageTemplates.concurrency.description,
+        type: 'concurrency'
+      }
+    ];
+  };
+
+  const generateGenericTestCases = (language: string) => {
+    return generateTestsForFunction('main', language, 0);
+  };
+
+  return (
+    <div className="flex flex-col h-full p-4 gap-4">
+      {!fileContent ? (
+        <NoCodeMessage message="Upload code to generate test cases" />
+      ) : (
+        <div className="flex flex-col h-full space-y-4">
+          <Card className="bg-squadrun-dark border-squadrun-primary/30">
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-xl flex items-center">
+                  <TestTube className="mr-2 h-5 w-5 text-squadrun-primary" />
+                  Test Case Generator
+                </CardTitle>
+                <div className="flex items-center space-x-2">
+                  <ModelPicker value={model} onChange={setModel} className="h-9" />
+                  
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="flex items-center gap-2 border-squadrun-primary/50 text-squadrun-primary hover:bg-squadrun-primary/10"
+                    onClick={handleBrowseClick}
+                  >
+                    <FileUp className="h-4 w-4" />
+                    <span>Browse</span>
+                  </Button>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileUpload} 
+                    className="hidden"
+                    accept=".py,.js,.ts,.jsx,.tsx,.java,.cpp,.c,.cs,.go,.rb,.rs,.php,.sh,.sql,.html,.css"
+                  />
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {/* ... keep existing code (test case content UI) */}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
+  );
+}
