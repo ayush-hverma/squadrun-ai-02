@@ -39,7 +39,11 @@ const CodeSnippetsCard = ({ snippets, language }: CodeSnippetsCardProps) => {
       s.title.toLowerCase().includes('code smell') ||
       s.title.toLowerCase().includes('long method') ||
       s.title.toLowerCase().includes('duplicated code') ||
-      s.title.toLowerCase().includes('nested')
+      s.title.toLowerCase().includes('nested') ||
+      s.title.toLowerCase().includes('long cell') ||
+      s.title.toLowerCase().includes('variable') ||
+      s.title.toLowerCase().includes('function is too large') ||
+      s.title.toLowerCase().includes('should be a named constant')
     );
     
     const otherSnippets = snippets.filter(s => 
