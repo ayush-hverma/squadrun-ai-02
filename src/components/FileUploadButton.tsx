@@ -34,7 +34,8 @@ const FileUploadButton = ({ onFileUpload }: FileUploadButtonProps) => {
       />
       <Button
         onClick={handleBrowseClick}
-        className="bg-squadrun-primary hover:bg-squadrun-vivid text-white"
+        variant="outline"
+        className="bg-squadrun-darker hover:bg-squadrun-primary/20 border-squadrun-primary/30 text-squadrun-primary hover:text-squadrun-primary transition-all duration-200 hover:scale-102 shadow-sm hover:shadow-squadrun-primary/20"
       >
         <Upload className="h-4 w-4 mr-2" />
         Browse Files

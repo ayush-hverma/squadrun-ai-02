@@ -50,13 +50,13 @@ const Index = () => {
   return (
     <div className="flex h-screen bg-squadrun-dark overflow-hidden">
       <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className={`flex-1 overflow-auto transition-opacity duration-300 ease-in-out ${
-          isTransitioning ? "opacity-0" : "opacity-100"
+      <main className="flex-1 flex flex-col overflow-hidden p-6">
+        <div className={`flex-1 overflow-auto transition-all duration-300 ease-in-out rounded-xl bg-squadrun-darker/50 backdrop-blur-sm border border-squadrun-primary/10 p-6 ${
+          isTransitioning ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0"
         }`}>
           {renderActiveAgent()}
         </div>
-      </div>
+      </main>
     </div>
   );
 };
