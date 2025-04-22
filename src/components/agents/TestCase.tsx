@@ -7,21 +7,22 @@ import { CheckCircle, XCircle, PlayCircle, TestTube } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import ModelPicker from "@/components/ModelPicker";
 import FileUploadButton from "@/components/FileUploadButton";
-
 interface TestCaseProps {
   fileContent: string | null;
   fileName: string | null;
   onFileUpload: (file: File) => void;
 }
-
-export default function TestCase({ fileContent, fileName, onFileUpload }: TestCaseProps) {
+export default function TestCase({
+  fileContent,
+  fileName,
+  onFileUpload
+}: TestCaseProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [testCases, setTestCases] = useState<any[] | null>(null);
   const [testResults, setTestResults] = useState<any | null>(null);
   const [fileLanguage, setFileLanguage] = useState<string>('python');
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
-
   useEffect(() => {
     if (fileContent) {
       setTestCases(null);
@@ -29,11 +30,9 @@ export default function TestCase({ fileContent, fileName, onFileUpload }: TestCa
       setFileLanguage(getFileLanguage());
     }
   }, [fileContent, fileName]);
-
   const getFileLanguage = () => {
     if (!fileName) return 'python';
     const extension = fileName.split('.').pop()?.toLowerCase() || '';
-
     const extensionMap: Record<string, string> = {
       'py': 'python',
       'js': 'javascript',
@@ -55,24 +54,20 @@ export default function TestCase({ fileContent, fileName, onFileUpload }: TestCa
     };
     return extensionMap[extension] || 'python';
   };
-
   const generateTestCasesForLanguage = () => {
     if (!fileContent) return [];
     const language = fileLanguage;
     const functionNames = extractFunctionNames(fileContent, language);
     const testCases = [];
-
     for (let i = 0; i < Math.min(functionNames.length, 5); i++) {
       const fn = functionNames[i];
       testCases.push(...generateTestsForFunction(fn, language, i + 1));
     }
-
     if (testCases.length === 0) {
       testCases.push(...generateGenericTestCases(language));
     }
     return testCases;
   };
-
   const extractFunctionNames = (code: string, language: string): string[] => {
     const patterns: Record<string, RegExp> = {
       'python': /def\s+([a-zA-Z0-9_]+)\s*\(/g,
@@ -96,14 +91,12 @@ export default function TestCase({ fileContent, fileName, onFileUpload }: TestCa
         functionNames.push(name);
       }
     }
-
     if (functionNames.length === 0) {
       const fileClassName = fileName?.split('.')[0] || 'main';
       functionNames.push(fileClassName);
     }
     return functionNames;
   };
-
   const generateTestsForFunction = (functionName: string, language: string, id: number) => {
     const testTemplates = {
       'python': {
@@ -349,11 +342,9 @@ export default function TestCase({ fileContent, fileName, onFileUpload }: TestCa
         }
       }
     };
-
     const templates = testTemplates[language] || testTemplates['python'];
     const testTypes = ['positive', 'negative', 'edge', 'performance', 'concurrency'];
     const result = [];
-
     const selectedTypes = testTypes.filter((_, index) => index === id % testTypes.length || index === (id + 2) % testTypes.length);
     for (const type of selectedTypes) {
       const testName = `Test ${functionName} ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}`;
@@ -369,7 +360,6 @@ export default function TestCase({ fileContent, fileName, onFileUpload }: TestCa
     }
     return result;
   };
-
   const generateGenericTestCases = (language: string) => {
     const moduleName = fileName?.split('.')[0] || 'module';
     const templates: Record<string, any[]> = {
@@ -486,27 +476,22 @@ export default function TestCase({ fileContent, fileName, onFileUpload }: TestCa
     };
     return templates[language] || templates['python'];
   };
-
   const handleGenerateTests = () => {
     if (!fileContent) return;
     setIsGenerating(true);
-
     setTimeout(() => {
       const generatedTestCases = generateTestCasesForLanguage();
       setTestCases(generatedTestCases);
       setIsGenerating(false);
     }, 1500);
   };
-
   const handleRunTests = () => {
     if (!testCases) return;
     setIsRunning(true);
-
     setTimeout(() => {
       const totalTests = testCases.length;
       const passedTests = Math.floor(totalTests * 0.7) + Math.floor(Math.random() * (totalTests * 0.3));
       const failedTests = totalTests - passedTests;
-
       const details = testCases.map((test, index) => {
         const passed = index < passedTests || Math.random() > 0.3;
         return {
@@ -516,7 +501,6 @@ export default function TestCase({ fileContent, fileName, onFileUpload }: TestCa
           message: passed ? "Test passed" : getRandomFailureReason(test.type)
         };
       });
-
       const coverage = Math.floor(65 + passedTests / totalTests * 25 + Math.random() * 10);
       const mockResults = {
         passed: passedTests,
@@ -529,7 +513,6 @@ export default function TestCase({ fileContent, fileName, onFileUpload }: TestCa
       setIsRunning(false);
     }, 2000);
   };
-
   const getRandomFailureReason = (testType: string) => {
     const failures = {
       'Positive Case': ["Assertion failed: Expected 'expected_output', got 'actual_output'", "Function returned null", "Expected true but got false"],
@@ -541,24 +524,17 @@ export default function TestCase({ fileContent, fileName, onFileUpload }: TestCa
     const failureCategory = failures[testType as keyof typeof failures] || failures['Positive Case'];
     return failureCategory[Math.floor(Math.random() * failureCategory.length)];
   };
-
   if (!fileContent) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 p-4">
+    return <div className="flex flex-col items-center justify-center h-full gap-4 p-4">
         <h2 className="text-xl font-bold text-white">Test Case Generation</h2>
         <p className="text-squadrun-gray text-center mb-4">
           Upload a code file to generate test cases
         </p>
         <FileUploadButton onFileUpload={onFileUpload} />
-      </div>
-    );
+      </div>;
   }
-
   return <div className="p-4 h-full flex flex-col">
-    <div className="mb-3 flex items-center">
-      <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-      <ModelPicker value={model} onChange={setModel} />
-    </div>
+    
     <div className="mb-4">
       <h1 className="text-2xl font-bold text-white mb-2">Test Case Generator</h1>
       <p className="text-squadrun-gray">
