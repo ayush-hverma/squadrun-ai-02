@@ -373,7 +373,7 @@ const calculateCodeSmellScore = (code: string, isNotebook: boolean = false): num
       }
       
       // Second pass: check for duplicate code and undefined vars
-      const codeCellContents = [];
+      const codeCellContents: string[] = [];
       for (const cell of notebook.cells) {
         if (cell.cell_type === 'code') {
           const cellContent = Array.isArray(cell.source) ? cell.source.join('') : cell.source;
@@ -499,7 +499,7 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
         if (cell.cell_type === 'code') {
           const cellContent = Array.isArray(cell.source) ? cell.source.join('') : cell.source;
           
-          // Look for long lines
+          // Look for long lines (Readability issue)
           cellContent.split('\n').forEach((line: string, idx: number) => {
             if (line.length > 100) {
               snippets.push({
@@ -510,17 +510,17 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
             }
           });
           
-          // Look for magic numbers
+          // Look for magic numbers (Code Smell)
           const magicNumberMatches = cellContent.match(/\W\d{3,}\W/g) || [];
           if (magicNumberMatches.length > 0) {
             snippets.push({
-              title: `Cell ${i+1}: Magic numbers should be named constants`,
+              title: `Cell ${i+1}: Magic numbers should be named constants (Code Smell)`,
               code: cellContent.substring(0, 200) + (cellContent.length > 200 ? '...' : ''),
               suggestion: "# Create constants at the top of your notebook or cell\nMAX_COUNT = 1000\nTHRESHOLD = 500\n# Then use these constants instead of raw numbers"
             });
           }
           
-          // Look for nested loops
+          // Look for nested loops (Performance issue)
           if (cellContent.match(/for\s+\w+\s+in\s+.+:\s*\n[^]*?for\s+\w+\s+in/)) {
             snippets.push({
               title: `Cell ${i+1}: Nested loops may impact performance`,
@@ -528,7 +528,44 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
               suggestion: "# Consider vectorizing operations or extracting inner loop\n# to a separate function:\ndef process_item(item):\n    # Inner loop logic here\n    return result\n\nresults = [process_item(x) for x in items]"
             });
           }
+          
+          // Look for long cell (Code Smell)
+          if (cellContent.split('\n').length > 40) {
+            snippets.push({
+              title: `Cell ${i+1}: Cell is too long (Code Smell)`,
+              code: cellContent.substring(0, 100) + "...",
+              suggestion: "# Break this cell into multiple cells, each with a specific purpose\n# For example:\n# Cell 1: Data loading\n# Cell 2: Data preprocessing\n# Cell 3: Model training\n# Cell 4: Evaluation"
+            });
+          }
+          
+          // Look for suspicious variable access (Security)
+          if (cellContent.match(/os\.environ|\.secret|password|token|key/i) && 
+              !cellContent.match(/os\.environ\.get|getpass\.getpass/)) {
+            snippets.push({
+              title: `Cell ${i+1}: Potential credential exposure (Security issue)`,
+              code: cellContent.substring(0, 150) + (cellContent.length > 150 ? '...' : ''),
+              suggestion: "# Use secure methods for handling credentials\nimport os\n\n# Instead of direct assignment:\n# api_key = \"your_secret_key\"\n\n# Use environment variables:\napi_key = os.environ.get(\"API_KEY\")"
+            });
+          }
+          
+          // Look for hardcoded configurations (Maintainability)
+          if (cellContent.match(/filepath\s*=\s*["']|url\s*=\s*["']http/)) {
+            snippets.push({
+              title: `Cell ${i+1}: Hardcoded paths or URLs (Maintainability issue)`,
+              code: cellContent.substring(0, 150) + (cellContent.length > 150 ? '...' : ''),
+              suggestion: "# Define configuration at the top of your notebook\n\n# Configuration\nCONFIG = {\n    \"data_path\": \"./data/\",\n    \"api_url\": \"https://api.example.com/\",\n    \"output_dir\": \"./results/\"\n}\n\n# Then use CONFIG['data_path'] instead of hardcoded paths"
+            });
+          }
         }
+      }
+      
+      // If no issues were found but we know it's a notebook, add generic suggestions
+      if (snippets.length === 0) {
+        snippets.push({
+          title: "General notebook organization (Best practice)",
+          code: "# Notebook structure\n# Current organization could be improved",
+          suggestion: "# Recommended notebook structure:\n\n# 1. Imports and setup\nimport pandas as pd\nimport numpy as np\n\n# 2. Configuration and constants\nCONFIG = {\n    \"data_path\": \"./data/\"\n}\n\n# 3. Helper functions\ndef process_data(df):\n    # Processing logic\n    return df\n\n# 4. Data loading and processing\n# 5. Analysis and visualization\n# 6. Results and conclusions"
+        });
       }
     } catch (error) {
       // Fallback for invalid notebook
@@ -557,7 +594,7 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
       const contextLines = match.split('\n').slice(0, 3).join('\n');
       
       snippets.push({
-        title: "Deeply nested code structures",
+        title: "Deeply nested code structures (Code Smell)",
         code: contextLines + '...',
         suggestion: "// Consider extracting nested conditions into named functions\n" +
                     "function checkConditionA() { /* first condition */ }\n" +
@@ -568,16 +605,40 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
     
     // Look for magic numbers
     const magicNumberMatches = code.match(/\W\d{3,}\W/g) || [];
-    magicNumberMatches.slice(0, 3).forEach(match => {
-      const context = code.substring(
-        Math.max(0, code.indexOf(match) - 20),
-        Math.min(code.length, code.indexOf(match) + match.length + 20)
-      );
+    if (magicNumberMatches && magicNumberMatches.length > 0) {
+      magicNumberMatches.slice(0, 3).forEach(match => {
+        if (typeof match === 'string') {
+          const context = code.substring(
+            Math.max(0, code.indexOf(match) - 20),
+            Math.min(code.length, code.indexOf(match) + match.length + 20)
+          );
+          
+          snippets.push({
+            title: "Magic number should be a named constant (Code Smell)",
+            code: context,
+            suggestion: "const MEANINGFUL_CONSTANT_NAME = " + match.trim() + ";\n// Then use MEANINGFUL_CONSTANT_NAME instead"
+          });
+        }
+      });
+    }
+    
+    // Look for large functions (Code Smell)
+    const largeFunctions = code.match(/function\s+(\w+)\s*\([^)]*\)\s*{[\s\S]{500,}?}/g) || [];
+    largeFunctions.slice(0, 2).forEach(match => {
+      const functionName = match.match(/function\s+(\w+)/)?.[1] || 'function';
       
       snippets.push({
-        title: "Magic number should be a named constant",
-        code: context,
-        suggestion: "const MEANINGFUL_CONSTANT_NAME = " + match.trim() + ";\n// Then use MEANINGFUL_CONSTANT_NAME instead"
+        title: `Function "${functionName}" is too large (Code Smell)`,
+        code: match.substring(0, 150) + "...",
+        suggestion: "// Break down large functions into smaller, focused ones\n" +
+                  `function ${functionName}() {\n` +
+                  `  doFirstTask();\n` +
+                  `  doSecondTask();\n` +
+                  `  return combineResults();\n` +
+                  `}\n\n` +
+                  `function doFirstTask() {\n` +
+                  `  // First part of the original function\n` +
+                  `}`
       });
     });
   }
@@ -616,6 +677,7 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
     recommendations.push("Refactor long methods into smaller, focused functions");
     if (isNotebook) {
       recommendations.push("Break long notebook cells into multiple smaller, focused cells");
+      recommendations.push("Ensure all variables are properly defined before use");
     }
   }
   
@@ -677,22 +739,39 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
   } else {
     // Regular code refactoring
     const magicNumbers = Array.from(new Set(code.match(/\W\d{3,}\W/g) || []));
-    magicNumbers.forEach((num, index) => {
-      const cleanNum = typeof num === 'string' ? num.replace(/\W/g, '') : '';
-      const constantName = `CONSTANT_${cleanNum}`;
+    
+    if (magicNumbers.length > 0) {
+      let refactoredLines = code.split('\n');
+      const constantDefinitions: string[] = [];
       
-      // Only replace first occurrence to avoid over-refactoring
-      refactoredCode = refactoredCode.replace(
-        new RegExp(`\\W${cleanNum}\\W`), 
-        (match) => match.replace(cleanNum, constantName)
-      );
+      magicNumbers.forEach((num, index) => {
+        if (typeof num === 'string') {
+          const cleanNum = num.replace(/\W/g, '');
+          const constantName = `CONSTANT_${cleanNum}`;
+          
+          // Add constant definition
+          constantDefinitions.push(`const ${constantName} = ${cleanNum};`);
+          
+          // Replace in code (only first occurrence to avoid over-refactoring)
+          for (let i = 0; i < refactoredLines.length; i++) {
+            if (refactoredLines[i].includes(cleanNum)) {
+              refactoredLines[i] = refactoredLines[i].replace(
+                new RegExp(`\\b${cleanNum}\\b`), 
+                constantName
+              );
+              break;
+            }
+          }
+        }
+      });
       
-      // Add constant definition at the beginning
-      if (index === 0) {
-        const constantType = language === 'ts' || language === 'tsx' ? 'const' : 'const';
-        refactoredCode = `${constantType} ${constantName} = ${cleanNum};\n\n${refactoredCode}`;
+      // Add constants at the beginning
+      if (constantDefinitions.length > 0) {
+        refactoredLines = [...constantDefinitions, '', ...refactoredLines];
       }
-    });
+      
+      refactoredCode = refactoredLines.join('\n');
+    }
   }
   
   // Add a summary based on the overall score
