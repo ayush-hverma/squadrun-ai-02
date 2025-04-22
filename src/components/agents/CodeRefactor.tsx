@@ -1,7 +1,8 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRightCircle, RefreshCw, Cpu, X } from "lucide-react";
+import { ArrowRightCircle, RefreshCw, Cpu, X, Download } from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
 import CodeComparison from "@/components/CodeComparison";
 import NoFileMessage from "@/components/refactor/NoFileMessage";

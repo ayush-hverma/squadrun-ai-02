@@ -7,13 +7,16 @@ import { CheckCircle, XCircle, PlayCircle, TestTube, X } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import ModelPicker from "@/components/ModelPicker";
 import FileUploadButton from "@/components/FileUploadButton";
+import { toast } from "sonner";
 
 interface TestCaseProps {
   fileContent: string | null;
   fileName: string | null;
 }
 
-export default function TestCase({ fileContent, fileName }: TestCaseProps) {
+export default function TestCase() {
+  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [testCases, setTestCases] = useState<any[] | null>(null);
@@ -556,6 +559,7 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
     setFileContent(null);
     setFileName(null);
     setTestCases(null);
+    setTestResults(null);
     toast.success("Test cases cleared", {
       description: "You can now upload a new file.",
     });
