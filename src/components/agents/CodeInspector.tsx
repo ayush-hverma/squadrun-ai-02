@@ -8,18 +8,16 @@ import CodeRefactor from "./CodeRefactor";
 import CodeQuality from "./CodeQuality";
 import TestCase from "./TestCase";
 import NoCodeMessage from "./quality/NoCodeMessage";
+import FileUpload from "@/components/FileUpload";
 
 interface CodeInspectorProps {
   fileContent: string | null;
   fileName: string | null;
+  onFileUpload: (file: File) => void;
 }
 
-export default function CodeInspector({ fileContent, fileName }: CodeInspectorProps) {
+export default function CodeInspector({ fileContent, fileName, onFileUpload }: CodeInspectorProps) {
   const [activeTab, setActiveTab] = useState("refactor");
-
-  if (!fileContent) {
-    return <NoCodeMessage />;
-  }
 
   return (
     <div className="p-4 h-full flex flex-col">
@@ -29,6 +27,13 @@ export default function CodeInspector({ fileContent, fileName }: CodeInspectorPr
           Analyze, refactor, and test your code with AI assistance.
         </p>
       </div>
+
+      {/* Small Browse Files button if no file is uploaded */}
+      {!fileContent && (
+        <div className="mb-3 w-fit">
+          <FileUpload onFileUpload={onFileUpload} />
+        </div>
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         <TabsList className="mb-4">
@@ -47,15 +52,13 @@ export default function CodeInspector({ fileContent, fileName }: CodeInspectorPr
         </TabsList>
 
         <TabsContent value="refactor" className="flex-1 mt-0">
-          <CodeRefactor fileContent={fileContent} fileName={fileName} />
+          {fileContent ? <CodeRefactor fileContent={fileContent} fileName={fileName} /> : <NoCodeMessage />}
         </TabsContent>
-        
         <TabsContent value="quality" className="flex-1 mt-0">
-          <CodeQuality fileContent={fileContent} fileName={fileName} />
+          {fileContent ? <CodeQuality fileContent={fileContent} fileName={fileName} /> : <NoCodeMessage />}
         </TabsContent>
-        
         <TabsContent value="testcase" className="flex-1 mt-0">
-          <TestCase fileContent={fileContent} fileName={fileName} />
+          {fileContent ? <TestCase fileContent={fileContent} fileName={fileName} /> : <NoCodeMessage />}
         </TabsContent>
       </Tabs>
     </div>
