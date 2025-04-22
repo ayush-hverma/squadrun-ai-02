@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,13 +6,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, XCircle, PlayCircle, TestTube } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import ModelPicker from "@/components/ModelPicker";
+import FileUploadButton from "@/components/FileUploadButton";
 
 interface TestCaseProps {
   fileContent: string | null;
   fileName: string | null;
+  onFileUpload: (file: File) => void;
 }
 
-export default function TestCase({ fileContent, fileName }: TestCaseProps) {
+export default function TestCase({ fileContent, fileName, onFileUpload }: TestCaseProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [testCases, setTestCases] = useState<any[] | null>(null);
@@ -134,7 +135,7 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
         },
         negative: {
           code: `test('${functionName} throws error for invalid input', () => {\n  // Arrange & Act & Assert\n  expect(() => {\n    ${functionName}(null);\n  }).toThrow();\n});`,
-          description: "Checks that the function properly handles invalid input by throwing an error."
+          description: "Checks that the function properly handles invalid input by throwing an appropriate error."
         },
         edge: {
           code: `test('${functionName} handles edge cases', () => {\n  // Arrange\n  const input = '';\n  \n  // Act\n  const result = ${functionName}(input);\n  \n  // Assert\n  expect(result).toBe('');\n});`,
@@ -156,7 +157,7 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
         },
         negative: {
           code: `test('${functionName} throws error for invalid input', () => {\n  // Arrange & Act & Assert\n  expect(() => {\n    ${functionName}(null as any);\n  }).toThrow();\n});`,
-          description: "Checks that the function properly handles invalid input by throwing an error."
+          description: "Checks that the function properly handles invalid input by throwing an appropriate error."
         },
         edge: {
           code: `test('${functionName} handles edge cases', () => {\n  // Arrange\n  const input = '';\n  \n  // Act\n  const result = ${functionName}(input);\n  \n  // Assert\n  expect(result).toBe('');\n});`,
@@ -542,15 +543,15 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
   };
 
   if (!fileContent) {
-    return <div className="flex h-full items-center justify-center">
-      <Card className="w-96 bg-squadrun-darker/50 border border-squadrun-primary/20">
-        <CardContent className="p-6 text-center">
-          <p className="text-squadrun-gray">
-            Please upload a code file to generate test cases
-          </p>
-        </CardContent>
-      </Card>
-    </div>;
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4 p-4">
+        <h2 className="text-xl font-bold text-white">Test Case Generation</h2>
+        <p className="text-squadrun-gray text-center mb-4">
+          Upload a code file to generate test cases
+        </p>
+        <FileUploadButton onFileUpload={onFileUpload} />
+      </div>
+    );
   }
 
   return <div className="p-4 h-full flex flex-col">

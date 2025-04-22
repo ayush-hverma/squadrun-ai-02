@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cpu, Search } from "lucide-react";
@@ -11,13 +10,15 @@ import NoCodeMessage from "./quality/NoCodeMessage";
 import AnalysisView from "./quality/AnalysisView";
 import { Button } from "@/components/ui/button";
 import ModelPicker from "@/components/ModelPicker";
+import FileUploadButton from "@/components/FileUploadButton";
 
 interface CodeQualityProps {
   fileContent: string | null;
   fileName: string | null;
+  onFileUpload: (file: File) => void;
 }
 
-export default function CodeQuality({ fileContent, fileName }: CodeQualityProps) {
+export default function CodeQuality({ fileContent, fileName, onFileUpload }: CodeQualityProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [qualityResults, setQualityResults] = useState<QualityResults | null>(null);
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
@@ -79,7 +80,15 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
   };
 
   if (!fileContent) {
-    return <NoCodeMessage />;
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4 p-4">
+        <h2 className="text-xl font-bold text-white">Code Quality Analysis</h2>
+        <p className="text-squadrun-gray text-center mb-4">
+          Upload a code file to analyze its quality
+        </p>
+        <FileUploadButton onFileUpload={onFileUpload} />
+      </div>
+    );
   }
 
   return (

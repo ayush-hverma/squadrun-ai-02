@@ -15,13 +15,15 @@ import { refactorCode } from "@/utils/qualityUtils/refactors";
 import { refactorCodeWithAI, isOpenAIConfigured } from "@/utils/aiUtils/openAiUtils";
 import { toast } from "sonner";
 import ModelPicker from "@/components/ModelPicker";
+import FileUploadButton from "@/components/FileUploadButton";
 
 interface CodeRefactorProps {
   fileContent: string | null;
   fileName: string | null;
+  onFileUpload: (file: File) => void;
 }
 
-export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProps) {
+export default function CodeRefactor({ fileContent, fileName, onFileUpload }: CodeRefactorProps) {
   const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
@@ -110,7 +112,15 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
   };
 
   if (!fileContent) {
-    return <NoFileMessage />;
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4 p-4">
+        <h2 className="text-xl font-bold text-white">Code Refactoring</h2>
+        <p className="text-squadrun-gray text-center mb-4">
+          Upload a code file to start refactoring
+        </p>
+        <FileUploadButton onFileUpload={onFileUpload} />
+      </div>
+    );
   }
 
   return (
