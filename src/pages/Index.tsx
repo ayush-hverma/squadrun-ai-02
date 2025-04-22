@@ -1,14 +1,12 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import FileUpload from "@/components/FileUpload";
-import CodeRefactor from "@/components/agents/CodeRefactor";
-import CodeQuality from "@/components/agents/CodeQuality";
-import TestCase from "@/components/agents/TestCase";
+import CodeInspector from "@/components/agents/CodeInspector";
 import ApiCreator from "@/components/agents/ApiCreator";
 
 const Index = () => {
-  const [activeTab, setActiveTab] = useState("refactor");
+  const [activeTab, setActiveTab] = useState("inspector");
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -35,16 +33,12 @@ const Index = () => {
 
   const renderActiveAgent = () => {
     switch (activeTab) {
-      case "refactor":
-        return <CodeRefactor fileContent={fileContent} fileName={fileName} />;
-      case "quality":
-        return <CodeQuality fileContent={fileContent} fileName={fileName} />;
-      case "testcase":
-        return <TestCase fileContent={fileContent} fileName={fileName} />;
+      case "inspector":
+        return <CodeInspector fileContent={fileContent} fileName={fileName} />;
       case "api":
         return <ApiCreator fileContent={fileContent} fileName={fileName} />;
       default:
-        return <CodeRefactor fileContent={fileContent} fileName={fileName} />;
+        return <CodeInspector fileContent={fileContent} fileName={fileName} />;
     }
   };
 
