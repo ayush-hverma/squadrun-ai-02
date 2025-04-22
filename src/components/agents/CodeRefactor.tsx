@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -6,7 +6,8 @@ import {
   Download, 
   RefreshCw,
   Cpu,
-  X
+  X,
+  FileUp
 } from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
 import CodeComparison from "@/components/CodeComparison";
@@ -19,9 +20,14 @@ import ModelPicker from "@/components/ModelPicker";
 interface CodeRefactorProps {
   fileContent: string | null;
   fileName: string | null;
+  onFileUpload: (file: File) => void;
 }
 
-export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProps) {
+export default function CodeRefactor({ 
+  fileContent, 
+  fileName, 
+  onFileUpload 
+}: CodeRefactorProps) {
   const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
@@ -34,6 +40,13 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
       setLanguage(fileExtension);
     }
   }, [fileContent, fileName]);
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      onFileUpload(files[0]);
+    }
+  };
 
   const handleRefactor = async () => {
     if (!fileContent) return;
@@ -115,88 +128,107 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
 
   return (
     <div className="p-4 h-full flex flex-col gap-4">
-      <div className="mb-3 flex items-center">
-        <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-        <ModelPicker value={model} onChange={setModel} />
-      </div>
-      {!refactoredCode ? (
-        <Card className="border border-squadrun-primary/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xl font-bold text-white">Code Refactoring</CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <div>
-                <p className="text-sm text-squadrun-gray mb-2">
-                  The refactoring engine will automatically apply best practices for:
-                </p>
-                <div className="space-y-2">
-                  <ul className="list-disc list-inside text-squadrun-gray">
-                    <li>Enhancing readability</li>
-                    <li>Improving maintainability</li>
-                    <li>Optimizing performance</li>
-                    <li>Fixing security issues</li>
-                    <li>Applying DRY principles</li>
-                  </ul>
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2">
+          <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
+          <ModelPicker value={model} onChange={setModel} />
+          
+          <input 
+            type="file" 
+            className="hidden" 
+            id="refactor-file-upload"
+            onChange={handleFileUpload}
+            accept=".js,.jsx,.ts,.tsx,.py,.java,.cpp,.c,.rs,.go,.rb" 
+          />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => document.getElementById('refactor-file-upload')?.click()}
+            className="text-squadrun-primary border-squadrun-primary hover:bg-squadrun-primary/10"
+          >
+            <FileUp className="mr-2 h-4 w-4" />
+            Browse
+          </Button>
+        </div>
+        {!refactoredCode ? (
+          <Card className="border border-squadrun-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xl font-bold text-white">Code Refactoring</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <p className="text-sm text-squadrun-gray mb-2">
+                    The refactoring engine will automatically apply best practices for:
+                  </p>
+                  <div className="space-y-2">
+                    <ul className="list-disc list-inside text-squadrun-gray">
+                      <li>Enhancing readability</li>
+                      <li>Improving maintainability</li>
+                      <li>Optimizing performance</li>
+                      <li>Fixing security issues</li>
+                      <li>Applying DRY principles</li>
+                    </ul>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="text-sm text-squadrun-gray mb-2">
+                    Language Detected: <span className="text-squadrun-primary font-semibold">{language.toUpperCase()}</span>
+                  </p>
+                  <p className="text-sm text-squadrun-gray">
+                    Complete code rewrite will be performed while preserving functionality
+                  </p>
+                  <div className="mt-4 flex items-center">
+                    <Cpu className="text-squadrun-primary mr-2 h-5 w-5" />
+                    <span className="text-sm text-squadrun-gray">
+                      {isOpenAIConfigured() ? "AI-powered refactoring available" : "Using built-in refactoring tools"}
+                    </span>
+                  </div>
                 </div>
               </div>
               
-              <div>
-                <p className="text-sm text-squadrun-gray mb-2">
-                  Language Detected: <span className="text-squadrun-primary font-semibold">{language.toUpperCase()}</span>
-                </p>
-                <p className="text-sm text-squadrun-gray">
-                  Complete code rewrite will be performed while preserving functionality
-                </p>
-                <div className="mt-4 flex items-center">
-                  <Cpu className="text-squadrun-primary mr-2 h-5 w-5" />
-                  <span className="text-sm text-squadrun-gray">
-                    {isOpenAIConfigured() ? "AI-powered refactoring available" : "Using built-in refactoring tools"}
-                  </span>
-                </div>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={handleRefactor} 
+                  className="bg-squadrun-primary hover:bg-squadrun-vivid text-white"
+                  disabled={isRefactoring}
+                >
+                  {isRefactoring ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Refactoring...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRightCircle className="mr-2 h-4 w-4" />
+                      Refactor Code
+                    </>
+                  )}
+                </Button>
               </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button 
-                onClick={handleRefactor} 
-                className="bg-squadrun-primary hover:bg-squadrun-vivid text-white"
-                disabled={isRefactoring}
-              >
-                {isRefactoring ? (
-                  <>
-                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Refactoring...
-                  </>
-                ) : (
-                  <>
-                    <ArrowRightCircle className="mr-2 h-4 w-4" />
-                    Refactor Code
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="flex flex-row gap-4 items-center">
-          <Button 
-            onClick={handleDownload} 
-            variant="outline"
-            className="border-squadrun-primary text-squadrun-primary hover:bg-squadrun-primary/10"
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Download Refactored Code
-          </Button>
-          <Button 
-            onClick={handleClear}
-            variant="destructive"
-          >
-            <X className="mr-2 h-4 w-4" />
-            Clear & Start Over
-          </Button>
-        </div>
-      )}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="flex flex-row gap-4 items-center">
+            <Button 
+              onClick={handleDownload} 
+              variant="outline"
+              className="border-squadrun-primary text-squadrun-primary hover:bg-squadrun-primary/10"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Download Refactored Code
+            </Button>
+            <Button 
+              onClick={handleClear}
+              variant="destructive"
+            >
+              <X className="mr-2 h-4 w-4" />
+              Clear & Start Over
+            </Button>
+          </div>
+        )}
+      </div>
 
       <div className="flex-1 overflow-hidden">
         {refactoredCode ? (
