@@ -1,4 +1,3 @@
-
 /**
  * Code Refactoring Utilities
  * 
@@ -86,11 +85,11 @@ export const refactorCode = (
     case 'tsx':
     case 'javascript':
     case 'typescript':
-      return refactorJavaScript(code, refactoringOptions);
+      return refactorJavaScript(code);
       
     case 'py':
     case 'python':
-      return refactorPython(code, refactoringOptions);
+      return refactorPython(code);
       
     case 'cpp':
     case 'c':

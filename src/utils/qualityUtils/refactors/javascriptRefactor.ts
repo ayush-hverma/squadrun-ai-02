@@ -1,8 +1,10 @@
 
+import { RefactoringOptions } from './index';
+
 /**
  * Refactor JavaScript/TypeScript code to follow best practices
  */
-export const refactorJavaScript = (code: string): string => {
+export const refactorJavaScript = (code: string, options?: RefactoringOptions): string => {
   let refactored = code;
   
   // Replace var with const/let

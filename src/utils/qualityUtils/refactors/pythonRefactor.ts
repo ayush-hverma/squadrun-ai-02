@@ -1,8 +1,10 @@
 
+import { RefactoringOptions } from './index';
+
 /**
  * Refactor Python code to follow best practices
  */
-export const refactorPython = (code: string): string => {
+export const refactorPython = (code: string, options?: RefactoringOptions): string => {
   let refactored = code;
   
   // Add docstrings to functions and classes
