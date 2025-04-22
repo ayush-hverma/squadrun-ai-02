@@ -1,22 +1,19 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, XCircle, PlayCircle, TestTube, X } from "lucide-react";
+import { CheckCircle, XCircle, PlayCircle, TestTube } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import ModelPicker from "@/components/ModelPicker";
-import FileUploadButton from "@/components/FileUploadButton";
-import { toast } from "sonner";
 
 interface TestCaseProps {
   fileContent: string | null;
   fileName: string | null;
 }
 
-export default function TestCase() {
-  const [fileContent, setFileContent] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
+export default function TestCase({ fileContent, fileName }: TestCaseProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [testCases, setTestCases] = useState<any[] | null>(null);
@@ -544,63 +541,31 @@ export default function TestCase() {
     return failureCategory[Math.floor(Math.random() * failureCategory.length)];
   };
 
-  const handleFileUpload = (file: File) => {
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = e => {
-      const content = e.target?.result as string;
-      setFileContent(content);
-      setTestCases(null);
-    };
-    reader.readAsText(file);
-  };
-
-  const handleClear = () => {
-    setFileContent(null);
-    setFileName(null);
-    setTestCases(null);
-    setTestResults(null);
-    toast.success("Test cases cleared", {
-      description: "You can now upload a new file.",
-    });
-  };
-
   if (!fileContent) {
-    return (
-      <div className="p-4 h-full flex flex-col">
-        <div className="mb-3 flex items-center">
-          <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-          <ModelPicker value={model} onChange={setModel} />
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <FileUploadButton onFileUpload={handleFileUpload} />
-        </div>
-      </div>
-    );
+    return <div className="flex h-full items-center justify-center">
+      <Card className="w-96 bg-squadrun-darker/50 border border-squadrun-primary/20">
+        <CardContent className="p-6 text-center">
+          <p className="text-squadrun-gray">
+            Please upload a code file to generate test cases
+          </p>
+        </CardContent>
+      </Card>
+    </div>;
   }
 
-  return (
-    <div className="p-4 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
-          <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-          <ModelPicker value={model} onChange={setModel} />
-        </div>
-        <div className="flex gap-2">
-          <FileUploadButton onFileUpload={handleFileUpload} />
-          {testCases && (
-            <Button 
-              onClick={handleClear}
-              variant="destructive"
-            >
-              <X className="mr-2 h-4 w-4" />
-              Clear
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {!testCases ? <div className="flex-1 flex flex-col">
+  return <div className="p-4 h-full flex flex-col">
+    <div className="mb-3 flex items-center">
+      <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
+      <ModelPicker value={model} onChange={setModel} />
+    </div>
+    <div className="mb-4">
+      <h1 className="text-2xl font-bold text-white mb-2">Test Case Generator</h1>
+      <p className="text-squadrun-gray">
+        Generate and run comprehensive test cases for your code to ensure quality and reliability.
+      </p>
+    </div>
+    
+    {!testCases ? <div className="flex-1 flex flex-col">
         <Card className="mb-4 border border-squadrun-primary/20 bg-squadrun-darker/50 flex-1">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg">Code to Test</CardTitle>
@@ -713,6 +678,5 @@ export default function TestCase() {
             </Button>
           </div>}
       </div>}
-    </div>
-  );
+  </div>;
 }

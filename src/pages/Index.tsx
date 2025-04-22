@@ -1,6 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import FileUpload from "@/components/FileUpload";
 import CodeRefactor from "@/components/agents/CodeRefactor";
 import CodeQuality from "@/components/agents/CodeQuality";
 import TestCase from "@/components/agents/TestCase";
@@ -8,7 +9,19 @@ import ApiCreator from "@/components/agents/ApiCreator";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("refactor");
+  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const handleFileUpload = (file: File) => {
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = e => {
+      const content = e.target?.result as string;
+      setFileContent(content);
+    };
+    reader.readAsText(file);
+  };
 
   const handleTabChange = (tab: string) => {
     if (tab !== activeTab) {
@@ -23,15 +36,15 @@ const Index = () => {
   const renderActiveAgent = () => {
     switch (activeTab) {
       case "refactor":
-        return <CodeRefactor />;
+        return <CodeRefactor fileContent={fileContent} fileName={fileName} />;
       case "quality":
-        return <CodeQuality />;
+        return <CodeQuality fileContent={fileContent} fileName={fileName} />;
       case "testcase":
-        return <TestCase />;
+        return <TestCase fileContent={fileContent} fileName={fileName} />;
       case "api":
-        return <ApiCreator />;
+        return <ApiCreator fileContent={fileContent} fileName={fileName} />;
       default:
-        return <CodeRefactor />;
+        return <CodeRefactor fileContent={fileContent} fileName={fileName} />;
     }
   };
 
@@ -40,6 +53,10 @@ const Index = () => {
       <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="p-1 border-b border-squadrun-primary/20 bg-squadrun-darker/50 py-1 px-1 mx-0 my-0">
+          <FileUpload onFileUpload={handleFileUpload} />
+        </div>
+
         <div
           className={`flex-1 overflow-auto transition-opacity duration-300 ease-in-out ${
             isTransitioning ? "opacity-0" : "opacity-100"

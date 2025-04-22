@@ -1,8 +1,13 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowRightCircle, RefreshCw, Cpu, X, Download } from "lucide-react";
+import { 
+  ArrowRightCircle, 
+  Download, 
+  RefreshCw,
+  Cpu,
+  X
+} from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
 import CodeComparison from "@/components/CodeComparison";
 import NoFileMessage from "@/components/refactor/NoFileMessage";
@@ -10,28 +15,25 @@ import { refactorCode } from "@/utils/qualityUtils/refactors";
 import { refactorCodeWithAI, isOpenAIConfigured } from "@/utils/aiUtils/openAiUtils";
 import { toast } from "sonner";
 import ModelPicker from "@/components/ModelPicker";
-import FileUploadButton from "@/components/FileUploadButton";
 
-export default function CodeRefactor() {
-  const [fileContent, setFileContent] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
+interface CodeRefactorProps {
+  fileContent: string | null;
+  fileName: string | null;
+}
+
+export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProps) {
   const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
 
-  const handleFileUpload = (file: File) => {
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = e => {
-      const content = e.target?.result as string;
-      setFileContent(content);
-      setRefactoredCode(null);
-      const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+  useEffect(() => {
+    setRefactoredCode(null);
+    if (fileName) {
+      const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
       setLanguage(fileExtension);
-    };
-    reader.readAsText(file);
-  };
+    }
+  }, [fileContent, fileName]);
 
   const handleRefactor = async () => {
     if (!fileContent) return;
@@ -101,49 +103,22 @@ export default function CodeRefactor() {
   };
 
   const handleClear = () => {
-    setFileContent(null);
-    setFileName(null);
     setRefactoredCode(null);
-    toast.success("Cleared successfully", {
+    toast.success("Refactoring cleared", {
       description: "You can now upload a new file."
     });
   };
 
   if (!fileContent) {
-    return (
-      <div className="p-4 h-full flex flex-col">
-        <div className="mb-3 flex items-center">
-          <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-          <ModelPicker value={model} onChange={setModel} />
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <FileUploadButton onFileUpload={handleFileUpload} />
-        </div>
-      </div>
-    );
+    return <NoFileMessage />;
   }
 
   return (
     <div className="p-4 h-full flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-          <ModelPicker value={model} onChange={setModel} />
-        </div>
-        <div className="flex gap-2">
-          <FileUploadButton onFileUpload={handleFileUpload} />
-          {refactoredCode && (
-            <Button 
-              onClick={handleClear}
-              variant="destructive"
-            >
-              <X className="mr-2 h-4 w-4" />
-              Clear
-            </Button>
-          )}
-        </div>
+      <div className="mb-3 flex items-center">
+        <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
+        <ModelPicker value={model} onChange={setModel} />
       </div>
-
       {!refactoredCode ? (
         <Card className="border border-squadrun-primary/20">
           <CardHeader className="pb-2">
