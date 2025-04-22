@@ -1,3 +1,4 @@
+
 import { QualityResults, CategoryScore, CodeSnippet } from "@/types/codeQuality";
 import { 
   BookOpen, 
@@ -499,7 +500,7 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
           const cellContent = Array.isArray(cell.source) ? cell.source.join('') : cell.source;
           
           // Look for long lines
-          cellContent.split('\n').forEach((line, idx) => {
+          cellContent.split('\n').forEach((line: string, idx: number) => {
             if (line.length > 100) {
               snippets.push({
                 title: `Cell ${i+1}: Line too long (exceeds 100 characters)`,
@@ -646,7 +647,7 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
               source: ['# Constants for improved code quality\n']
             };
             
-            magicNumbers.slice(0, 5).forEach((num, index) => {
+            magicNumbers.slice(0, 5).forEach((num: string, index: number) => {
               const cleanNum = num.replace(/\W/g, '');
               const constantName = `CONSTANT_${cleanNum}`;
               constantsCell.source.push(`${constantName} = ${cleanNum}\n`);
@@ -677,7 +678,7 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
     // Regular code refactoring
     const magicNumbers = Array.from(new Set(code.match(/\W\d{3,}\W/g) || []));
     magicNumbers.forEach((num, index) => {
-      const cleanNum = num.replace(/\W/g, '');
+      const cleanNum = typeof num === 'string' ? num.replace(/\W/g, '') : '';
       const constantName = `CONSTANT_${cleanNum}`;
       
       // Only replace first occurrence to avoid over-refactoring

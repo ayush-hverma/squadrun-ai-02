@@ -83,4 +83,3 @@ const CodeSnippetsCard = ({ snippets, language }: CodeSnippetsCardProps) => {
 };
 
 export default CodeSnippetsCard;
-
