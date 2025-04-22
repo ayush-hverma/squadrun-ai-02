@@ -1,4 +1,3 @@
-
 /**
  * Advanced Code Refactoring Utilities
  * 
@@ -51,6 +50,7 @@ const applyLanguageSpecificRefactoring = (code: string, language: string): strin
       
     case 'py':
     case 'python':
+    case 'ipynb':
       return refactorPython(code);
       
     case 'cpp':
@@ -76,7 +76,7 @@ const organizeDependencies = (code: string, language: string): string => {
   
   if (['js', 'jsx', 'ts', 'tsx', 'javascript', 'typescript'].includes(normalizedLanguage)) {
     return organizeJavaScriptDependencies(code);
-  } else if (['py', 'python'].includes(normalizedLanguage)) {
+  } else if (['py', 'python', 'ipynb'].includes(normalizedLanguage)) {
     return organizePythonDependencies(code);
   } else if (['cpp', 'c', 'h', 'hpp', 'c++'].includes(normalizedLanguage)) {
     return organizeCPPDependencies(code);
@@ -961,4 +961,3 @@ export {
   addTypeAnnotations,
   removeAllComments
 };
-

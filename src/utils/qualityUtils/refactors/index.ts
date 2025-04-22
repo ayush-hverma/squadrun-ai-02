@@ -1,3 +1,4 @@
+
 /**
  * Code Refactoring Utilities
  * 
@@ -85,24 +86,25 @@ export const refactorCode = (
     case 'tsx':
     case 'javascript':
     case 'typescript':
-      return refactorJavaScript(code, options);
+      return refactorJavaScript(code, refactoringOptions);
       
     case 'py':
     case 'python':
-      return refactorPython(code, options);
+    case 'ipynb': // Added support for Jupyter Notebook files
+      return refactorPython(code, refactoringOptions);
       
     case 'cpp':
     case 'c':
     case 'h':
     case 'hpp':
     case 'c++':
-      return refactorCPP(code, options);
+      return refactorCPP(code, refactoringOptions);
       
     case 'java':
-      return refactorJava(code, options);
+      return refactorJava(code, refactoringOptions);
       
     default:
-      return refactorGeneric(code, options);
+      return refactorGeneric(code, refactoringOptions);
   }
 };
 
