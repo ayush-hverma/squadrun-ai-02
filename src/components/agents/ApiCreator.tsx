@@ -2,16 +2,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PlayCircle, Server, FileDown, ChevronsUpDown } from "lucide-react";
+import { PlayCircle, Server, FileDown, ChevronsUpDown, Trash2 } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import CodeDisplay from "../CodeDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { AutogrowingTextarea } from "@/components/ui/autogrowing-textarea";
 import ModelPicker from "@/components/ModelPicker";
+
 interface ApiCreatorProps {
   fileContent?: string | null;
   fileName?: string | null;
 }
+
 interface ApiEndpoint {
   method: string;
   path: string;
@@ -19,10 +21,12 @@ interface ApiEndpoint {
   requestBody: string;
   response: string;
 }
+
 interface DataModel {
   name: string;
   schema: string;
 }
+
 interface ApiPlan {
   overview: {
     purpose: string;
@@ -40,17 +44,17 @@ interface ApiPlan {
   security: string[];
   deployment: string[];
 }
+
 export default function ApiCreator({
   fileContent,
   fileName
 }: ApiCreatorProps) {
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const [description, setDescription] = useState<string>(fileContent ? `Create an API based on this code:\n\n${fileContent.substring(0, 200)}...` : "");
   const [isProcessing, setIsProcessing] = useState(false);
   const [apiPlan, setApiPlan] = useState<ApiPlan | null>(null);
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
+
   const analyzeRequirements = (text: string): ApiPlan => {
     const isAuthRequired = /auth|login|register|sign|user/i.test(text);
     const isEcommerce = /ecommerce|product|cart|order|payment|shop/i.test(text);
@@ -69,6 +73,7 @@ export default function ApiCreator({
       return generateUserManagementApi(isAuthRequired);
     }
   };
+
   const generateUserManagementApi = (includeAuth: boolean = true): ApiPlan => {
     return {
       overview: {
@@ -204,6 +209,7 @@ module.exports = function(req, res, next) {
       deployment: ["Set up CI/CD pipeline with GitHub Actions", "Deploy API on AWS, Heroku, or similar cloud provider", "Configure environment variables in deployment platform", "Set up monitoring with tools like New Relic or DataDog"]
     };
   };
+
   const generateTodoApi = (): ApiPlan => {
     return {
       overview: {
@@ -388,6 +394,7 @@ module.exports = router;`
       deployment: ["Deploy using Docker containers", "Set up MongoDB Atlas for database hosting", "Implement CI/CD pipeline with automated testing", "Set up monitoring for API performance"]
     };
   };
+
   const generateEcommerceApi = (): ApiPlan => {
     return {
       overview: {
@@ -616,6 +623,7 @@ module.exports = router;`
       deployment: ["Set up separate environments for development, staging, and production", "Implement automated database backups", "Set up order notification system via email", "Configure CDN for product images"]
     };
   };
+
   const generateBlogApi = (): ApiPlan => {
     return {
       overview: {
@@ -859,6 +867,7 @@ module.exports = router;`
       deployment: ["Set up content backup strategy", "Configure caching for popular blog posts", "Set up SEO-friendly URL structure", "Implement analytics for tracking post engagement"]
     };
   };
+
   const generateFileSystemApi = (): ApiPlan => {
     return {
       overview: {
@@ -1123,6 +1132,7 @@ module.exports = router;`
       deployment: ["Set up CDN for faster file delivery", "Configure S3 lifecycle policies for storage optimization", "Set up file access logging", "Implement backup strategy for critical files"]
     };
   };
+
   const handleCreateApi = () => {
     if (description.trim() === "") return;
     setIsProcessing(true);
@@ -1149,8 +1159,19 @@ module.exports = router;`
       }
     }, 2000);
   };
+
+  const handleClear = () => {
+    setApiPlan(null);
+    setDescription("");
+    toast({
+      title: "API plan cleared",
+      description: "You can now create a new API plan.",
+    });
+  };
+
   if (!apiPlan) {
-    return <div className="p-4 h-full flex flex-col">
+    return (
+      <div className="p-4 h-full flex flex-col">
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-white mb-2">API Creator</h1>
           <p className="text-squadrun-gray">
@@ -1163,20 +1184,37 @@ module.exports = router;`
             <CardTitle className="text-lg">Describe Your API Requirements</CardTitle>
           </CardHeader>
           <CardContent className="h-[calc(100%-60px)]">
-            <AutogrowingTextarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the API you want to create. You can include details about endpoints, data models, authentication requirements, etc." className="bg-squadrun-darker border-squadrun-primary/20 text-white" />
+            <AutogrowingTextarea 
+              value={description} 
+              onChange={e => setDescription(e.target.value)} 
+              placeholder="Describe the API you want to create. You can include details about endpoints, data models, authentication requirements, etc." 
+              className="bg-squadrun-darker border-squadrun-primary/20 text-white" 
+            />
           </CardContent>
         </Card>
         
-        <Button onClick={handleCreateApi} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white mt-4 ml-auto" disabled={isProcessing || description.trim() === ""}>
-          {isProcessing ? <>Processing...</> : <>
-              <Server className="mr-2 h-4 w-4" /> Generate API Plan
-            </>}
-        </Button>
-      </div>;
+        <div className="flex gap-2 justify-end mt-4">
+          <Button onClick={handleClear} variant="destructive" disabled={!description}>
+            <Trash2 className="mr-2 h-4 w-4" /> Clear
+          </Button>
+          <Button 
+            onClick={handleCreateApi} 
+            className="bg-squadrun-primary hover:bg-squadrun-vivid text-white" 
+            disabled={isProcessing || description.trim() === ""}
+          >
+            {isProcessing ? 'Processing...' : (
+              <>
+                <Server className="mr-2 h-4 w-4" /> Generate API Plan
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    );
   }
-  return <div className="p-4 h-full flex flex-col">
-      
-      
+
+  return (
+    <div className="p-4 h-full flex flex-col">
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-white mb-2">API Implementation Plan</h1>
         <p className="text-squadrun-gray">
@@ -1342,6 +1380,13 @@ module.exports = router;`
       </div>
       
       <div className="flex justify-end mt-4">
+        <Button 
+          variant="destructive" 
+          className="mr-2" 
+          onClick={handleClear}
+        >
+          <Trash2 className="mr-2 h-4 w-4" /> Clear
+        </Button>
         <Button variant="outline" className="text-squadrun-gray mr-2 border-squadrun-primary/20 hover:bg-squadrun-primary/10" onClick={() => setApiPlan(null)}>
           <ChevronsUpDown className="mr-2 h-4 w-4" /> Edit Requirements
         </Button>
@@ -1349,5 +1394,6 @@ module.exports = router;`
           <FileDown className="mr-2 h-4 w-4" /> Download API Blueprint
         </Button>
       </div>
-    </div>;
+    </div>
+  );
 }

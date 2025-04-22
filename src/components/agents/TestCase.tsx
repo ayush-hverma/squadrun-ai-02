@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TestTube, PlayCircle } from "lucide-react";
+import { TestTube, PlayCircle, Trash2 } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import { TestCase as TestCaseType, TestResults } from "@/types/testTypes";
 import FileUploadButton from "@/components/FileUploadButton";
@@ -92,7 +91,7 @@ export default function TestCase({
     onClear();
     toast({
       title: "Test cases cleared",
-      description: "You can now upload a new file."
+      description: "You can now upload a new file.",
     });
   };
 
@@ -130,7 +129,7 @@ export default function TestCase({
           
           <div className="flex gap-2 justify-end">
             <Button onClick={handleClear} variant="destructive">
-              Clear
+              <Trash2 className="mr-2 h-4 w-4" /> Clear
             </Button>
             <Button 
               onClick={handleGenerateTests} 
@@ -213,4 +212,3 @@ export default function TestCase({
     </div>
   );
 }
-
