@@ -20,6 +20,8 @@ export default function TestCase({
 
   const handleClear = () => {
     setTestCases([]);
+    setFileContent(null);
+    setFileName(null);
     toast.success("Test cases cleared", {
       description: "You can now upload a new file."
     });
@@ -50,7 +52,6 @@ export default function TestCase({
           Clear & Start Over
         </Button>
       </div>
-      
     </div>
   );
 }

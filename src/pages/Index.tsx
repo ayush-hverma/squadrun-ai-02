@@ -32,18 +32,30 @@ const Index = () => {
     reader.readAsText(file);
   };
 
+  const handleClear = () => {
+    setFileContent(null);
+    setFileName(null);
+  };
+
   const renderActiveAgent = () => {
+    const props = {
+      fileContent,
+      fileName,
+      onFileUpload: handleFileUpload,
+      onClear: handleClear
+    };
+
     switch (activeTab) {
       case "refactor":
-        return <CodeRefactor fileContent={fileContent} fileName={fileName} onFileUpload={handleFileUpload} />;
+        return <CodeRefactor {...props} />;
       case "quality":
-        return <CodeQuality fileContent={fileContent} fileName={fileName} onFileUpload={handleFileUpload} />;
+        return <CodeQuality {...props} />;
       case "testcase":
-        return <TestCase fileContent={fileContent} fileName={fileName} onFileUpload={handleFileUpload} />;
+        return <TestCase {...props} />;
       case "api":
         return <ApiCreator fileContent={fileContent} fileName={fileName} />;
       default:
-        return <CodeRefactor fileContent={fileContent} fileName={fileName} onFileUpload={handleFileUpload} />;
+        return <CodeRefactor {...props} />;
     }
   };
 
