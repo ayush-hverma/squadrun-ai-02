@@ -1,6 +1,7 @@
+
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Cpu, Search, X } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Cpu, Search } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import { toast } from "sonner";
 import { QualityResults } from "@/types/codeQuality";
@@ -10,27 +11,16 @@ import NoCodeMessage from "./quality/NoCodeMessage";
 import AnalysisView from "./quality/AnalysisView";
 import { Button } from "@/components/ui/button";
 import ModelPicker from "@/components/ModelPicker";
-import FileUpload from "@/components/FileUpload";
 
-interface CodeQualityProps {}
+interface CodeQualityProps {
+  fileContent: string | null;
+  fileName: string | null;
+}
 
-export default function CodeQuality({}: CodeQualityProps) {
-  const [fileContent, setFileContent] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
+export default function CodeQuality({ fileContent, fileName }: CodeQualityProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [qualityResults, setQualityResults] = useState<QualityResults | null>(null);
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
-
-  const handleFileUpload = (file: File) => {
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = e => {
-      const content = e.target?.result as string;
-      setFileContent(content);
-      setQualityResults(null);
-    };
-    reader.readAsText(file);
-  };
 
   const handleAssessQuality = async () => {
     if (!fileContent) return;
@@ -44,6 +34,7 @@ export default function CodeQuality({}: CodeQualityProps) {
       
       const isSmallFile = fileContent.split('\n').length < 500;
       
+      // In the future, we can add model-specific logic here based on the selected model
       if (isOpenAIConfigured() && !isSmallFile) {
         try {
           toast.info("Analyzing code with AI...", {
@@ -81,8 +72,6 @@ export default function CodeQuality({}: CodeQualityProps) {
   };
 
   const handleClear = () => {
-    setFileContent(null);
-    setFileName(null);
     setQualityResults(null);
     toast.success("Analysis Cleared", {
       description: "You can now upload a new file.",
@@ -90,21 +79,7 @@ export default function CodeQuality({}: CodeQualityProps) {
   };
 
   if (!fileContent) {
-    return (
-      <div className="p-4 h-full flex flex-col">
-        <div className="mb-3 flex items-center">
-          <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-          <ModelPicker value={model} onChange={setModel} />
-        </div>
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-white mb-2">Code Quality Assessment</h1>
-          <p className="text-squadrun-gray">
-            Upload your code to analyze its quality.
-          </p>
-        </div>
-        <FileUpload onFileUpload={handleFileUpload} />
-      </div>
-    );
+    return <NoCodeMessage />;
   }
 
   return (
@@ -152,7 +127,6 @@ export default function CodeQuality({}: CodeQualityProps) {
               variant="destructive"
               className="w-full max-w-md"
             >
-              <X className="mr-2 h-4 w-4" />
               Clear Analysis
             </Button>
           </div>

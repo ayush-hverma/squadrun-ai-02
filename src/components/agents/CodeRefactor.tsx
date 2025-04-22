@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,11 +15,13 @@ import { refactorCode } from "@/utils/qualityUtils/refactors";
 import { refactorCodeWithAI, isOpenAIConfigured } from "@/utils/aiUtils/openAiUtils";
 import { toast } from "sonner";
 import ModelPicker from "@/components/ModelPicker";
-import FileUpload from "@/components/FileUpload";
 
-export default function CodeRefactor() {
-  const [fileContent, setFileContent] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
+interface CodeRefactorProps {
+  fileContent: string | null;
+  fileName: string | null;
+}
+
+export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProps) {
   const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
@@ -33,17 +34,6 @@ export default function CodeRefactor() {
       setLanguage(fileExtension);
     }
   }, [fileContent, fileName]);
-
-  const handleFileUpload = (file: File) => {
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = e => {
-      const content = e.target?.result as string;
-      setFileContent(content);
-      setRefactoredCode(null);
-    };
-    reader.readAsText(file);
-  };
 
   const handleRefactor = async () => {
     if (!fileContent) return;
@@ -113,8 +103,6 @@ export default function CodeRefactor() {
   };
 
   const handleClear = () => {
-    setFileContent(null);
-    setFileName(null);
     setRefactoredCode(null);
     toast.success("Refactoring cleared", {
       description: "You can now upload a new file."
@@ -122,21 +110,7 @@ export default function CodeRefactor() {
   };
 
   if (!fileContent) {
-    return (
-      <div className="p-4 h-full flex flex-col">
-        <div className="mb-3 flex items-center">
-          <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-          <ModelPicker value={model} onChange={setModel} />
-        </div>
-        <div className="mb-4">
-          <h1 className="text-2xl font-bold text-white mb-2">Code Refactoring</h1>
-          <p className="text-squadrun-gray">
-            Upload your code to get started with AI-powered refactoring.
-          </p>
-        </div>
-        <FileUpload onFileUpload={handleFileUpload} />
-      </div>
-    );
+    return <NoFileMessage />;
   }
 
   return (
@@ -145,7 +119,6 @@ export default function CodeRefactor() {
         <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
         <ModelPicker value={model} onChange={setModel} />
       </div>
-
       {!refactoredCode ? (
         <Card className="border border-squadrun-primary/20">
           <CardHeader className="pb-2">
