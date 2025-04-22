@@ -5,15 +5,19 @@ import { PostRefactorView } from "./refactor/PostRefactorView";
 import CodeDisplay from "@/components/CodeDisplay";
 import ModelPicker from "@/components/ModelPicker";
 import FileUploadButton from "@/components/FileUploadButton";
+
 interface CodeRefactorProps {
   fileContent: string | null;
   fileName: string | null;
   onFileUpload: (file: File) => void;
+  onClear: () => void;
 }
+
 export default function CodeRefactor({
   fileContent,
   fileName,
-  onFileUpload
+  onFileUpload,
+  onClear
 }: CodeRefactorProps) {
   const [language, setLanguage] = useState<string>('js');
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
@@ -23,12 +27,19 @@ export default function CodeRefactor({
     handleRefactor,
     clearRefactoredCode
   } = useCodeRefactor();
+
+  const handleClear = () => {
+    clearRefactoredCode();
+    onClear();
+  };
+
   useEffect(() => {
     if (fileName) {
       const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
       setLanguage(fileExtension);
     }
   }, [fileContent, fileName]);
+
   const handleDownload = () => {
     if (!refactoredCode || !fileName) return;
     const element = document.createElement("a");
@@ -44,6 +55,7 @@ export default function CodeRefactor({
     element.click();
     document.body.removeChild(element);
   };
+
   if (!fileContent) {
     return <div className="flex flex-col items-center justify-center h-full gap-4 p-4">
         <h2 className="text-xl font-bold text-white">Code Refactoring</h2>
@@ -53,9 +65,24 @@ export default function CodeRefactor({
         <FileUploadButton onFileUpload={onFileUpload} />
       </div>;
   }
-  return <div className="p-4 h-full flex flex-col gap-4">
-      
-      
-      {!refactoredCode ? <PreRefactorView onRefactor={() => handleRefactor(fileContent, language)} isRefactoring={isRefactoring} /> : <PostRefactorView originalCode={fileContent} refactoredCode={refactoredCode} language={language} onDownload={handleDownload} onClear={clearRefactoredCode} />}
-    </div>;
+
+  return (
+    <div className="p-4 h-full flex flex-col gap-4">
+      {!refactoredCode ? (
+        <PreRefactorView 
+          onRefactor={() => handleRefactor(fileContent, language)} 
+          isRefactoring={isRefactoring}
+          onClear={handleClear}
+        />
+      ) : (
+        <PostRefactorView 
+          originalCode={fileContent} 
+          refactoredCode={refactoredCode} 
+          language={language} 
+          onDownload={handleDownload} 
+          onClear={handleClear}
+        />
+      )}
+    </div>
+  );
 }

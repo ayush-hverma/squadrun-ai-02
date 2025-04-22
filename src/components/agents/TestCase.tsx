@@ -7,15 +7,20 @@ import { CheckCircle, XCircle, PlayCircle, TestTube } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import ModelPicker from "@/components/ModelPicker";
 import FileUploadButton from "@/components/FileUploadButton";
+import { toast } from "react-toastify";
+
 interface TestCaseProps {
   fileContent: string | null;
   fileName: string | null;
   onFileUpload: (file: File) => void;
+  onClear: () => void;
 }
+
 export default function TestCase({
   fileContent,
   fileName,
-  onFileUpload
+  onFileUpload,
+  onClear
 }: TestCaseProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -23,6 +28,7 @@ export default function TestCase({
   const [testResults, setTestResults] = useState<any | null>(null);
   const [fileLanguage, setFileLanguage] = useState<string>('python');
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
+
   useEffect(() => {
     if (fileContent) {
       setTestCases(null);
@@ -30,6 +36,7 @@ export default function TestCase({
       setFileLanguage(getFileLanguage());
     }
   }, [fileContent, fileName]);
+
   const getFileLanguage = () => {
     if (!fileName) return 'python';
     const extension = fileName.split('.').pop()?.toLowerCase() || '';
@@ -54,6 +61,7 @@ export default function TestCase({
     };
     return extensionMap[extension] || 'python';
   };
+
   const generateTestCasesForLanguage = () => {
     if (!fileContent) return [];
     const language = fileLanguage;
@@ -68,6 +76,7 @@ export default function TestCase({
     }
     return testCases;
   };
+
   const extractFunctionNames = (code: string, language: string): string[] => {
     const patterns: Record<string, RegExp> = {
       'python': /def\s+([a-zA-Z0-9_]+)\s*\(/g,
@@ -97,6 +106,7 @@ export default function TestCase({
     }
     return functionNames;
   };
+
   const generateTestsForFunction = (functionName: string, language: string, id: number) => {
     const testTemplates = {
       'python': {
@@ -360,6 +370,7 @@ export default function TestCase({
     }
     return result;
   };
+
   const generateGenericTestCases = (language: string) => {
     const moduleName = fileName?.split('.')[0] || 'module';
     const templates: Record<string, any[]> = {
@@ -476,6 +487,7 @@ export default function TestCase({
     };
     return templates[language] || templates['python'];
   };
+
   const handleGenerateTests = () => {
     if (!fileContent) return;
     setIsGenerating(true);
@@ -485,6 +497,7 @@ export default function TestCase({
       setIsGenerating(false);
     }, 1500);
   };
+
   const handleRunTests = () => {
     if (!testCases) return;
     setIsRunning(true);
@@ -513,6 +526,7 @@ export default function TestCase({
       setIsRunning(false);
     }, 2000);
   };
+
   const getRandomFailureReason = (testType: string) => {
     const failures = {
       'Positive Case': ["Assertion failed: Expected 'expected_output', got 'actual_output'", "Function returned null", "Expected true but got false"],
@@ -524,6 +538,16 @@ export default function TestCase({
     const failureCategory = failures[testType as keyof typeof failures] || failures['Positive Case'];
     return failureCategory[Math.floor(Math.random() * failureCategory.length)];
   };
+
+  const handleClear = () => {
+    setTestCases(null);
+    setTestResults(null);
+    onClear();
+    toast.success("Test cases cleared", {
+      description: "You can now upload a new file."
+    });
+  };
+
   if (!fileContent) {
     return <div className="flex flex-col items-center justify-center h-full gap-4 p-4">
         <h2 className="text-xl font-bold text-white">Test Case Generation</h2>
@@ -533,6 +557,7 @@ export default function TestCase({
         <FileUploadButton onFileUpload={onFileUpload} />
       </div>;
   }
+
   return <div className="p-4 h-full flex flex-col">
     
     <div className="mb-4">
@@ -552,11 +577,18 @@ export default function TestCase({
           </CardContent>
         </Card>
         
-        <Button onClick={handleGenerateTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white ml-auto" disabled={isGenerating}>
-          {isGenerating ? <>Generating...</> : <>
-              <TestTube className="mr-2 h-4 w-4" /> Generate Test Cases
-            </>}
-        </Button>
+        <div className="flex gap-2 justify-end">
+          <Button onClick={handleClear} variant="destructive">
+            Clear
+          </Button>
+          <Button onClick={handleGenerateTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white" disabled={isGenerating}>
+            {isGenerating ? 'Generating...' : (
+              <>
+                <TestTube className="mr-2 h-4 w-4" /> Generate Test Cases
+              </>
+            )}
+          </Button>
+        </div>
       </div> : <div className="flex-1 flex flex-col">
         <Tabs defaultValue="testcases" className="flex-1 flex flex-col">
           <TabsList className="mb-4">

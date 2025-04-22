@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,9 +6,10 @@ import { ArrowRightCircle, RefreshCw, Cpu } from "lucide-react";
 interface PreRefactorViewProps {
   onRefactor: () => void;
   isRefactoring: boolean;
+  onClear: () => void;
 }
 
-export const PreRefactorView = ({ onRefactor, isRefactoring }: PreRefactorViewProps) => {
+export const PreRefactorView = ({ onRefactor, isRefactoring, onClear }: PreRefactorViewProps) => {
   return (
     <Card className="border border-squadrun-primary/20">
       <CardHeader className="pb-2">
@@ -43,6 +43,12 @@ export const PreRefactorView = ({ onRefactor, isRefactoring }: PreRefactorViewPr
         </div>
         
         <div className="flex gap-2">
+          <Button 
+            onClick={onClear} 
+            variant="destructive"
+          >
+            Clear
+          </Button>
           <Button 
             onClick={onRefactor} 
             className="bg-squadrun-primary hover:bg-squadrun-vivid text-white"
