@@ -116,18 +116,18 @@ export const refactorCode = (
  */
 export const calculateCodeQualityMetrics = (code: string, language: string) => {
   return {
-    readabilityScore: calculateReadabilityScore(code, language),
-    maintainabilityScore: calculateMaintainabilityScore(code, language),
-    performanceScore: calculatePerformanceScore(code, language),
-    securityScore: calculateSecurityScore(code, language),
-    codeSmellScore: calculateCodeSmellScore(code, language),
+    readabilityScore: calculateReadabilityScore(code),
+    maintainabilityScore: calculateMaintainabilityScore(code),
+    performanceScore: calculatePerformanceScore(code),
+    securityScore: calculateSecurityScore(code),
+    codeSmellScore: calculateCodeSmellScore(code),
   };
 };
 
 /**
  * Calculate readability score for given code
  */
-const calculateReadabilityScore = (code: string, language: string): number => {
+const calculateReadabilityScore = (code: string): number => {
   const lines = code.split('\n');
   const nonEmptyLines = lines.filter(line => line.trim().length > 0);
   
@@ -136,13 +136,7 @@ const calculateReadabilityScore = (code: string, language: string): number => {
   const longLineRatio = longLines / nonEmptyLines.length;
   
   // Calculate comment ratio
-  let commentLines = 0;
-  if (['js', 'jsx', 'ts', 'tsx', 'javascript', 'typescript', 'java', 'cpp', 'c'].includes(language)) {
-    commentLines = (code.match(/\/\/|\/\*|\*\//g) || []).length;
-  } else if (['py', 'python'].includes(language)) {
-    commentLines = (code.match(/#|"""/g) || []).length;
-  }
-  
+  const commentLines = (code.match(/\/\/|\/\*|\*\/|#|"""/g) || []).length;
   const commentRatio = commentLines / nonEmptyLines.length;
   
   // Large indentation levels
@@ -168,18 +162,9 @@ const calculateReadabilityScore = (code: string, language: string): number => {
 /**
  * Calculate maintainability score for given code
  */
-const calculateMaintainabilityScore = (code: string, language: string): number => {
+const calculateMaintainabilityScore = (code: string): number => {
   // Calculate function length
-  let functionMatches;
-  if (['js', 'jsx', 'ts', 'tsx', 'javascript', 'typescript'].includes(language)) {
-    functionMatches = code.match(/function\s+\w+\s*\([^)]*\)\s*{|const\s+\w+\s*=\s*(\([^)]*\)|[^=]+)\s*=>/g) || [];
-  } else if (['py', 'python'].includes(language)) {
-    functionMatches = code.match(/def\s+\w+\s*\([^)]*\)\s*:/g) || [];
-  } else if (['java'].includes(language)) {
-    functionMatches = code.match(/(?:public|private|protected|static|\s) +[\w<>\[\]]+\s+(\w+) *\([^\)]*\) *(?:throws [^{]+)? *\{/g) || [];
-  } else {
-    functionMatches = [];
-  }
+  const functionMatches = code.match(/function\s+\w+\s*\([^)]*\)\s*{|const\s+\w+\s*=\s*(\([^)]*\)|[^=]+)\s*=>|def\s+\w+\s*\([^)]*\)\s*:|(?:public|private|protected|static|\s) +[\w<>\[\]]+\s+(\w+) *\([^\)]*\) *(?:throws [^{]+)? *\{/g) || [];
   
   const functionCount = functionMatches.length;
   const codeLines = code.split('\n').filter(line => line.trim().length > 0).length;
@@ -214,7 +199,7 @@ const calculateMaintainabilityScore = (code: string, language: string): number =
 /**
  * Calculate performance score for given code
  */
-const calculatePerformanceScore = (code: string, language: string): number => {
+const calculatePerformanceScore = (code: string): number => {
   let score = 100;
   
   // Check for nested loops
@@ -231,12 +216,9 @@ const calculatePerformanceScore = (code: string, language: string): number => {
   const largeArrays = (code.match(/new Array\(\d{4,}\)/g) || []).length;
   score -= largeArrays * 10;
   
-  // Language-specific checks
-  if (['js', 'jsx', 'ts', 'tsx', 'javascript', 'typescript'].includes(language)) {
-    // Check for DOM manipulation in loops
-    const domInLoops = (code.match(/for\s*\([^)]*\)[^{]*{[^}]*document\.|for\s*\([^)]*\)[^{]*{[^}]*innerHTML/g) || []).length;
-    score -= domInLoops * 15;
-  }
+  // Check for DOM manipulation in loops
+  const domInLoops = (code.match(/for\s*\([^)]*\)[^{]*{[^}]*document\.|for\s*\([^)]*\)[^{]*{[^}]*innerHTML/g) || []).length;
+  score -= domInLoops * 15;
   
   return Math.max(0, Math.min(100, Math.round(score)));
 };
@@ -244,7 +226,7 @@ const calculatePerformanceScore = (code: string, language: string): number => {
 /**
  * Calculate security score for given code
  */
-const calculateSecurityScore = (code: string, language: string): number => {
+const calculateSecurityScore = (code: string): number => {
   let score = 100;
   
   // Check for common security issues
@@ -278,7 +260,7 @@ const calculateSecurityScore = (code: string, language: string): number => {
 /**
  * Calculate code smell score for given code
  */
-const calculateCodeSmellScore = (code: string, language: string): number => {
+const calculateCodeSmellScore = (code: string): number => {
   let score = 100;
   
   // Magic numbers

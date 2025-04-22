@@ -1,7 +1,10 @@
+
+import { RefactoringOptions } from './index';
+
 /**
  * Refactor generic code (for unsupported languages) to improve quality
  */
-export const refactorGeneric = (code: string): string => {
+export const refactorGeneric = (code: string, options?: RefactoringOptions): string => {
   let refactored = code;
   
   // Add consistent spacing around operators

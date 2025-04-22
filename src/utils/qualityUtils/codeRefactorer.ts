@@ -14,6 +14,8 @@ export {
   calculateMaintainabilityScore,
   calculatePerformanceScore,
   calculateSecurityScore,
-  calculateCodeSmellScore,
-  RefactoringOptions
+  calculateCodeSmellScore
 } from './refactors';
+
+// Use 'export type' when re-exporting types with isolatedModules
+export type { RefactoringOptions } from './refactors';

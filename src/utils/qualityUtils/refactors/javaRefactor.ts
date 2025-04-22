@@ -1,8 +1,10 @@
 
+import { RefactoringOptions } from './index';
+
 /**
  * Refactor Java code to follow best practices
  */
-export const refactorJava = (code: string): string => {
+export const refactorJava = (code: string, options?: RefactoringOptions): string => {
   let refactored = code;
   
   // Replace traditional for loops with enhanced for loops when appropriate

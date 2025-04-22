@@ -1,8 +1,10 @@
 
+import { RefactoringOptions } from './index';
+
 /**
  * Refactor C/C++ code to follow best practices
  */
-export const refactorCPP = (code: string): string => {
+export const refactorCPP = (code: string, options?: RefactoringOptions): string => {
   let refactored = code;
   
   // Use nullptr instead of NULL
