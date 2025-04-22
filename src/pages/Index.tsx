@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
 import FileUpload from "@/components/FileUpload";
@@ -35,23 +36,32 @@ const Index = () => {
   const renderActiveAgent = () => {
     switch (activeTab) {
       case "refactor":
-        return <CodeRefactor fileContent={fileContent} fileName={fileName} onFileUpload={handleFileUpload} />;
+        return <CodeRefactor fileContent={fileContent} fileName={fileName} />;
       case "quality":
-        return <CodeQuality fileContent={fileContent} fileName={fileName} onFileUpload={handleFileUpload} />;
+        return <CodeQuality fileContent={fileContent} fileName={fileName} />;
       case "testcase":
-        return <TestCase fileContent={fileContent} fileName={fileName} onFileUpload={handleFileUpload} />;
+        return <TestCase fileContent={fileContent} fileName={fileName} />;
       case "api":
         return <ApiCreator fileContent={fileContent} fileName={fileName} />;
       default:
-        return <CodeRefactor fileContent={fileContent} fileName={fileName} onFileUpload={handleFileUpload} />;
+        return <CodeRefactor fileContent={fileContent} fileName={fileName} />;
     }
   };
 
   return (
     <div className="flex h-screen bg-squadrun-dark overflow-hidden">
       <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
+
       <div className="flex-1 flex flex-col overflow-hidden">
-        <div className={`flex-1 overflow-auto transition-opacity duration-300 ease-in-out ${isTransitioning ? "opacity-0" : "opacity-100"}`}>
+        <div className="p-1 border-b border-squadrun-primary/20 bg-squadrun-darker/50 py-1 px-1 mx-0 my-0">
+          <FileUpload onFileUpload={handleFileUpload} />
+        </div>
+
+        <div
+          className={`flex-1 overflow-auto transition-opacity duration-300 ease-in-out ${
+            isTransitioning ? "opacity-0" : "opacity-100"
+          }`}
+        >
           {renderActiveAgent()}
         </div>
       </div>

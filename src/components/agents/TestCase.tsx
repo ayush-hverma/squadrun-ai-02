@@ -1,44 +1,25 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Cpu, FileUp, CheckCircle, XCircle, PlayCircle, TestTube } from "lucide-react";
+
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import NoCodeMessage from "@/components/agents/quality/NoCodeMessage";
-import ModelPicker from "@/components/ModelPicker";
-import CodeDisplay from "@/components/CodeDisplay";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle, XCircle, PlayCircle, TestTube } from "lucide-react";
+import CodeDisplay from "../CodeDisplay";
+import ModelPicker from "@/components/ModelPicker";
 
 interface TestCaseProps {
   fileContent: string | null;
   fileName: string | null;
-  onFileUpload: (file: File) => void;
 }
 
-export default function TestCase({ 
-  fileContent, 
-  fileName, 
-  onFileUpload 
-}: TestCaseProps) {
+export default function TestCase({ fileContent, fileName }: TestCaseProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [testCases, setTestCases] = useState<any[] | null>(null);
   const [testResults, setTestResults] = useState<any | null>(null);
   const [fileLanguage, setFileLanguage] = useState<string>('python');
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      onFileUpload(files[0]);
-    }
-  };
-
-  const handleBrowseClick = () => {
-    fileInputRef.current?.click();
-  };
 
   useEffect(() => {
     if (fileContent) {
@@ -241,7 +222,7 @@ export default function TestCase({
         },
         negative: {
           code: `test "${functionName} with invalid input" do\n    # Arrange & Act & Assert\n    assert_raises(ArgumentError) do\n        ${functionName}(nil)\n    end\nend`,
-          description: "Checks that the function properly handles invalid input by throwing an appropriate exception."
+          description: "Checks that the function properly handles invalid input by raising an appropriate exception."
         },
         edge: {
           code: `test "${functionName} with edge case" do\n    # Arrange\n    input = ""\n    \n    # Act\n    result = ${functionName}(input)\n    \n    # Assert\n    assert_equal "", result\nend`,
@@ -362,98 +343,340 @@ export default function TestCase({
           description: "Ensures the function performs efficiently with large inputs."
         },
         concurrency: {
-          code: `public function test${functionName}Concurrency(): void\n{\n    // Note: This is a simplified concurrency test as PHP has limited threading\n    // Arrange\n    $results = [];\n    \n    // Act\n    for ($i = 0; $i < 5; $i++) {\n        $results[] = ${functionName}("input");\n    }\n    \n    // Assert\n    $this->assertCount(5, $results);\n}`,
-          description: "Validates that the function works correctly with sequential calls (PHP has limited native threading)."
+          code: `public function test${functionName}BasicFunctionality(): void\n{\n    // PHP doesn't have native threading in its test framework, so we'll test basic functionality\n    // Arrange\n    $input = "example_input";\n    \n    // Act\n    $result = ${functionName}($input);\n    \n    // Assert\n    $this->assertNotEmpty($result);\n}`,
+          description: "Basic test for function functionality (PHP lacks built-in threading support in tests)."
         }
       }
     };
-    
-    const languageTemplates = testTemplates[language] || testTemplates['python'];
-    
-    return [
-      {
-        id: `${id}-1`,
-        title: "Positive Test",
-        code: languageTemplates.positive.code,
-        description: languageTemplates.positive.description,
-        type: 'positive'
-      },
-      {
-        id: `${id}-2`,
-        title: "Negative Test",
-        code: languageTemplates.negative.code,
-        description: languageTemplates.negative.description,
-        type: 'negative'
-      },
-      {
-        id: `${id}-3`,
-        title: "Edge Case Test",
-        code: languageTemplates.edge.code,
-        description: languageTemplates.edge.description,
-        type: 'edge'
-      },
-      {
-        id: `${id}-4`,
-        title: "Performance Test",
-        code: languageTemplates.performance.code,
-        description: languageTemplates.performance.description,
-        type: 'performance'
-      },
-      {
-        id: `${id}-5`,
-        title: "Concurrency Test",
-        code: languageTemplates.concurrency.code,
-        description: languageTemplates.concurrency.description,
-        type: 'concurrency'
-      }
-    ];
+
+    const templates = testTemplates[language] || testTemplates['python'];
+    const testTypes = ['positive', 'negative', 'edge', 'performance', 'concurrency'];
+    const result = [];
+
+    const selectedTypes = testTypes.filter((_, index) => index === id % testTypes.length || index === (id + 2) % testTypes.length);
+    for (const type of selectedTypes) {
+      const testName = `Test ${functionName} ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}`;
+      const testType = type.charAt(0).toUpperCase() + type.slice(1) + ' Case';
+      const template = templates[type as keyof typeof templates];
+      result.push({
+        id: result.length + 1,
+        name: testName,
+        type: testType,
+        code: template.code,
+        description: template.description
+      });
+    }
+    return result;
   };
 
   const generateGenericTestCases = (language: string) => {
-    return generateTestsForFunction('main', language, 0);
+    const moduleName = fileName?.split('.')[0] || 'module';
+    const templates: Record<string, any[]> = {
+      'python': [{
+        name: "Test module initialization",
+        type: "Positive Case",
+        code: `def test_module_init():\n    # Test that the module can be imported\n    import ${moduleName}\n    assert ${moduleName} is not None`,
+        description: "Verifies that the module can be imported successfully."
+      }, {
+        name: "Test module functionality",
+        type: "Functional Test",
+        code: `def test_module_functionality():\n    # This is a placeholder test\n    # Adapt this to test the specific functionality of your module\n    import ${moduleName}\n    result = True  # Replace with actual functionality test\n    assert result is True`,
+        description: "Tests the overall functionality of the module."
+      }],
+      'javascript': [{
+        name: "Test module import",
+        type: "Positive Case",
+        code: `test('${moduleName} module can be imported', () => {\n  // Arrange & Act\n  const module = require('./${moduleName}');\n  \n  // Assert\n  expect(module).toBeDefined();\n});`,
+        description: "Verifies that the module can be imported successfully."
+      }, {
+        name: "Test module functionality",
+        type: "Functional Test",
+        code: `test('${moduleName} module has expected functionality', () => {\n  // Arrange\n  const module = require('./${moduleName}');\n  \n  // Act & Assert\n  // Replace with actual functionality test\n  expect(typeof module).toBe('object');\n});`,
+        description: "Tests the overall functionality of the module."
+      }],
+      'typescript': [{
+        name: "Test module import",
+        type: "Positive Case",
+        code: `test('${moduleName} module can be imported', () => {\n  // Arrange & Act\n  const module = require('./${moduleName}');\n  \n  // Assert\n  expect(module).toBeDefined();\n});`,
+        description: "Verifies that the module can be imported successfully."
+      }, {
+        name: "Test module functionality",
+        type: "Functional Test",
+        code: `test('${moduleName} module has expected functionality', () => {\n  // Arrange\n  const module = require('./${moduleName}');\n  \n  // Act & Assert\n  // Replace with actual functionality test\n  expect(typeof module).toBe('object');\n});`,
+        description: "Tests the overall functionality of the module."
+      }],
+      'java': [{
+        name: "Test class initialization",
+        type: "Positive Case",
+        code: `@Test\npublic void test${moduleName}Initialization() {\n    // Arrange & Act\n    ${moduleName} instance = new ${moduleName}();\n    \n    // Assert\n    assertNotNull(instance);\n}`,
+        description: "Verifies that the class can be instantiated successfully."
+      }, {
+        name: "Test class functionality",
+        type: "Functional Test",
+        code: `@Test\npublic void test${moduleName}Functionality() {\n    // Arrange\n    ${moduleName} instance = new ${moduleName}();\n    \n    // Act & Assert\n    // Replace with actual functionality test\n    assertTrue(true);\n}`,
+        description: "Tests the overall functionality of the class."
+      }],
+      'cpp': [{
+        name: "Test basic initialization",
+        type: "Positive Case",
+        code: `TEST(${moduleName}Test, Initialization) {\n    // This is a basic test to ensure the test framework works\n    EXPECT_TRUE(true);\n}`,
+        description: "Basic test to verify the test framework is working."
+      }, {
+        name: "Test module functionality",
+        type: "Functional Test",
+        code: `TEST(${moduleName}Test, BasicFunctionality) {\n    // Add your specific tests for ${moduleName} functionality\n    // This is just a placeholder\n    EXPECT_TRUE(true);\n}`,
+        description: "Tests the overall functionality of the module."
+      }],
+      'ruby': [{
+        name: "Test module loading",
+        type: "Positive Case",
+        code: `test "can load ${moduleName} module" do\n    # Arrange & Act\n    require_relative '../${moduleName}'\n    \n    # Assert\n    assert Object.const_defined?(:${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)})\nend`,
+        description: "Verifies that the module can be loaded successfully."
+      }, {
+        name: "Test module functionality",
+        type: "Functional Test",
+        code: `test "${moduleName} has expected functionality" do\n    # Arrange\n    require_relative '../${moduleName}'\n    \n    # Act & Assert\n    # Replace with actual functionality test\n    assert true\nend`,
+        description: "Tests the overall functionality of the module."
+      }],
+      'go': [{
+        name: "Test package import",
+        type: "Positive Case",
+        code: `func TestPackageImport(t *testing.T) {\n    // This is a basic test to ensure the test framework works\n    if false {\n        t.Error("This should not fail")\n    }\n}`,
+        description: "Basic test to verify the test framework is working."
+      }, {
+        name: "Test basic functionality",
+        type: "Functional Test",
+        code: `func TestBasicFunctionality(t *testing.T) {\n    // Add your specific tests for package functionality\n    // This is just a placeholder\n    if false {\n        t.Error("This should not fail")\n    }\n}`,
+        description: "Tests the overall functionality of the package."
+      }],
+      'c': [{
+        name: "Test basic functionality",
+        type: "Positive Case",
+        code: `void test_basic_functionality(void) {\n    // This is a basic test to ensure the test framework works\n    TEST_ASSERT_TRUE(1);\n}`,
+        description: "Basic test to verify the test framework is working."
+      }, {
+        name: "Test module initialization",
+        type: "Functional Test",
+        code: `void test_module_initialization(void) {\n    // Add your specific tests for module initialization\n    // This is just a placeholder\n    TEST_ASSERT_TRUE(1);\n}`,
+        description: "Tests that the module initializes correctly."
+      }],
+      'csharp': [{
+        name: "Test class initialization",
+        type: "Positive Case",
+        code: `[Test]\npublic void Test${moduleName}Initialization()\n{\n    // Arrange & Act\n    var instance = new ${moduleName}();\n    \n    // Assert\n    Assert.IsNotNull(instance);\n}`,
+        description: "Verifies that the class can be instantiated successfully."
+      }, {
+        name: "Test class functionality",
+        type: "Functional Test",
+        code: `[Test]\npublic void Test${moduleName}Functionality()\n{\n    // Arrange\n    var instance = new ${moduleName}();\n    \n    // Act & Assert\n    // Replace with actual functionality test\n    Assert.IsTrue(true);\n}`,
+        description: "Tests the overall functionality of the class."
+      }],
+      'php': [{
+        name: "Test class instantiation",
+        type: "Positive Case",
+        code: `public function testClassInstantiation(): void\n{\n    // Arrange & Act\n    $instance = new ${moduleName}();\n    \n    // Assert\n    $this->assertInstanceOf(${moduleName}::class, $instance);\n}`,
+        description: "Verifies that the class can be instantiated successfully."
+      }, {
+        name: "Test class functionality",
+        type: "Functional Test",
+        code: `public function testClassFunctionality(): void\n{\n    // Arrange\n    $instance = new ${moduleName}();\n    \n    // Act & Assert\n    // Replace with actual functionality test\n    $this->assertTrue(true);\n}`,
+        description: "Tests the overall functionality of the class."
+      }]
+    };
+    return templates[language] || templates['python'];
   };
 
-  return (
-    <div className="flex flex-col h-full p-4 gap-4">
-      {!fileContent ? (
-        <NoCodeMessage>Upload code to generate test cases</NoCodeMessage>
-      ) : (
-        <div className="flex flex-col h-full space-y-4">
-          <Card className="bg-squadrun-dark border-squadrun-primary/30">
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-center">
-                <CardTitle className="text-xl flex items-center">
-                  <TestTube className="mr-2 h-5 w-5 text-squadrun-primary" />
-                  Test Case Generator
-                </CardTitle>
-                <div className="flex items-center space-x-2">
-                  <ModelPicker value={model} onChange={setModel} className="h-9" />
-                  
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="flex items-center gap-2 border-squadrun-primary/50 text-squadrun-primary hover:bg-squadrun-primary/10"
-                    onClick={handleBrowseClick}
-                  >
-                    <FileUp className="h-4 w-4" />
-                    <span>Browse</span>
-                  </Button>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileUpload} 
-                    className="hidden"
-                    accept=".py,.js,.ts,.jsx,.tsx,.java,.cpp,.c,.cs,.go,.rb,.rs,.php,.sh,.sql,.html,.css"
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* ... keep existing code (test case content UI) */}
-            </CardContent>
-          </Card>
-        </div>
-      )}
+  const handleGenerateTests = () => {
+    if (!fileContent) return;
+    setIsGenerating(true);
+
+    setTimeout(() => {
+      const generatedTestCases = generateTestCasesForLanguage();
+      setTestCases(generatedTestCases);
+      setIsGenerating(false);
+    }, 1500);
+  };
+
+  const handleRunTests = () => {
+    if (!testCases) return;
+    setIsRunning(true);
+
+    setTimeout(() => {
+      const totalTests = testCases.length;
+      const passedTests = Math.floor(totalTests * 0.7) + Math.floor(Math.random() * (totalTests * 0.3));
+      const failedTests = totalTests - passedTests;
+
+      const details = testCases.map((test, index) => {
+        const passed = index < passedTests || Math.random() > 0.3;
+        return {
+          id: test.id,
+          name: test.name,
+          passed: passed,
+          message: passed ? "Test passed" : getRandomFailureReason(test.type)
+        };
+      });
+
+      const coverage = Math.floor(65 + passedTests / totalTests * 25 + Math.random() * 10);
+      const mockResults = {
+        passed: passedTests,
+        failed: failedTests,
+        total: totalTests,
+        coverage: Math.min(100, coverage),
+        details: details
+      };
+      setTestResults(mockResults);
+      setIsRunning(false);
+    }, 2000);
+  };
+
+  const getRandomFailureReason = (testType: string) => {
+    const failures = {
+      'Positive Case': ["Assertion failed: Expected 'expected_output', got 'actual_output'", "Function returned null", "Expected true but got false"],
+      'Edge Case': ["Function threw unexpected exception", "Empty input handling failed", "Boundary condition not handled correctly"],
+      'Exception Handling': ["Expected exception not thrown", "Wrong exception type thrown", "Exception message doesn't match expected pattern"],
+      'Performance': ["Execution time exceeded threshold", "Memory usage too high", "Operation timed out"],
+      'Concurrency': ["Race condition detected", "Thread deadlock occurred", "Concurrent modification exception"]
+    };
+    const failureCategory = failures[testType as keyof typeof failures] || failures['Positive Case'];
+    return failureCategory[Math.floor(Math.random() * failureCategory.length)];
+  };
+
+  if (!fileContent) {
+    return <div className="flex h-full items-center justify-center">
+      <Card className="w-96 bg-squadrun-darker/50 border border-squadrun-primary/20">
+        <CardContent className="p-6 text-center">
+          <p className="text-squadrun-gray">
+            Please upload a code file to generate test cases
+          </p>
+        </CardContent>
+      </Card>
+    </div>;
+  }
+
+  return <div className="p-4 h-full flex flex-col">
+    <div className="mb-3 flex items-center">
+      <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
+      <ModelPicker value={model} onChange={setModel} />
     </div>
-  );
+    <div className="mb-4">
+      <h1 className="text-2xl font-bold text-white mb-2">Test Case Generator</h1>
+      <p className="text-squadrun-gray">
+        Generate and run comprehensive test cases for your code to ensure quality and reliability.
+      </p>
+    </div>
+    
+    {!testCases ? <div className="flex-1 flex flex-col">
+        <Card className="mb-4 border border-squadrun-primary/20 bg-squadrun-darker/50 flex-1">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Code to Test</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CodeDisplay code={fileContent} language={fileName?.split('.').pop() || 'python'} />
+          </CardContent>
+        </Card>
+        
+        <Button onClick={handleGenerateTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white ml-auto" disabled={isGenerating}>
+          {isGenerating ? <>Generating...</> : <>
+              <TestTube className="mr-2 h-4 w-4" /> Generate Test Cases
+            </>}
+        </Button>
+      </div> : <div className="flex-1 flex flex-col">
+        <Tabs defaultValue="testcases" className="flex-1 flex flex-col">
+          <TabsList className="mb-4">
+            <TabsTrigger value="testcases">Test Cases</TabsTrigger>
+            <TabsTrigger value="original">Original Code</TabsTrigger>
+            {testResults && <TabsTrigger value="results">Test Results</TabsTrigger>}
+          </TabsList>
+          
+          <TabsContent value="original" className="flex-1 mt-0">
+            <Card className="border border-squadrun-primary/20 bg-squadrun-darker/50 h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Original Code</CardTitle>
+              </CardHeader>
+              <CardContent className="h-[calc(100%-60px)] overflow-auto">
+                <CodeDisplay code={fileContent} language={fileName?.split('.').pop() || 'python'} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="testcases" className="flex-1 mt-0">
+            <Card className="border border-squadrun-primary/20 bg-squadrun-darker/50 h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Generated Test Cases</CardTitle>
+              </CardHeader>
+              <CardContent className="h-[calc(100%-60px)] overflow-auto">
+                <div className="space-y-4">
+                  {testCases.map(test => <div key={test.id} className="border border-squadrun-primary/10 rounded-md p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <h3 className="font-medium text-white">{test.name}</h3>
+                          <p className="text-xs text-squadrun-gray">{test.type}</p>
+                          <p className="text-sm text-squadrun-gray mt-1">{test.description}</p>
+                        </div>
+                        {testResults && <div>
+                            {testResults.details.find((r: any) => r.id === test.id)?.passed ? <CheckCircle className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-red-500" />}
+                          </div>}
+                      </div>
+                      <CodeDisplay code={test.code} language={fileName?.split('.').pop() || 'python'} />
+                    </div>)}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          {testResults && <TabsContent value="results" className="flex-1 mt-0">
+              <Card className="border border-squadrun-primary/20 bg-squadrun-darker/50 h-full">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Test Results</CardTitle>
+                </CardHeader>
+                <CardContent className="h-[calc(100%-60px)] overflow-auto">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="bg-squadrun-primary/10 rounded-md p-4">
+                      <h3 className="text-sm font-medium text-white mb-1">Test Summary</h3>
+                      <div className="flex justify-between text-sm text-squadrun-gray mb-3">
+                        <span>Passed: {testResults.passed}/{testResults.total}</span>
+                        <span>Failed: {testResults.failed}/{testResults.total}</span>
+                      </div>
+                      <Progress value={testResults.passed / testResults.total * 100} className="h-2 bg-squadrun-darker" />
+                    </div>
+                    
+                    <div className="bg-squadrun-primary/10 rounded-md p-4">
+                      <h3 className="text-sm font-medium text-white mb-1">Code Coverage</h3>
+                      <div className="flex justify-between text-sm text-squadrun-gray mb-3">
+                        <span>Coverage: {testResults.coverage}%</span>
+                      </div>
+                      <Progress value={testResults.coverage} className="h-2 bg-squadrun-darker" />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {testResults.details.map((result: any) => <div key={result.id} className={`border p-3 rounded-md ${result.passed ? "border-green-500/20 bg-green-500/5" : "border-red-500/20 bg-red-500/5"}`}>
+                        <div className="flex items-center">
+                          {result.passed ? <CheckCircle className="h-5 w-5 text-green-500 mr-2" /> : <XCircle className="h-5 w-5 text-red-500 mr-2" />}
+                          <div>
+                            <h3 className="font-medium text-white">{result.name}</h3>
+                            <p className="text-xs text-squadrun-gray">{result.message}</p>
+                          </div>
+                        </div>
+                      </div>)}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>}
+        </Tabs>
+      
+        {!testResults ? <Button onClick={handleRunTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white mt-4 ml-auto" disabled={isRunning}>
+            {isRunning ? <>Running tests...</> : <>
+                <PlayCircle className="mr-2 h-4 w-4" /> Run Tests
+              </>}
+          </Button> : <div className="flex justify-end mt-4">
+            
+            <Button onClick={handleRunTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white" disabled={isRunning}>
+              {isRunning ? <>Running tests...</> : <>
+                  <PlayCircle className="mr-2 h-4 w-4" /> Run Tests Again
+                </>}
+            </Button>
+          </div>}
+      </div>}
+  </div>;
 }

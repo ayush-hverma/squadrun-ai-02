@@ -1,6 +1,7 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Cpu, Search, FileUp } from "lucide-react";
+import { Cpu, Search } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import { toast } from "sonner";
 import { QualityResults } from "@/types/codeQuality";
@@ -14,24 +15,12 @@ import ModelPicker from "@/components/ModelPicker";
 interface CodeQualityProps {
   fileContent: string | null;
   fileName: string | null;
-  onFileUpload: (file: File) => void;
 }
 
-export default function CodeQuality({ 
-  fileContent, 
-  fileName, 
-  onFileUpload 
-}: CodeQualityProps) {
+export default function CodeQuality({ fileContent, fileName }: CodeQualityProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [qualityResults, setQualityResults] = useState<QualityResults | null>(null);
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      onFileUpload(files[0]);
-    }
-  };
 
   const handleAssessQuality = async () => {
     if (!fileContent) return;
@@ -45,6 +34,7 @@ export default function CodeQuality({
       
       const isSmallFile = fileContent.split('\n').length < 500;
       
+      // In the future, we can add model-specific logic here based on the selected model
       if (isOpenAIConfigured() && !isSmallFile) {
         try {
           toast.info("Analyzing code with AI...", {
@@ -94,28 +84,9 @@ export default function CodeQuality({
 
   return (
     <div className="p-4 h-full flex flex-col">
-      <div className="flex justify-between items-center mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-          <ModelPicker value={model} onChange={setModel} />
-          
-          <input 
-            type="file" 
-            className="hidden" 
-            id="quality-file-upload"
-            onChange={handleFileUpload}
-            accept=".js,.jsx,.ts,.tsx,.py,.java,.cpp,.c,.rs,.go,.rb" 
-          />
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => document.getElementById('quality-file-upload')?.click()}
-            className="text-squadrun-primary border-squadrun-primary hover:bg-squadrun-primary/10"
-          >
-            <FileUp className="mr-2 h-4 w-4" />
-            Browse
-          </Button>
-        </div>
+      <div className="mb-3 flex items-center">
+        <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
+        <ModelPicker value={model} onChange={setModel} />
       </div>
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-white mb-2">Code Quality Assessment</h1>
