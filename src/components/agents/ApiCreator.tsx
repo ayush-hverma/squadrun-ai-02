@@ -4,28 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Cpu, Code } from "lucide-react";
 import { toast } from "sonner";
 import ModelPicker from "@/components/ModelPicker";
-import FileUploadButton from "@/components/FileUploadButton";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function ApiCreator() {
-  const [fileContent, setFileContent] = useState<string | null>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [codeInput, setCodeInput] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [apiSpec, setApiSpec] = useState<string | null>(null);
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
 
-  const handleFileUpload = (file: File) => {
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = e => {
-      const content = e.target?.result as string;
-      setFileContent(content);
-      setApiSpec(null);
-    };
-    reader.readAsText(file);
-  };
-
   const handleGenerateApi = async () => {
-    if (!fileContent) return;
+    if (!codeInput.trim()) {
+      toast.error("Please enter some code first");
+      return;
+    }
     
     setIsGenerating(true);
     
@@ -36,7 +27,7 @@ export default function ApiCreator() {
       // Mock API spec generation
       const mockApiSpec = `openapi: 3.0.0
 info:
-  title: Generated API for ${fileName}
+  title: Generated API Specification
   version: 1.0.0
   description: API automatically generated from source code
 paths:
@@ -98,45 +89,30 @@ components:
     }
   };
 
-  if (!fileContent) {
+  if (!apiSpec) {
     return (
       <div className="p-4 h-full flex flex-col">
         <div className="mb-3 flex items-center">
           <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
           <ModelPicker value={model} onChange={setModel} />
         </div>
-        <div className="flex-1 flex items-center justify-center">
-          <FileUploadButton onFileUpload={handleFileUpload} />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="p-4 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center">
-          <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-          <ModelPicker value={model} onChange={setModel} />
-        </div>
-        <div className="flex gap-2">
-          <FileUploadButton onFileUpload={handleFileUpload} />
-        </div>
-      </div>
-      
-      <div className="mb-4">
-        <h1 className="text-2xl font-bold text-white mb-2">API Specification Generator</h1>
-        <p className="text-squadrun-gray">
-          Generate OpenAPI specifications from your code. This tool analyzes your code structure and creates API endpoints.
-        </p>
-      </div>
-      
-      {!apiSpec ? (
-        <div className="flex-1 flex flex-col items-center justify-center">
+        <div className="flex-1 flex flex-col">
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold text-white mb-2">API Specification Generator</h1>
+            <p className="text-squadrun-gray">
+              Enter your code below and generate OpenAPI specifications. This tool analyzes your code structure and creates API endpoints.
+            </p>
+          </div>
+          <Textarea
+            value={codeInput}
+            onChange={(e) => setCodeInput(e.target.value)}
+            placeholder="Paste your code here..."
+            className="flex-1 mb-4 min-h-[300px] bg-squadrun-darker text-white font-mono"
+          />
           <Button 
             onClick={handleGenerateApi} 
             disabled={isGenerating}
-            className="bg-squadrun-primary hover:bg-squadrun-vivid text-white"
+            className="bg-squadrun-primary hover:bg-squadrun-vivid text-white w-fit"
           >
             {isGenerating ? (
               <>
@@ -150,26 +126,32 @@ components:
               </>
             )}
           </Button>
-          
-          {isGenerating && (
-            <div className="mt-8 text-center">
-              <div className="animate-spin mb-4">
-                <Cpu className="h-16 w-16 text-squadrun-primary" />
-              </div>
-              <h2 className="text-xl font-medium text-white mb-2">Generating API Specification</h2>
-              <p className="text-squadrun-gray max-w-md">
-                Analyzing code structure, identifying resources, and creating OpenAPI 3.0 specification...
-              </p>
-            </div>
-          )}
         </div>
-      ) : (
-        <div className="flex-1 overflow-auto bg-squadrun-darker rounded-md p-4">
-          <pre className="text-white font-mono text-sm whitespace-pre-wrap">
-            {apiSpec}
-          </pre>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center">
+          <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
+          <ModelPicker value={model} onChange={setModel} />
         </div>
-      )}
+      </div>
+      
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-white mb-2">API Specification Generator</h1>
+        <p className="text-squadrun-gray">
+          Generate OpenAPI specifications from your code. This tool analyzes your code structure and creates API endpoints.
+        </p>
+      </div>
+      
+      <div className="flex-1 overflow-auto bg-squadrun-darker rounded-md p-4">
+        <pre className="text-white font-mono text-sm whitespace-pre-wrap">
+          {apiSpec}
+        </pre>
+      </div>
     </div>
   );
 }
