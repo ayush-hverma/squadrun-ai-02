@@ -1,12 +1,115 @@
-
 import { RefactoringOptions } from './index';
 
 /**
  * Refactor JavaScript/TypeScript code to follow best practices
+ * with enhanced security and code smell detection
  */
 export const refactorJavaScript = (code: string, options?: RefactoringOptions): string => {
   let refactored = code;
   
+  // Security: Replace potentially unsafe eval usage
+  refactored = refactored.replace(
+    /eval\s*\((.*?)\)/g,
+    '/* Security Issue: eval() is unsafe */ Function($1)'
+  );
+  
+  // Security: Replace innerHTML with safer alternatives
+  refactored = refactored.replace(
+    /\.innerHTML\s*=\s*/g,
+    '.textContent = '
+  );
+  
+  // Security: Add input sanitization for user inputs
+  refactored = refactored.replace(
+    /(const|let|var)\s+([a-zA-Z0-9_]+)\s*=\s*([a-zA-Z0-9_]+)\.value/g,
+    '$1 $2 = sanitizeInput($3.value)'
+  );
+  
+  // Security: Add CSRF token to fetch requests
+  refactored = refactored.replace(
+    /fetch\s*\(\s*(['"`][^'"`]+['"`])/g,
+    'fetch($1, { headers: { "X-CSRF-Token": getCsrfToken() } }'
+  );
+  
+  // Code Smell: Replace magic numbers with named constants
+  const magicNumbers = new Set<string>();
+  refactored = refactored.replace(/\b(\d{3,})\b/g, (match, number) => {
+    if (!magicNumbers.has(number)) {
+      magicNumbers.add(number);
+      const constantName = `CONSTANT_${number}`;
+      refactored = `const ${constantName} = ${number};\n${refactored}`;
+      return constantName;
+    }
+    return match;
+  });
+  
+  // Code Smell: Break down large functions
+  refactored = refactored.replace(
+    /function\s+([a-zA-Z0-9_]+)\s*\([^)]*\)\s*{([^}]{500,})}/g,
+    (match, funcName, body) => {
+      const lines = body.split('\n');
+      const chunks = [];
+      let currentChunk = [];
+      
+      for (const line of lines) {
+        currentChunk.push(line);
+        if (currentChunk.length === 20) {
+          chunks.push(currentChunk);
+          currentChunk = [];
+        }
+      }
+      if (currentChunk.length > 0) {
+        chunks.push(currentChunk);
+      }
+      
+      const helperFunctions = chunks.map((chunk, i) => 
+        `function ${funcName}Part${i + 1}() {\n${chunk.join('\n')}\n}`
+      ).join('\n\n');
+      
+      return `${helperFunctions}\n\nfunction ${funcName}() {\n${
+        chunks.map((_, i) => `  ${funcName}Part${i + 1}();`).join('\n')
+      }\n}`;
+    }
+  );
+
+  // Code Smell: Remove duplicate code blocks
+  const codeBlocks = new Map<string, number>();
+  refactored = refactored.replace(/\{([^{}]{50,})\}/g, (match, block) => {
+    const trimmedBlock = block.trim();
+    const count = codeBlocks.get(trimmedBlock) || 0;
+    codeBlocks.set(trimmedBlock, count + 1);
+    
+    if (count > 0) {
+      const functionName = `extractedFunction${count}`;
+      refactored = `function ${functionName}() {\n${trimmedBlock}\n}\n${refactored}`;
+      return `{ ${functionName}(); }`;
+    }
+    return match;
+  });
+  
+  // Add type safety checks for function parameters
+  refactored = refactored.replace(
+    /function\s+([a-zA-Z0-9_]+)\s*\(([^)]+)\)/g,
+    (match, funcName, params) => {
+      const paramsList = params.split(',').map(p => p.trim());
+      const typeChecks = paramsList.map(param => 
+        `  if (typeof ${param} === 'undefined') throw new Error('${param} is required');`
+      ).join('\n');
+      
+      return `function ${funcName}(${params}) {\n${typeChecks}\n`;
+    }
+  );
+  
+  // Add error boundaries around async operations
+  refactored = refactored.replace(
+    /async\s+function\s+([a-zA-Z0-9_]+)/g,
+    `async function $1(...args) {\n  try {\n    const result = await (async () => {`
+  );
+  refactored = refactored.replace(
+    /}\s*\/\/\s*end\s+async/g,
+    `    })(...args);\n    return result;\n  } catch (error) {\n    console.error('Error in $1:', error);\n    throw error;\n  }\n}`
+  );
+
   // Replace var with const/let
   refactored = refactored.replace(/var\s+([a-zA-Z0-9_]+)\s*=\s*([^;]+);/g, (match, varName, value) => {
     // Use const by default unless there's evidence of reassignment
@@ -107,4 +210,16 @@ export const refactorJavaScript = (code: string, options?: RefactoringOptions): 
   refactored = refactored.replace(/([a-zA-Z0-9_\)`}])\s*\n(?!\s*[)}\],;.])/g, '$1;\n');
   
   return refactored;
+};
+
+// Add necessary utility functions
+const sanitizeInput = (input: string): string => {
+  return input
+    .replace(/[<>]/g, '')  // Remove potential HTML
+    .trim()                // Remove whitespace
+    .substring(0, 1000);   // Limit length
+};
+
+const getCsrfToken = (): string => {
+  return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 };

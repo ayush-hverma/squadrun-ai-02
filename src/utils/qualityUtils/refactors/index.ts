@@ -85,24 +85,24 @@ export const refactorCode = (
     case 'tsx':
     case 'javascript':
     case 'typescript':
-      return refactorJavaScript(code);
+      return refactorJavaScript(code, options);
       
     case 'py':
     case 'python':
-      return refactorPython(code);
+      return refactorPython(code, options);
       
     case 'cpp':
     case 'c':
     case 'h':
     case 'hpp':
     case 'c++':
-      return refactorCPP(code, refactoringOptions);
+      return refactorCPP(code, options);
       
     case 'java':
-      return refactorJava(code, refactoringOptions);
+      return refactorJava(code, options);
       
     default:
-      return refactorGeneric(code, refactoringOptions);
+      return refactorGeneric(code, options);
   }
 };
 

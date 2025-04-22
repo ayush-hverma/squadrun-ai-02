@@ -1,12 +1,78 @@
-
 import { RefactoringOptions } from './index';
 
 /**
  * Refactor Python code to follow best practices
+ * with enhanced security and code smell detection
  */
 export const refactorPython = (code: string, options?: RefactoringOptions): string => {
   let refactored = code;
   
+  // Security: Replace unsafe eval usage
+  refactored = refactored.replace(
+    /eval\s*\((.*?)\)/g,
+    'ast.literal_eval($1)  # Safer alternative to eval'
+  );
+  
+  // Security: Add input validation
+  refactored = refactored.replace(
+    /input\s*\((.*?)\)/g,
+    'validate_input(input($1))'
+  );
+  
+  // Security: Replace shell=True in subprocess calls
+  refactored = refactored.replace(
+    /subprocess\.(?:call|run|Popen)\s*\((.*?),\s*shell\s*=\s*True/g,
+    'subprocess.run($1, shell=False'
+  );
+  
+  // Code Smell: Replace magic numbers with named constants
+  const magicNumbers = new Set<string>();
+  refactored = refactored.replace(/\b(\d{3,})\b/g, (match, number) => {
+    if (!magicNumbers.has(number)) {
+      magicNumbers.add(number);
+      const constantName = `CONSTANT_${number}`;
+      refactored = `${constantName} = ${number}\n${refactored}`;
+      return constantName;
+    }
+    return match;
+  });
+  
+  // Code Smell: Add type hints
+  refactored = refactored.replace(
+    /def\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\):/g,
+    (match, funcName, params) => {
+      const paramsList = params.split(',').map(p => p.trim());
+      const typedParams = paramsList.map(param => 
+        param ? `${param}: Any` : ''
+      ).join(', ');
+      return `def ${funcName}(${typedParams}) -> Any:`;
+    }
+  );
+  
+  // Code Smell: Break down large functions
+  refactored = refactored.replace(
+    /def\s+([a-zA-Z0-9_]+)\s*\([^)]*\):[^def]*?(?=def|\Z)/g,
+    (match, funcName) => {
+      if (match.split('\n').length > 20) {
+        const parts = match.split('\n').reduce((acc, line, i) => {
+          const partIndex = Math.floor(i / 20);
+          if (!acc[partIndex]) acc[partIndex] = [];
+          acc[partIndex].push(line);
+          return acc;
+        }, [] as string[][]);
+        
+        const helperFunctions = parts.map((part, i) => 
+          `def ${funcName}_part${i + 1}():\n    ${part.join('\n    ')}`
+        ).join('\n\n');
+        
+        return `${helperFunctions}\n\ndef ${funcName}():\n    ${
+          parts.map((_, i) => `${funcName}_part${i + 1}()`).join('\n    ')
+        }`;
+      }
+      return match;
+    }
+  );
+
   // Add docstrings to functions and classes
   refactored = refactored.replace(
     /def\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\):/g,
@@ -127,4 +193,12 @@ export const refactorPython = (code: string, options?: RefactoringOptions): stri
   );
   
   return refactored;
+};
+
+// Add necessary utility functions
+const validate_input = (input: string): string => {
+  if (input.length > 1000) {
+    throw new Error('Input too long');
+  }
+  return input.replace(/[<>]/g, '').trim();
 };
