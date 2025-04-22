@@ -3,15 +3,25 @@ import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import FileUpload from "@/components/FileUpload";
 import UnifiedAgent from "@/components/agents/UnifiedAgent";
+import ApiCreator from "@/components/agents/ApiCreator";
 
 const Index = () => {
   const [fileContent, setFileContent] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [activeTab, setActiveTab] = useState("inspector");
 
-  // Only one agent present -- UnifiedAgent
-  const activeTab = "inspector";
-  const handleTabChange = () => {};
+  const handleTabChange = (tab: string) => {
+    // Only transition if we're changing tabs
+    if (tab !== activeTab) {
+      setIsTransitioning(true);
+      // Wait for transition animation before changing tab
+      setTimeout(() => {
+        setActiveTab(tab);
+        setIsTransitioning(false);
+      }, 300);
+    }
+  };
 
   const handleFileUpload = (file: File) => {
     setFileName(file.name);
@@ -37,7 +47,11 @@ const Index = () => {
             isTransitioning ? "opacity-0" : "opacity-100"
           }`}
         >
-          <UnifiedAgent fileContent={fileContent} fileName={fileName} />
+          {activeTab === "inspector" ? (
+            <UnifiedAgent fileContent={fileContent} fileName={fileName} />
+          ) : (
+            <ApiCreator />
+          )}
         </div>
       </div>
     </div>
@@ -45,4 +59,3 @@ const Index = () => {
 };
 
 export default Index;
-
