@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cpu, FileUp, CheckCircle, XCircle, PlayCircle, TestTube } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ export default function TestCase({
   const [fileLanguage, setFileLanguage] = useState<string>('python');
   const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
 
-  const fileInputRef = useState<React.RefObject<HTMLInputElement>>(() => React.createRef())[0];
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
