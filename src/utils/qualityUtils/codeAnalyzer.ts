@@ -1,4 +1,3 @@
-
 import { QualityResults, CategoryScore, CodeSnippet } from "@/types/codeQuality";
 import { 
   BookOpen, 
@@ -486,7 +485,7 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
     }
   ];
   
-  // Generate code snippets with issues
+  // Generate code snippets with issues for notebooks
   const snippets: CodeSnippet[] = [];
   
   if (isNotebook) {
@@ -554,6 +553,18 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
               title: `Cell ${i+1}: Hardcoded paths or URLs (Maintainability issue)`,
               code: cellContent.substring(0, 150) + (cellContent.length > 150 ? '...' : ''),
               suggestion: "# Define configuration at the top of your notebook\n\n# Configuration\nCONFIG = {\n    \"data_path\": \"./data/\",\n    \"api_url\": \"https://api.example.com/\",\n    \"output_dir\": \"./results/\"\n}\n\n# Then use CONFIG['data_path'] instead of hardcoded paths"
+            });
+          }
+          
+          // Look for single-letter variable names (Code Smell)
+          const singleLetterVars = (cellContent.match(/\b([a-zA-Z])\s*=(?!\s*lambda)/g) || [])
+            .filter(v => !['i=', 'j=', 'k=', 'x=', 'y=', 'z='].includes(v.trim()));
+          
+          if (singleLetterVars.length > 0) {
+            snippets.push({
+              title: `Cell ${i+1}: Non-descriptive variable names (Code Smell)`,
+              code: cellContent.substring(0, 150) + (cellContent.length > 150 ? '...' : ''),
+              suggestion: "# Use descriptive variable names\n# Instead of:\n# a = [1, 2, 3]\n# s = 0\n# for i in a:\n#     s += i\n\n# Write:\n# numbers = [1, 2, 3]\n# total_sum = 0\n# for number in numbers:\n#     total_sum += number"
             });
           }
         }

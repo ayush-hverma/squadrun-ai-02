@@ -20,6 +20,5 @@ export {
 // Use 'export type' when re-exporting types with isolatedModules
 export type { RefactoringOptions } from './refactors';
 
-// Export the new Python-specific utilities
+// Export the Python-specific utilities
 export { refactorPython as refactorPythonCode } from './refactors/pythonRefactor';
-
