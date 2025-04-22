@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -8,20 +9,21 @@ interface TestCaseProps {
   fileContent: string | null;
   fileName: string | null;
   onFileUpload: (file: File) => void;
+  onClear: () => void;
 }
 
 export default function TestCase({
   fileContent,
   fileName,
-  onFileUpload
+  onFileUpload,
+  onClear
 }: TestCaseProps) {
   const [testCases, setTestCases] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const handleClear = () => {
     setTestCases([]);
-    setFileContent(null);
-    setFileName(null);
+    onClear();
     toast.success("Test cases cleared", {
       description: "You can now upload a new file."
     });
