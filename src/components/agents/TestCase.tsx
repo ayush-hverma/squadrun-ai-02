@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cpu, FileUp, CheckCircle, XCircle, PlayCircle, TestTube } from "lucide-react";
@@ -417,7 +416,7 @@ export default function TestCase({
   return (
     <div className="flex flex-col h-full p-4 gap-4">
       {!fileContent ? (
-        <NoCodeMessage message="Upload code to generate test cases" />
+        <NoCodeMessage>Upload code to generate test cases</NoCodeMessage>
       ) : (
         <div className="flex flex-col h-full space-y-4">
           <Card className="bg-squadrun-dark border-squadrun-primary/30">
