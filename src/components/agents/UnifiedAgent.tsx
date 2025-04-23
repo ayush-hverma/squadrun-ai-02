@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Code, Check, TestTube, Github } from "lucide-react";
@@ -51,6 +50,9 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
         handleLocalFileChange={selector.handleLocalFileChange}
         handleGithubRepoInput={selector.handleGithubRepoInput}
         loadingFiles={selector.loadingFiles}
+        githubToken={selector.githubToken}
+        setGithubToken={selector.setGithubToken}
+        handleClearGithubToken={selector.handleClearGithubToken}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">

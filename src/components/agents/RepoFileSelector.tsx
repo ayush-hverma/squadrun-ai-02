@@ -1,8 +1,8 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, ArrowDown, File, Loader2, Upload } from "lucide-react";
-import React from "react";
+import { AlertCircle, ArrowDown, File, Loader2, Upload, Lock, Unlock } from "lucide-react";
+import React, { useEffect, useState } from "react";
 import type { FileEntry } from "./hooks/useRepoFileSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -21,6 +21,9 @@ interface RepoFileSelectorProps {
   handleLocalFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleGithubRepoInput: (e: React.FormEvent<HTMLFormElement>) => void;
   loadingFiles: boolean;
+  githubToken: string;
+  setGithubToken: (token: string) => void;
+  handleClearGithubToken: () => void;
 }
 
 export default function RepoFileSelector({
@@ -37,11 +40,24 @@ export default function RepoFileSelector({
   fileInputRef,
   handleLocalFileChange,
   handleGithubRepoInput,
-  loadingFiles
+  loadingFiles,
+  githubToken,
+  setGithubToken,
+  handleClearGithubToken,
 }: RepoFileSelectorProps) {
+  const [tokenInput, setTokenInput] = useState("");
+
+  useEffect(() => {
+    setTokenInput(githubToken);
+  }, [githubToken]);
+
+  const handleSaveToken = () => {
+    setGithubToken(tokenInput.trim());
+  };
+
   return (
     <div>
-      <form onSubmit={handleGithubRepoInput} className="mb-4 flex gap-2 items-center relative">
+      <form onSubmit={handleGithubRepoInput} className="mb-2 flex gap-2 items-center relative">
         <Input
           value={githubUrl}
           onChange={e => setGithubUrl(e.target.value)}
@@ -79,6 +95,43 @@ export default function RepoFileSelector({
           Browse Files
         </Button>
       </form>
+      {/* Token input UI */}
+      <div className="flex gap-2 mb-4 items-center">
+        <Input
+          type="password"
+          value={tokenInput}
+          onChange={e => setTokenInput(e.target.value)}
+          placeholder="GitHub Personal Access Token (for private or rate limit)"
+          className="text-xs py-1 bg-squadrun-darker border-squadrun-primary/20"
+          style={{ maxWidth: 300 }}
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="flex items-center gap-1 px-2"
+          onClick={handleSaveToken}
+          disabled={tokenInput.trim().length === 0 || tokenInput === githubToken}
+        >
+          <Lock className="w-3 h-3" />
+          Save Token
+        </Button>
+        {githubToken && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="flex items-center gap-1 px-2 border-red-500 hover:bg-red-950/10"
+            onClick={handleClearGithubToken}
+          >
+            <Unlock className="w-3 h-3 text-red-500" />
+            Remove
+          </Button>
+        )}
+        <span className="text-xs text-squadrun-gray">
+          {githubToken ? "Token saved in your browser" : "No token stored"}
+        </span>
+      </div>
 
       {fetchError && (
         <Alert variant="destructive" className="mb-4 py-2 bg-destructive/10 border-destructive/30">
@@ -140,3 +193,4 @@ export default function RepoFileSelector({
     </div>
   );
 }
+

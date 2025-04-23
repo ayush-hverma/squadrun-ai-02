@@ -8,6 +8,30 @@ export type FileEntry = {
   sha: string;
 };
 
+const GITHUB_TOKEN_KEY = "lovable_github_token";
+
+function getStoredGithubToken() {
+  try {
+    return localStorage.getItem(GITHUB_TOKEN_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function setStoredGithubToken(token: string) {
+  try {
+    if (token) {
+      localStorage.setItem(GITHUB_TOKEN_KEY, token);
+    }
+  } catch {}
+}
+
+function removeStoredGithubToken() {
+  try {
+    localStorage.removeItem(GITHUB_TOKEN_KEY);
+  } catch {}
+}
+
 export function useRepoFileSelector(defaultFileContent: string | null, defaultFileName: string | null) {
   // Repo-related state
   const [githubUrl, setGithubUrl] = useState("");
@@ -26,6 +50,18 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
   // Local file state (uploaded file)
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // GitHub token state
+  const [githubToken, setGithubTokenState] = useState(getStoredGithubToken());
+
+  function setGithubToken(token: string) {
+    setStoredGithubToken(token);
+    setGithubTokenState(token);
+  }
+  function handleClearGithubToken() {
+    removeStoredGithubToken();
+    setGithubTokenState("");
+  }
+
   // Helper to extract "owner/repo" from the GitHub URL
   function extractRepoInfo(url: string): { owner: string; repo: string } | null {
     try {
@@ -37,6 +73,19 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
       return null;
     }
     return null;
+  }
+
+  // Helper to create fetch config based on token
+  function getFetchConfig() {
+    if (githubToken) {
+      return {
+        headers: {
+          Authorization: `Bearer ${githubToken}`,
+          Accept: "application/vnd.github+json",
+        },
+      };
+    }
+    return { headers: { Accept: "application/vnd.github+json" } };
   }
 
   // Fetch file tree using the GitHub API
@@ -56,12 +105,11 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
 
     try {
       // Try to fetch repository info
-      const resp = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}`);
+      const resp = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}`, getFetchConfig());
       
       // Check if we hit a rate limit
       if (resp.status === 403) {
         const rateLimitError = "GitHub API rate limit exceeded. Please try again later or upload a local file.";
-        console.error("GitHub API rate limit error:", await resp.json());
         setFetchError(rateLimitError);
         setLoadingFiles(false);
         return;
@@ -75,7 +123,7 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
       const branch = repoData.default_branch;
       
       // Fetch the file tree
-      const treeRes = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/git/trees/${branch}?recursive=1`);
+      const treeRes = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/git/trees/${branch}?recursive=1`, getFetchConfig());
       
       if (treeRes.status === 403) {
         setFetchError("GitHub API rate limit exceeded. Please try again later or upload a local file.");
@@ -98,7 +146,7 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
       } else {
         setFetchError("Error fetching files from repo. Is it public?");
       }
-      console.error("GitHub fetch error:", e);
+      // console.error("GitHub fetch error:", e);
     }
     setLoadingFiles(false);
   }
@@ -111,7 +159,7 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
     const info = extractRepoInfo(githubUrl);
     if (!info) return;
     try {
-      const resp = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/${entry.path}`);
+      const resp = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/${entry.path}`, getFetchConfig());
       
       if (resp.status === 403) {
         setFetchError("GitHub API rate limit exceeded. Please try again later.");
@@ -140,7 +188,6 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
       }
       setSelectedFileContent(null);
       setSelectedFileName(null);
-      console.error("File content fetch error:", e);
     }
     setFetchingFileContent(false);
   }
@@ -186,6 +233,8 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
     selectedFile, setSelectedFile, fetchFileContent, fetchingFileContent,
     selectedFileContent, selectedFileName,
     fileInputRef, handleLocalFileChange,
-    handleGithubRepoInput, handleClearFile
+    handleGithubRepoInput, handleClearFile,
+    githubToken, setGithubToken, handleClearGithubToken,
   };
 }
+
