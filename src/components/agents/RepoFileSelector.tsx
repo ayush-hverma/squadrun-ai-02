@@ -58,7 +58,7 @@ export default function RepoFileSelector({
               Loading...
             </> : "Load Files"}
         </Button>
-        <input ref={fileInputRef} type="file" className="hidden" accept=".py,.js,.ts,.jsx,.tsx,.java,.cpp,.c,.cs,.go,.rb,.rs,.php,.sh,.sql,.html,.css" onChange={handleLocalFileChange} />
+        <input ref={fileInputRef} type="file" className="hidden" accept=".py,.js,.ts,.jsx,.tsx,.java,.cpp,.c,.cs,.go,.rb,.rs,.php,.sh,.sql,.html,.css,.ipynb" onChange={handleLocalFileChange} />
         <Button type="button" size="sm" variant="outline" className="ml-2 flex items-center gap-1 px-2" onClick={() => fileInputRef.current?.click()} aria-label="Browse local files">
           <Upload className="w-4 h-4" />
           Browse Files
