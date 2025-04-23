@@ -43,9 +43,9 @@ export default function RepoFileSelector({
           value={githubUrl}
           onChange={e => setGithubUrl(e.target.value)}
           placeholder="Enter GitHub repository URL (public repo)..."
-          className="text-base flex-1 shadow-sm focus:shadow-lg transition-shadow"
+          className="text-base flex-1"
         />
-        <Button type="submit" variant="secondary" className="font-medium shadow hover:scale-105 focus:ring-2 focus:ring-squadrun-primary">
+        <Button type="submit" variant="secondary">
           Load Files
         </Button>
         <input
@@ -59,7 +59,7 @@ export default function RepoFileSelector({
           type="button"
           size="sm"
           variant="outline"
-          className="ml-2 flex items-center gap-1 px-2 font-medium shadow hover:scale-105"
+          className="ml-2 flex items-center gap-1 px-2"
           onClick={() => fileInputRef.current?.click()}
           aria-label="Browse local files"
         >
@@ -70,12 +70,12 @@ export default function RepoFileSelector({
       {fetchError && <div className="text-destructive text-sm mb-2">{fetchError}</div>}
 
       {repoFiles.length > 0 && (
-        <div className="mb-4 relative">
+        <div className="mb-4">
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="flex items-center gap-2 font-medium shadow hover:scale-105"
+            className="flex items-center gap-2"
             onClick={() => setFileDropdownOpen(open => !open)}
             aria-expanded={fileDropdownOpen}
           >
@@ -87,12 +87,12 @@ export default function RepoFileSelector({
             </span>
           </Button>
           {fileDropdownOpen && (
-            <div className="max-h-64 overflow-auto rounded border border-squadrun-primary/20 bg-squadrun-darker/95 shadow-2xl mt-2 absolute w-[420px] left-0 z-40 animate-fade-in">
+            <div className="max-h-64 overflow-auto rounded border bg-popover mt-2 shadow z-10 absolute w-[400px]">
               {repoFiles.map(entry =>
                 <div
                   key={entry.path}
                   tabIndex={0}
-                  className={`flex items-center px-3 py-2 cursor-pointer hover:bg-squadrun-primary/10 focus:outline-none focus:bg-squadrun-primary/10 ${selectedFile?.path === entry.path ? "bg-squadrun-primary/20 font-semibold text-white" : ""}`}
+                  className={`flex items-center px-3 py-2 cursor-pointer hover:bg-squadrun-primary/10 ${selectedFile?.path === entry.path ? "bg-squadrun-primary/20" : ""}`}
                   onClick={() => {
                     setSelectedFile(entry);
                     fetchFileContent(entry);
@@ -112,7 +112,7 @@ export default function RepoFileSelector({
               )}
             </div>
           )}
-          {fetchingFileContent && <div className="text-xs text-squadrun-gray mt-1 pl-2">Loading file...</div>}
+          {fetchingFileContent && <div className="text-xs text-squadrun-gray mt-1">Loading file...</div>}
         </div>
       )}
     </div>
