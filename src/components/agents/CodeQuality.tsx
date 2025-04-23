@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cpu, Search } from "lucide-react";
@@ -10,7 +9,6 @@ import { analyzeCodeQualityWithAI, isOpenAIConfigured } from "@/utils/aiUtils/op
 import NoCodeMessage from "./quality/NoCodeMessage";
 import AnalysisView from "./quality/AnalysisView";
 import { Button } from "@/components/ui/button";
-import ModelPicker from "@/components/ModelPicker";
 
 interface CodeQualityProps {
   fileContent: string | null;
@@ -20,7 +18,6 @@ interface CodeQualityProps {
 export default function CodeQuality({ fileContent, fileName }: CodeQualityProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [qualityResults, setQualityResults] = useState<QualityResults | null>(null);
-  const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
 
   const handleAssessQuality = async () => {
     if (!fileContent) return;
@@ -38,7 +35,6 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
                          fileContent.includes('"cell_type"') && 
                          fileContent.includes('"source"'));
       
-      // In the future, we can add model-specific logic here based on the selected model
       if (isOpenAIConfigured() && !isSmallFile && !isNotebook) {
         try {
           toast.info("Analyzing code with AI...", {
@@ -57,7 +53,6 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
           });
         }
       } else {
-        // For notebooks, always use the built-in analyzer which is now optimized for them
         results = analyzeCodeQuality(fileContent, language);
         
         if (isNotebook) {
@@ -96,10 +91,6 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
 
   return (
     <div className="p-4 h-full flex flex-col">
-      <div className="mb-3 flex items-center">
-        <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-        <ModelPicker value={model} onChange={setModel} />
-      </div>
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-white mb-2">Code Quality Assessment</h1>
         <p className="text-squadrun-gray">
@@ -150,4 +141,3 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     </div>
   );
 }
-

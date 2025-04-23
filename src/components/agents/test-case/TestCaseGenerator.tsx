@@ -1,9 +1,7 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PlayCircle, TestTube, X } from "lucide-react";
-import ModelPicker from "@/components/ModelPicker";
 import NoCodeMessage from "@/components/agents/quality/NoCodeMessage";
 import { getFileLanguage } from "./utils/languageDetection";
 import { generateTestCasesForLanguage, getRandomFailureReason } from "./utils/testGenerator";
@@ -18,7 +16,6 @@ export default function TestCaseGenerator({ fileContent, fileName, onClearFile }
   const [testCases, setTestCases] = useState<TestCase[] | null>(null);
   const [testResults, setTestResults] = useState<TestResults | null>(null);
   const [fileLanguage, setFileLanguage] = useState<string>('python');
-  const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
 
   useEffect(() => {
     if (fileContent) {
@@ -85,10 +82,6 @@ export default function TestCaseGenerator({ fileContent, fileName, onClearFile }
 
   return (
     <div className="p-4 h-full flex flex-col">
-      <div className="mb-3 flex items-center">
-        <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-        <ModelPicker value={model} onChange={setModel} />
-      </div>
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-white mb-2">Test Case Generator</h1>
         <p className="text-squadrun-gray">

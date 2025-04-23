@@ -15,7 +15,6 @@ import NoFileMessage from "@/components/refactor/NoFileMessage";
 import { refactorCode, RefactoringOptions, calculateCodeQualityMetrics } from "@/utils/qualityUtils/refactors";
 import { refactorCodeWithAI, isOpenAIConfigured } from "@/utils/aiUtils/openAiUtils";
 import { toast } from "sonner";
-import ModelPicker from "@/components/ModelPicker";
 
 interface CodeRefactorProps {
   fileContent: string | null;
@@ -27,7 +26,6 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
   const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
-  const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
   const [showSettings, setShowSettings] = useState(false);
   const [refactoringOptions, setRefactoringOptions] = useState<RefactoringOptions>({
     aggressive: false,
@@ -175,10 +173,8 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
     <div className="p-4 h-full flex flex-col gap-4">
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center">
-          <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-          <ModelPicker value={model} onChange={setModel} />
+          {/* Remove ModelPicker UI */}
         </div>
-        
         <Button
           variant="outline"
           size="sm"
