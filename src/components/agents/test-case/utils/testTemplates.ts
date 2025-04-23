@@ -1,3 +1,4 @@
+
 // A collection of test templates for different languages
 export const getTestTemplates = (language: string, functionName: string) => {
   const testTemplates: Record<string, Record<string, { code: string; description: string }>> = {
@@ -89,17 +90,28 @@ export const getTestTemplates = (language: string, functionName: string) => {
         description: "Validates that the method works correctly under concurrent access."
       }
     },
-    'cpp': [{
-      name: "Test class initialization",
-      type: "Positive Case", 
-      code: `TEST(${moduleName}Test, Initialization) {\n    // Arrange & Act\n    ${moduleName} instance;\n    \n    // Assert\n    EXPECT_TRUE(true);\n}`,
-      description: "Verifies that the class can be initialized successfully."
-    }, {
-      name: "Test basic functionality",
-      type: "Functional Test",
-      code: `TEST(${moduleName}Test, BasicFunctionality) {\n    // Arrange\n    ${moduleName} instance;\n    \n    // Act & Assert\n    // Replace with actual functionality test\n    EXPECT_TRUE(true);\n}`,
-      description: "Tests the overall functionality of the class."
-    }],
+    'cpp': {
+      positive: {
+        code: `TEST(${functionName}Test, ValidInput) {\n    // Arrange\n    std::string input = "example_input";\n    std::string expected = "expected_output";\n    \n    // Act\n    std::string result = ${functionName}(input);\n    \n    // Assert\n    EXPECT_EQ(expected, result);\n    EXPECT_FALSE(result.empty());\n}`,
+        description: "Verifies that the function returns expected output when given valid input."
+      },
+      negative: {
+        code: `TEST(${functionName}Test, InvalidInput) {\n    // Arrange & Act & Assert\n    EXPECT_THROW(${functionName}(nullptr), std::invalid_argument);\n}`,
+        description: "Checks that the function properly handles invalid input by throwing an appropriate exception."
+      },
+      edge: {
+        code: `TEST(${functionName}Test, EdgeCase) {\n    // Arrange\n    std::string input = "";\n    \n    // Act\n    std::string result = ${functionName}(input);\n    \n    // Assert\n    EXPECT_EQ("", result);\n}`,
+        description: "Tests the function's behavior with edge case inputs (empty string)."
+      },
+      performance: {
+        code: `TEST(${functionName}Test, Performance) {\n    // Arrange\n    std::string largeInput(1000, 'x');\n    \n    // Act\n    auto startTime = std::chrono::high_resolution_clock::now();\n    std::string result = ${functionName}(largeInput);\n    auto endTime = std::chrono::high_resolution_clock::now();\n    \n    // Assert\n    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();\n    EXPECT_LT(duration, 1000); // Should complete in under 1 second\n}`,
+        description: "Ensures the function performs efficiently with large inputs."
+      },
+      concurrency: {
+        code: `TEST(${functionName}Test, Concurrency) {\n    // Arrange\n    std::vector<std::string> results;\n    std::mutex mutex;\n    std::vector<std::thread> threads;\n    \n    // Act\n    for (int i = 0; i < 5; i++) {\n        threads.push_back(std::thread([&mutex, &results](){\n            std::string result = ${functionName}("input");\n            std::lock_guard<std::mutex> lock(mutex);\n            results.push_back(result);\n        }));\n    }\n    \n    for (auto& thread : threads) {\n        thread.join();\n    }\n    \n    // Assert\n    EXPECT_EQ(5, results.size());\n}`,
+        description: "Validates that the function works correctly under concurrent access."
+      }
+    },
     'ruby': {
       positive: {
         code: `test "${functionName} with valid input" do\n    # Arrange\n    input = "example_input"\n    expected = "expected_output"\n    \n    # Act\n    result = ${functionName}(input)\n    \n    # Assert\n    assert_equal expected, result\n    assert_not_nil result\nend`,
@@ -232,12 +244,12 @@ export const getTestTemplates = (language: string, functionName: string) => {
         description: "Basic test for function functionality (PHP lacks built-in threading support in tests)."
       }
     },
-    'default': [{
-      name: "Generic module test",
-      type: "Positive Case",
-      code: `// Generic test placeholder\nBOOLEAN_ASSERT(true);`,
-      description: "A generic test case when no specific language template is available."
-    }]
+    'default': {
+      positive: {
+        code: `// Generic test placeholder\nBOOLEAN_ASSERT(true);`,
+        description: "A generic test case when no specific language template is available."
+      }
+    }
   };
 
   // We need to handle Rust's concurrency test case separately due to a bug in the original
@@ -254,69 +266,63 @@ export const getTestTemplates = (language: string, functionName: string) => {
 // Generate generic test cases for when no functions are found
 export const generateGenericTestCases = (language: string, fileName: string | null) => {
   const moduleName = fileName?.split('.')[0] || 'module';
-  const templates: Record<string, any[]> = {
+  
+  // Define test templates for different languages
+  const templates: Record<string, { code: string; description: string; }[]> = {
     'python': [{
-      name: "Test module initialization",
-      type: "Positive Case",
       code: `def test_module_init():\n    # Test that the module can be imported\n    import ${moduleName}\n    assert ${moduleName} is not None`,
       description: "Verifies that the module can be imported successfully."
     }, {
-      name: "Test module functionality",
-      type: "Functional Test",
       code: `def test_module_functionality():\n    # This is a placeholder test\n    # Adapt this to test the specific functionality of your module\n    import ${moduleName}\n    result = True  # Replace with actual functionality test\n    assert result is True`,
       description: "Tests the overall functionality of the module."
     }],
     'javascript': [{
-      name: "Test module import",
-      type: "Positive Case",
       code: `test('${moduleName} module can be imported', () => {\n  // Arrange & Act\n  const module = require('./${moduleName}');\n  \n  // Assert\n  expect(module).toBeDefined();\n});`,
       description: "Verifies that the module can be imported successfully."
     }, {
-      name: "Test module functionality",
-      type: "Functional Test",
       code: `test('${moduleName} module has expected functionality', () => {\n  // Arrange\n  const module = require('./${moduleName}');\n  \n  // Act & Assert\n  // Replace with actual functionality test\n  expect(typeof module).toBe('object');\n});`,
       description: "Tests the overall functionality of the module."
     }],
     'typescript': [{
-      name: "Test module import",
-      type: "Positive Case",
       code: `test('${moduleName} module can be imported', () => {\n  // Arrange & Act\n  const module = require('./${moduleName}');\n  \n  // Assert\n  expect(module).toBeDefined();\n});`,
       description: "Verifies that the module can be imported successfully."
     }, {
-      name: "Test module functionality",
-      type: "Functional Test",
       code: `test('${moduleName} module has expected functionality', () => {\n  // Arrange\n  const module = require('./${moduleName}');\n  \n  // Act & Assert\n  // Replace with actual functionality test\n  expect(typeof module).toBe('object');\n});`,
       description: "Tests the overall functionality of the module."
     }],
     'java': [{
-      name: "Test class initialization",
-      type: "Positive Case",
       code: `@Test\npublic void test${moduleName}Initialization() {\n    // Arrange & Act\n    ${moduleName} instance = new ${moduleName}();\n    \n    // Assert\n    assertNotNull(instance);\n}`,
       description: "Verifies that the class can be instantiated successfully."
     }, {
-      name: "Test class functionality",
-      type: "Functional Test",
       code: `@Test\npublic void test${moduleName}Functionality() {\n    // Arrange\n    ${moduleName} instance = new ${moduleName}();\n    \n    // Act & Assert\n    // Replace with actual functionality test\n    assertTrue(true);\n}`,
       description: "Tests the overall functionality of the class."
     }],
     'cpp': [{
-      name: "Test class initialization",
-      type: "Positive Case",
       code: `TEST(${moduleName}Test, Initialization) {\n    // Arrange & Act\n    ${moduleName} instance;\n    \n    // Assert\n    EXPECT_TRUE(true);\n}`,
       description: "Verifies that the class can be initialized successfully."
     }, {
-      name: "Test basic functionality",
-      type: "Functional Test",
       code: `TEST(${moduleName}Test, BasicFunctionality) {\n    // Arrange\n    ${moduleName} instance;\n    \n    // Act & Assert\n    // Replace with actual functionality test\n    EXPECT_TRUE(true);\n}`,
       description: "Tests the overall functionality of the class."
     }],
     'default': [{
-      name: "Generic module test",
-      type: "Positive Case",
       code: `// Generic test case\nprint("Module loaded successfully")`,
       description: "A generic test case when no specific language template is available."
     }]
   };
 
-  return templates[language] || templates['default'];
+  // Convert testcases into the expected format
+  const testCases = [];
+  const selectedTemplates = templates[language] || templates['default'];
+  
+  for (let i = 0; i < selectedTemplates.length; i++) {
+    testCases.push({
+      id: i + 1,
+      name: language === 'default' ? "Generic module test" : `Test ${moduleName} ${i === 0 ? 'initialization' : 'functionality'}`,
+      type: i === 0 ? "Positive Case" : "Functional Test",
+      code: selectedTemplates[i].code,
+      description: selectedTemplates[i].description
+    });
+  }
+
+  return testCases;
 };
