@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,9 +20,10 @@ import ModelPicker from "@/components/ModelPicker";
 interface CodeRefactorProps {
   fileContent: string | null;
   fileName: string | null;
+  onClearFile?: () => void;
 }
 
-export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProps) {
+export default function CodeRefactor({ fileContent, fileName, onClearFile }: CodeRefactorProps) {
   const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
@@ -136,9 +136,13 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
   const handleClear = () => {
     setRefactoredCode(null);
     setMetrics(null);
-    toast.success("Refactoring cleared", {
-      description: "You can now upload a new file."
-    });
+    if (onClearFile) {
+      onClearFile();
+    } else {
+      toast.success("Refactoring cleared", {
+        description: "You can now upload a new file."
+      });
+    }
   };
 
   const toggleOption = (category: keyof RefactoringOptions, option: string) => {
@@ -334,6 +338,17 @@ export default function CodeRefactor({ fileContent, fileName }: CodeRefactorProp
           </Button>
         </div>
       )}
+
+      {!refactoredCode && <div className="flex mt-4">
+        <Button
+          onClick={handleClear}
+          variant="destructive"
+          className="ml-auto"
+        >
+          <X className="mr-2 h-4 w-4" />
+          Clear & Start Over
+        </Button>
+      </div>}
 
       <div className="flex-1 overflow-hidden">
         {refactoredCode ? (

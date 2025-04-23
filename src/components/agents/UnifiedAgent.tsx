@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -142,6 +141,17 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
     }
   }
 
+  // ---- New function to handle clearing all selection and content ----
+  function handleClearFile() {
+    setSelectedFile(null);
+    setSelectedFileContent(null);
+    setSelectedFileName(null);
+    setRepoFiles([]);
+    setGithubUrl("");
+    setFetchError(null);
+    setFileDropdownOpen(false);
+  }
+
   // The code to display for the agents
   const effectiveFileContent = selectedFileContent ?? fileContent;
   const effectiveFileName = selectedFileName ?? fileName;
@@ -256,7 +266,7 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
 
         <TabsContent value="refactor" className="flex-1 mt-0">
           {effectiveFileContent
-            ? <CodeRefactor fileContent={effectiveFileContent} fileName={effectiveFileName} />
+            ? <CodeRefactor fileContent={effectiveFileContent} fileName={effectiveFileName} onClearFile={handleClearFile} />
             : <NoCodeMessage />
           }
         </TabsContent>
@@ -270,7 +280,7 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
         
         <TabsContent value="testcase" className="flex-1 mt-0">
           {effectiveFileContent
-            ? <TestCase fileContent={effectiveFileContent} fileName={effectiveFileName} />
+            ? <TestCase fileContent={effectiveFileContent} fileName={effectiveFileName} onClearFile={handleClearFile} />
             : <NoCodeMessage />
           }
         </TabsContent>

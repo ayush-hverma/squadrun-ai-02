@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,9 +11,10 @@ import NoCodeMessage from "../agents/quality/NoCodeMessage";
 interface TestCaseProps {
   fileContent: string | null;
   fileName: string | null;
+  onClearFile?: () => void;
 }
 
-export default function TestCase({ fileContent, fileName }: TestCaseProps) {
+export default function TestCase({ fileContent, fileName, onClearFile }: TestCaseProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [testCases, setTestCases] = useState<any[] | null>(null);
@@ -431,12 +431,12 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
       'ruby': [{
         name: "Test module loading",
         type: "Positive Case",
-        code: `test "can load ${moduleName} module" do\n    # Arrange & Act\n    require_relative '../${moduleName}'\n    \n    # Assert\n    assert Object.const_defined?(:${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)})\nend`,
+        code: `test "can load ${moduleName} module" do\n    // Arrange & Act\n    require_relative '../${moduleName}'\n    \n    // Assert\n    assert Object.const_defined?(:${moduleName.charAt(0).toUpperCase() + moduleName.slice(1)})\nend`,
         description: "Verifies that the module can be loaded successfully."
       }, {
         name: "Test module functionality",
         type: "Functional Test",
-        code: `test "${moduleName} has expected functionality" do\n    # Arrange\n    require_relative '../${moduleName}'\n    \n    # Act & Assert\n    # Replace with actual functionality test\n    assert true\nend`,
+        code: `test "${moduleName} has expected functionality" do\n    // Arrange\n    require_relative '../${moduleName}'\n    \n    // Act & Assert\n    // Replace with actual functionality test\n    assert true\nend`,
         description: "Tests the overall functionality of the module."
       }],
       'go': [{
@@ -530,6 +530,14 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
     }, 2000);
   };
 
+  const handleClear = () => {
+    setTestCases(null);
+    setTestResults(null);
+    setIsGenerating(false);
+    setIsRunning(false);
+    if (onClearFile) onClearFile();
+  };
+
   const getRandomFailureReason = (testType: string) => {
     const failures = {
       'Positive Case': ["Assertion failed: Expected 'expected_output', got 'actual_output'", "Function returned null", "Expected true but got false"],
@@ -572,6 +580,10 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
           {isGenerating ? <>Generating...</> : <>
               <TestTube className="mr-2 h-4 w-4" /> Generate Test Cases
             </>}
+        </Button>
+        <Button onClick={handleClear} variant="destructive" className="mt-4 ml-auto">
+          <X className="mr-2 h-4 w-4" />
+          Clear
         </Button>
       </div> : <div className="flex-1 flex flex-col">
         <Tabs defaultValue="testcases" className="flex-1 flex flex-col">
@@ -658,16 +670,25 @@ export default function TestCase({ fileContent, fileName }: TestCaseProps) {
             </TabsContent>}
         </Tabs>
       
-        {!testResults ? <Button onClick={handleRunTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white mt-4 ml-auto" disabled={isRunning}>
-            {isRunning ? <>Running tests...</> : <>
-                <PlayCircle className="mr-2 h-4 w-4" /> Run Tests
-              </>}
-          </Button> : <div className="flex justify-end mt-4">
-            
+        {!testResults ? <div className="flex gap-2 mt-4 justify-end">
+            <Button onClick={handleRunTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white" disabled={isRunning}>
+              {isRunning ? <>Running tests...</> : <>
+                  <PlayCircle className="mr-2 h-4 w-4" /> Run Tests
+                </>}
+            </Button>
+            <Button onClick={handleClear} variant="destructive">
+              <X className="mr-2 h-4 w-4" />
+              Clear
+            </Button>
+          </div> : <div className="flex gap-2 justify-end mt-4">
             <Button onClick={handleRunTests} className="bg-squadrun-primary hover:bg-squadrun-vivid text-white" disabled={isRunning}>
               {isRunning ? <>Running tests...</> : <>
                   <PlayCircle className="mr-2 h-4 w-4" /> Run Tests Again
                 </>}
+            </Button>
+            <Button onClick={handleClear} variant="destructive">
+              <X className="mr-2 h-4 w-4" />
+              Clear
             </Button>
           </div>}
       </div>}
