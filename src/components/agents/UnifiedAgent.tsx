@@ -8,7 +8,6 @@ import CodeQuality from "./CodeQuality";
 import TestCase from "./TestCase";
 import NoCodeMessage from "./quality/NoCodeMessage";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 
 type FileEntry = {
   path: string;
