@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CheckCircle, XCircle, PlayCircle, TestTube } from "lucide-react";
+import { CheckCircle, XCircle, PlayCircle, TestTube, X } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import ModelPicker from "@/components/ModelPicker";
 import NoCodeMessage from "../agents/quality/NoCodeMessage";
@@ -278,7 +278,7 @@ export default function TestCase({ fileContent, fileName, onClearFile }: TestCas
           description: "Ensures the function performs efficiently with large inputs."
         },
         concurrency: {
-          code: `#[test]\nfn test_${functionName}_concurrency() {\n    // Arrange\n    use std::sync::{Arc, Mutex};\n    use std::thread;\n    \n    let results = Arc::new(Mutex::new(Vec::new()));\n    let mut handles = vec![];\n    \n    // Act\n    for _ in 0..5 {\n        let results_clone = Arc::clone(&results);\n        let handle = thread::spawn(move || {\n            let result = ${functionName}("input");\n            let mut results = results_clone.lock().unwrap();\n            results.push(result);\n        });\n        handles.push(handle);\n    }\n    \n    for handle in handles {\n        handle.join().unwrap();\n    }\n    \n    // Assert\n    let final_results = results.lock().unwrap();\n    assert_eq!(5, final_results.len());\n}`,
+          code: `#[test]\nfn test_${functionName}_concurrency() {\n    // Arrange\n    use std::sync::{Arc, Mutex};\n    use std::thread;\n    \n    let results = Arc::new(Mutex::new(Vec::new()));\n    let mut handles = vec![];\n    \n    // Act\n    for _ in 0..5 {\n        let results_clone = Arc::clone(&results);\n        let handle = thread::spawn(move || {\n            let result = ${functionName}("input");\n            let mut results = results_clone.lock().unwrap();\n            results.push(result);\n        }());\n        handles.push(handle);\n    }\n    \n    for handle in handles {\n        handle.join().unwrap();\n    }\n    \n    // Assert\n    let final_results = results.lock().unwrap();\n    assert_eq!(5, final_results.len());\n}`,
           description: "Validates that the function works correctly under concurrent access."
         }
       },
