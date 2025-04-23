@@ -55,17 +55,50 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
     setRepoValid(true);
 
     try {
+      // Try to fetch repository info
       const resp = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}`);
+      
+      // Check if we hit a rate limit
+      if (resp.status === 403) {
+        const rateLimitError = "GitHub API rate limit exceeded. Please try again later or upload a local file.";
+        console.error("GitHub API rate limit error:", await resp.json());
+        setFetchError(rateLimitError);
+        setLoadingFiles(false);
+        return;
+      }
+      
+      if (!resp.ok) {
+        throw new Error(`Repository not found or is private (${resp.status})`);
+      }
+      
       const repoData = await resp.json();
       const branch = repoData.default_branch;
+      
+      // Fetch the file tree
       const treeRes = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/git/trees/${branch}?recursive=1`);
+      
+      if (treeRes.status === 403) {
+        setFetchError("GitHub API rate limit exceeded. Please try again later or upload a local file.");
+        setLoadingFiles(false);
+        return;
+      }
+      
+      if (!treeRes.ok) {
+        throw new Error(`Failed to fetch file tree (${treeRes.status})`);
+      }
+      
       const treeData = await treeRes.json();
       if (!treeData.tree) throw new Error("Could not retrieve file tree");
       const files = treeData.tree.filter((node: any) => node.type === "blob");
       setRepoFiles(files);
-    } catch (e) {
+    } catch (e: any) {
       setRepoFiles([]);
-      setFetchError("Error fetching files from repo. Is it public?");
+      if (e.message) {
+        setFetchError(e.message);
+      } else {
+        setFetchError("Error fetching files from repo. Is it public?");
+      }
+      console.error("GitHub fetch error:", e);
     }
     setLoadingFiles(false);
   }
@@ -79,6 +112,17 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
     if (!info) return;
     try {
       const resp = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/${entry.path}`);
+      
+      if (resp.status === 403) {
+        setFetchError("GitHub API rate limit exceeded. Please try again later.");
+        setFetchingFileContent(false);
+        return;
+      }
+      
+      if (!resp.ok) {
+        throw new Error(`Failed to fetch file content (${resp.status})`);
+      }
+      
       const fileData = await resp.json();
       let content = "";
       if (fileData.encoding === "base64") {
@@ -88,10 +132,15 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
       }
       setSelectedFileContent(content);
       setSelectedFileName(entry.path);
-    } catch {
-      setFetchError("Could not fetch file content.");
+    } catch (e: any) {
+      if (e.message) {
+        setFetchError(e.message);
+      } else {
+        setFetchError("Could not fetch file content.");
+      }
       setSelectedFileContent(null);
       setSelectedFileName(null);
+      console.error("File content fetch error:", e);
     }
     setFetchingFileContent(false);
   }

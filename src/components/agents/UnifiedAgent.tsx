@@ -50,6 +50,7 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
         fileInputRef={selector.fileInputRef}
         handleLocalFileChange={selector.handleLocalFileChange}
         handleGithubRepoInput={selector.handleGithubRepoInput}
+        loadingFiles={selector.loadingFiles}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
