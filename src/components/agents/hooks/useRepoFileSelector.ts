@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 
 export type FileEntry = {
@@ -8,29 +7,7 @@ export type FileEntry = {
   sha: string;
 };
 
-const GITHUB_TOKEN_KEY = "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";
-
-function getStoredGithubToken() {
-  try {
-    return localStorage.getItem(GITHUB_TOKEN_KEY) || "";
-  } catch {
-    return "";
-  }
-}
-
-function setStoredGithubToken(token: string) {
-  try {
-    if (token) {
-      localStorage.setItem(GITHUB_TOKEN_KEY, token);
-    }
-  } catch {}
-}
-
-function removeStoredGithubToken() {
-  try {
-    localStorage.removeItem(GITHUB_TOKEN_KEY);
-  } catch {}
-}
+const GITHUB_TOKEN = "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";
 
 export function useRepoFileSelector(defaultFileContent: string | null, defaultFileName: string | null) {
   // Repo-related state
@@ -50,17 +27,12 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
   // Local file state (uploaded file)
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // GitHub token state
-  const [githubToken, setGithubTokenState] = useState(getStoredGithubToken());
+  // GitHub token will be hardcoded
+  const githubToken = GITHUB_TOKEN;
 
-  function setGithubToken(token: string) {
-    setStoredGithubToken(token);
-    setGithubTokenState(token);
-  }
-  function handleClearGithubToken() {
-    removeStoredGithubToken();
-    setGithubTokenState("");
-  }
+  // Remove token-related functions
+  function setGithubToken() {} // No-op
+  function handleClearGithubToken() {} // No-op
 
   // Helper to extract "owner/repo" from the GitHub URL
   function extractRepoInfo(url: string): { owner: string; repo: string } | null {
@@ -77,15 +49,12 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
 
   // Helper to create fetch config based on token
   function getFetchConfig() {
-    if (githubToken) {
-      return {
-        headers: {
-          Authorization: `Bearer ${githubToken}`,
-          Accept: "application/vnd.github+json",
-        },
-      };
-    }
-    return { headers: { Accept: "application/vnd.github+json" } };
+    return {
+      headers: {
+        Authorization: `Bearer ${githubToken}`,
+        Accept: "application/vnd.github+json",
+      },
+    };
   }
 
   // Fetch file tree using the GitHub API
@@ -234,7 +203,8 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
     selectedFileContent, selectedFileName,
     fileInputRef, handleLocalFileChange,
     handleGithubRepoInput, handleClearFile,
-    githubToken, setGithubToken, handleClearGithubToken,
+    githubToken,
+    setGithubToken,
+    handleClearGithubToken,
   };
 }
-
