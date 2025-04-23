@@ -1,9 +1,9 @@
 
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Code, Check, TestTube, Github, ArrowDown, File } from "lucide-react";
+import { Code, Check, TestTube, Github, ArrowDown, File, Upload } from "lucide-react";
 import CodeRefactor from "./CodeRefactor";
 import CodeQuality from "./CodeQuality";
 import TestCase from "./TestCase";
@@ -37,11 +37,14 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Selected file state
+  // Selected file state (repo)
   const [selectedFile, setSelectedFile] = useState<FileEntry | null>(null);
   const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
   const [fetchingFileContent, setFetchingFileContent] = useState(false);
+
+  // Local file state (uploaded file)
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper to extract "owner/repo" from the GitHub URL
   function extractRepoInfo(url: string): { owner: string; repo: string } | null {
@@ -122,6 +125,23 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
     fetchFiles(githubUrl);
   }
 
+  // Handle local file upload
+  function handleLocalFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      const reader = new FileReader();
+      reader.onload = ev => {
+        setSelectedFile(null);
+        setSelectedFileContent(ev.target?.result as string);
+        setSelectedFileName(file.name);
+        setRepoFiles([]); // clear repo file selection if uploading local file
+        setGithubUrl(""); // clear repo url input since now using local
+      };
+      reader.readAsText(file);
+    }
+  }
+
   // The code to display for the agents
   const effectiveFileContent = selectedFileContent ?? fileContent;
   const effectiveFileName = selectedFileName ?? fileName;
@@ -138,7 +158,7 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
         </p>
       </div>
 
-      <form onSubmit={handleGithubRepoInput} className="mb-4 flex gap-2 items-center">
+      <form onSubmit={handleGithubRepoInput} className="mb-4 flex gap-2 items-center relative">
         <Input
           value={githubUrl}
           onChange={e => setGithubUrl(e.target.value)}
@@ -147,6 +167,25 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
         />
         <Button type="submit" variant="secondary">
           Load Files
+        </Button>
+        {/* Browse Files Button */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          accept=".py,.js,.ts,.jsx,.tsx,.java,.cpp,.c,.cs,.go,.rb,.rs,.php,.sh,.sql,.html,.css"
+          onChange={handleLocalFileChange}
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="ml-2 flex items-center gap-1 px-2"
+          onClick={() => fileInputRef.current?.click()}
+          aria-label="Browse local files"
+        >
+          <Upload className="w-4 h-4" />
+          Browse Files
         </Button>
       </form>
 
