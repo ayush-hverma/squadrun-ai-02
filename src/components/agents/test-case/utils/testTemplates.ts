@@ -89,28 +89,17 @@ export const getTestTemplates = (language: string, functionName: string) => {
         description: "Validates that the method works correctly under concurrent access."
       }
     },
-    'cpp': {
-      positive: {
-        code: `TEST(${functionName}Test, ValidInput) {\n    // Arrange\n    std::string input = "example_input";\n    std::string expected = "expected_output";\n    \n    // Act\n    std::string result = ${functionName}(input);\n    \n    // Assert\n    EXPECT_EQ(expected, result);\n    EXPECT_FALSE(result.empty());\n}`,
-        description: "Verifies that the function returns expected output when given valid input."
-      },
-      negative: {
-        code: `TEST(${functionName}Test, InvalidInput) {\n    // Arrange & Act & Assert\n    EXPECT_THROW(${functionName}(nullptr), std::invalid_argument);\n}`,
-        description: "Checks that the function properly handles invalid input by throwing an appropriate exception."
-      },
-      edge: {
-        code: `TEST(${functionName}Test, EdgeCase) {\n    // Arrange\n    std::string input = "";\n    \n    // Act\n    std::string result = ${functionName}(input);\n    \n    // Assert\n    EXPECT_EQ("", result);\n}`,
-        description: "Tests the function's behavior with edge case inputs (empty string)."
-      },
-      performance: {
-        code: `TEST(${functionName}Test, Performance) {\n    // Arrange\n    std::string largeInput(1000, 'x');\n    \n    // Act\n    auto startTime = std::chrono::high_resolution_clock::now();\n    std::string result = ${functionName}(largeInput);\n    auto endTime = std::chrono::high_resolution_clock::now();\n    \n    // Assert\n    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();\n    EXPECT_LT(duration, 1000); // Should complete in under 1 second\n}`,
-        description: "Ensures the function performs efficiently with large inputs."
-      },
-      concurrency: {
-        code: `TEST(${functionName}Test, Concurrency) {\n    // Arrange\n    std::vector<std::string> results;\n    std::mutex mutex;\n    std::vector<std::thread> threads;\n    \n    // Act\n    for (int i = 0; i < 5; i++) {\n        threads.push_back(std::thread([&mutex, &results](){\n            std::string result = ${functionName}("input");\n            std::lock_guard<std::mutex> lock(mutex);\n            results.push_back(result);\n        }));\n    }\n    \n    for (auto& thread : threads) {\n        thread.join();\n    }\n    \n    // Assert\n    EXPECT_EQ(5, results.size());\n}`,
-        description: "Validates that the function works correctly under concurrent access."
-      }
-    },
+    'cpp': [{
+      name: "Test class initialization",
+      type: "Positive Case", 
+      code: `TEST(${moduleName}Test, Initialization) {\n    // Arrange & Act\n    ${moduleName} instance;\n    \n    // Assert\n    EXPECT_TRUE(true);\n}`,
+      description: "Verifies that the class can be initialized successfully."
+    }, {
+      name: "Test basic functionality",
+      type: "Functional Test",
+      code: `TEST(${moduleName}Test, BasicFunctionality) {\n    // Arrange\n    ${moduleName} instance;\n    \n    // Act & Assert\n    // Replace with actual functionality test\n    EXPECT_TRUE(true);\n}`,
+      description: "Tests the overall functionality of the class."
+    }],
     'ruby': {
       positive: {
         code: `test "${functionName} with valid input" do\n    # Arrange\n    input = "example_input"\n    expected = "expected_output"\n    \n    # Act\n    result = ${functionName}(input)\n    \n    # Assert\n    assert_equal expected, result\n    assert_not_nil result\nend`,
@@ -242,7 +231,13 @@ export const getTestTemplates = (language: string, functionName: string) => {
         code: `public function test${functionName}BasicFunctionality(): void\n{\n    // PHP doesn't have native threading in its test framework, so we'll test basic functionality\n    // Arrange\n    $input = "example_input";\n    \n    // Act\n    $result = ${functionName}($input);\n    \n    // Assert\n    $this->assertNotEmpty($result);\n}`,
         description: "Basic test for function functionality (PHP lacks built-in threading support in tests)."
       }
-    }
+    },
+    'default': [{
+      name: "Generic module test",
+      type: "Positive Case",
+      code: `// Generic test placeholder\nBOOLEAN_ASSERT(true);`,
+      description: "A generic test case when no specific language template is available."
+    }]
   };
 
   // We need to handle Rust's concurrency test case separately due to a bug in the original
@@ -253,7 +248,7 @@ export const getTestTemplates = (language: string, functionName: string) => {
     };
   }
 
-  return testTemplates[language] || testTemplates['python'];
+  return testTemplates[language] || testTemplates['default'];
 };
 
 // Generate generic test cases for when no functions are found
@@ -305,3 +300,23 @@ export const generateGenericTestCases = (language: string, fileName: string | nu
       description: "Tests the overall functionality of the class."
     }],
     'cpp': [{
+      name: "Test class initialization",
+      type: "Positive Case",
+      code: `TEST(${moduleName}Test, Initialization) {\n    // Arrange & Act\n    ${moduleName} instance;\n    \n    // Assert\n    EXPECT_TRUE(true);\n}`,
+      description: "Verifies that the class can be initialized successfully."
+    }, {
+      name: "Test basic functionality",
+      type: "Functional Test",
+      code: `TEST(${moduleName}Test, BasicFunctionality) {\n    // Arrange\n    ${moduleName} instance;\n    \n    // Act & Assert\n    // Replace with actual functionality test\n    EXPECT_TRUE(true);\n}`,
+      description: "Tests the overall functionality of the class."
+    }],
+    'default': [{
+      name: "Generic module test",
+      type: "Positive Case",
+      code: `// Generic test case\nprint("Module loaded successfully")`,
+      description: "A generic test case when no specific language template is available."
+    }]
+  };
+
+  return templates[language] || templates['default'];
+};
