@@ -8,7 +8,7 @@ export type FileEntry = {
   sha: string;
 };
 
-const GITHUB_TOKEN_KEY = "lovable_github_token";
+const GITHUB_TOKEN_KEY = "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";
 
 function getStoredGithubToken() {
   try {
