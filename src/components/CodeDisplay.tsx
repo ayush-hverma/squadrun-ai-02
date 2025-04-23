@@ -23,6 +23,7 @@ const languageMap: Record<string, string> = {
   'cs': 'csharp',
   'go': 'go',
   'rb': 'ruby',
+  'ipynb': 'notebook',
   'rs': 'rust',
   'php': 'php',
   'sh': 'bash',

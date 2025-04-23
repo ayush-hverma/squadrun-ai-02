@@ -25,6 +25,28 @@ export const getLanguageTestTemplates = (language: string, functionName: string)
         description: "Validates that the function works correctly under concurrent access."
       }
     },
+    'ipynb': {
+      positive: {
+        code: `# Positive Test: ${functionName} with valid input\n# This test verifies expected behavior with valid input\ninput_value = "example_input"\nexpected = "expected_output"\nresult = ${functionName}(input_value)\nassert result == expected, "Expected output not matched"\nassert result is not None`,
+        description: "Verifies that the function returns expected output when given valid input."
+      },
+      negative: {
+        code: `# Negative Test: ${functionName} with invalid input\n# This test checks how function handles invalid input\ntry:\n    ${functionName}(None)\n    assert False, "Expected ValueError was not raised"\nexcept ValueError:\n    pass`,
+        description: "Checks that the function properly handles invalid input by raising a ValueError."
+      },
+      edge: {
+        code: `# Edge Case Test: ${functionName} with edge input\n# Tests the function's behavior with edge case inputs (e.g., empty string)\ninput_value = ""\nresult = ${functionName}(input_value)\nassert result == "", "Edge case failed for empty string"`,
+        description: "Tests the function's behavior with edge case inputs (e.g., empty string)."
+      },
+      performance: {
+        code: `# Performance Test: ${functionName} with large input\nimport time\nlarge_input = "x" * 1000\nstart_time = time.time()\nresult = ${functionName}(large_input)\nend_time = time.time()\nassert (end_time - start_time) < 1.0, "Performance test failed: took too long"`,
+        description: "Ensures the function performs efficiently with large inputs."
+      },
+      concurrency: {
+        code: `# Concurrency Test: ${functionName} under concurrent calls\nimport threading\nresults = []\n\ndef worker():\n    results.append(${functionName}("worker_input"))\n\nthreads = [threading.Thread(target=worker) for _ in range(5)]\nfor t in threads: t.start()\nfor t in threads: t.join()\nassert len(results) == 5, "Expected 5 results from 5 threads"`,
+        description: "Validates that the function works correctly under concurrent access in a notebook environment."
+      }
+    },
     'javascript': {
       positive: {
         code: `test('${functionName} handles valid input correctly', () => {\n  // Arrange\n  const input = 'example_input';\n  const expected = 'expected_output';\n  \n  // Act\n  const result = ${functionName}(input);\n  \n  // Assert\n  expect(result).toBe(expected);\n  expect(result).not.toBeNull();\n});`,

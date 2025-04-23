@@ -20,7 +20,8 @@ export const getFileLanguage = (fileName: string | null): string => {
     'sh': 'bash',
     'sql': 'sql',
     'html': 'html',
-    'css': 'css'
+    'css': 'css',
+    'ipynb': 'ipynb'
   };
   return extensionMap[extension] || 'python';
 };
