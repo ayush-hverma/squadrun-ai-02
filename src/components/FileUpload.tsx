@@ -43,7 +43,7 @@ export default function FileUpload({
 
   // Get accepted file extensions for code files
   const getAcceptedFileTypes = () => {
-    return ".py,.js,.ts,.jsx,.tsx,.java,.cpp,.c,.cs,.go,.rb,.rs,.php,.sh,.sql,.html,.css,.ipynb";
+    return ".py,.js,.ts,.jsx,.tsx,.java,.cpp,.c,.cs,.go,.rb,.rs,.php,.sh,.sql,.html,.css";
   };
   return <Card className="border border-squadrun-primary/30 shadow-lg transition-all duration-300 hover:shadow-squadrun-primary/20">
       <CardContent className="p-3 px-px py-px mx-[240px]">

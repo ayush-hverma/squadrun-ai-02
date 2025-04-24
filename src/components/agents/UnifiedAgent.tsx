@@ -51,9 +51,6 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
         handleLocalFileChange={selector.handleLocalFileChange}
         handleGithubRepoInput={selector.handleGithubRepoInput}
         loadingFiles={selector.loadingFiles}
-        githubToken="" // Hardcoded token will be used internally
-        setGithubToken={() => {}} // No-op function
-        handleClearGithubToken={() => {}} // No-op function
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">

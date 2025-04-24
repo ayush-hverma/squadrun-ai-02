@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 
 export type FileEntry = {
@@ -6,8 +7,6 @@ export type FileEntry = {
   type: string;
   sha: string;
 };
-
-const GITHUB_TOKEN = "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";
 
 export function useRepoFileSelector(defaultFileContent: string | null, defaultFileName: string | null) {
   // Repo-related state
@@ -27,13 +26,6 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
   // Local file state (uploaded file)
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // GitHub token will be hardcoded
-  const githubToken = GITHUB_TOKEN;
-
-  // Remove token-related functions
-  function setGithubToken() {} // No-op
-  function handleClearGithubToken() {} // No-op
-
   // Helper to extract "owner/repo" from the GitHub URL
   function extractRepoInfo(url: string): { owner: string; repo: string } | null {
     try {
@@ -45,16 +37,6 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
       return null;
     }
     return null;
-  }
-
-  // Helper to create fetch config based on token
-  function getFetchConfig() {
-    return {
-      headers: {
-        Authorization: `Bearer ${githubToken}`,
-        Accept: "application/vnd.github+json",
-      },
-    };
   }
 
   // Fetch file tree using the GitHub API
@@ -74,11 +56,12 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
 
     try {
       // Try to fetch repository info
-      const resp = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}`, getFetchConfig());
+      const resp = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}`);
       
       // Check if we hit a rate limit
       if (resp.status === 403) {
         const rateLimitError = "GitHub API rate limit exceeded. Please try again later or upload a local file.";
+        console.error("GitHub API rate limit error:", await resp.json());
         setFetchError(rateLimitError);
         setLoadingFiles(false);
         return;
@@ -92,7 +75,7 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
       const branch = repoData.default_branch;
       
       // Fetch the file tree
-      const treeRes = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/git/trees/${branch}?recursive=1`, getFetchConfig());
+      const treeRes = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/git/trees/${branch}?recursive=1`);
       
       if (treeRes.status === 403) {
         setFetchError("GitHub API rate limit exceeded. Please try again later or upload a local file.");
@@ -115,7 +98,7 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
       } else {
         setFetchError("Error fetching files from repo. Is it public?");
       }
-      // console.error("GitHub fetch error:", e);
+      console.error("GitHub fetch error:", e);
     }
     setLoadingFiles(false);
   }
@@ -128,7 +111,7 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
     const info = extractRepoInfo(githubUrl);
     if (!info) return;
     try {
-      const resp = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/${entry.path}`, getFetchConfig());
+      const resp = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/${entry.path}`);
       
       if (resp.status === 403) {
         setFetchError("GitHub API rate limit exceeded. Please try again later.");
@@ -157,6 +140,7 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
       }
       setSelectedFileContent(null);
       setSelectedFileName(null);
+      console.error("File content fetch error:", e);
     }
     setFetchingFileContent(false);
   }
@@ -202,9 +186,6 @@ export function useRepoFileSelector(defaultFileContent: string | null, defaultFi
     selectedFile, setSelectedFile, fetchFileContent, fetchingFileContent,
     selectedFileContent, selectedFileName,
     fileInputRef, handleLocalFileChange,
-    handleGithubRepoInput, handleClearFile,
-    githubToken,
-    setGithubToken,
-    handleClearGithubToken,
+    handleGithubRepoInput, handleClearFile
   };
 }
