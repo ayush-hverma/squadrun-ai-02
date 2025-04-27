@@ -1,51 +1,47 @@
 
 import { RefactoringOptions } from './';
 
-// Common SQL keywords map for formatting and identification
-const SQL_KEYWORDS = {
-  mainClauses: ['SELECT', 'FROM', 'WHERE', 'GROUP BY', 'HAVING', 'ORDER BY'],
-  joins: ['JOIN', 'LEFT JOIN', 'RIGHT JOIN', 'INNER JOIN', 'OUTER JOIN'],
-  operations: ['INSERT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP'],
-  modifiers: ['DISTINCT', 'UNION', 'ALL'],
-  conditions: ['AND', 'OR', 'IN', 'NOT', 'NULL', 'IS'],
-  flowControl: ['CASE', 'WHEN', 'THEN', 'ELSE', 'END']
-};
-
-const formatSQL = (sql: string): string => {
-  const allKeywords = Object.values(SQL_KEYWORDS).flat();
-  const keywordPattern = new RegExp(`\\b(${allKeywords.join('|')})\\b`, 'gi');
-  
-  return sql.replace(keywordPattern, match => match.toUpperCase());
-};
-
-const addIndentation = (sql: string): string => {
-  return sql
-    .replace(/\b(SELECT|FROM|WHERE|GROUP BY|HAVING|ORDER BY)\b/gi, '\n$1')
-    .replace(/\b(LEFT |RIGHT |INNER |OUTER )?JOIN\b/gi, '\n  JOIN')
-    .replace(/,\s*([^,\n]+)/g, ',\n  $1');
-};
-
 export const refactorSQL = (code: string, options: RefactoringOptions): string => {
-  let refactoredCode = formatSQL(code);
-  refactoredCode = addIndentation(refactoredCode);
+  let refactoredCode = code;
 
+  // Format SQL keywords to uppercase
+  const keywords = [
+    'SELECT', 'FROM', 'WHERE', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER',
+    'GROUP BY', 'ORDER BY', 'HAVING', 'LIMIT', 'OFFSET', 'INSERT', 'UPDATE',
+    'DELETE', 'CREATE', 'ALTER', 'DROP', 'TABLE', 'INDEX', 'VIEW', 'TRIGGER',
+    'FUNCTION', 'PROCEDURE', 'AS', 'AND', 'OR', 'IN', 'NOT', 'NULL', 'IS',
+    'DISTINCT', 'UNION', 'ALL', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END'
+  ];
+
+  // Convert keywords to uppercase
+  keywords.forEach(keyword => {
+    const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+    refactoredCode = refactoredCode.replace(regex, keyword.toUpperCase());
+  });
+
+  // Add proper indentation for common SQL structures
+  refactoredCode = refactoredCode
+    // Add newline before main clauses
+    .replace(/\b(SELECT|FROM|WHERE|GROUP BY|HAVING|ORDER BY)\b/gi, '\n$1')
+    // Add newline and indent for JOIN clauses
+    .replace(/\b(LEFT|RIGHT|INNER|OUTER)?\s*JOIN\b/gi, '\n  JOIN')
+    // Add indentation for individual columns in SELECT
+    .replace(/,\s*([^,\n]+)/g, ',\n  $1');
+
+  // If aggressive refactoring is enabled, apply additional formatting
   if (options.aggressive) {
-    // Format subqueries
+    // Split subqueries onto new lines
     refactoredCode = refactoredCode.replace(/\((SELECT[^)]+)\)/gi, '(\n  $1\n)');
     
-    // Add descriptive comments if enabled
+    // Add comments for complex parts if enabled
     if (options.techniques?.addComments) {
-      const hasJoins = SQL_KEYWORDS.joins.some(join => 
-        refactoredCode.toUpperCase().includes(join));
-      const hasAggregations = /COUNT|SUM|AVG|MIN|MAX/i.test(refactoredCode);
-      
-      const comments = [
-        hasJoins && '-- Joining tables',
-        hasAggregations && '-- Query includes aggregations'
-      ].filter(Boolean);
-      
-      if (comments.length > 0) {
-        refactoredCode = `${comments.join('\n')}\n${refactoredCode}`;
+      // Add comments for joins
+      if (refactoredCode.includes('JOIN')) {
+        refactoredCode = '-- Joining tables\n' + refactoredCode;
+      }
+      // Add comments for aggregations
+      if (refactoredCode.match(/COUNT|SUM|AVG|MIN|MAX/i)) {
+        refactoredCode = '-- Query includes aggregations\n' + refactoredCode;
       }
     }
   }
