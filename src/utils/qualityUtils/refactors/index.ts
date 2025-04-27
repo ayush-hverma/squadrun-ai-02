@@ -1,4 +1,3 @@
-
 /**
  * Code Refactoring Utilities
  * 
@@ -11,6 +10,7 @@ import { refactorPython } from './pythonRefactor';
 import { refactorCPP } from './cppRefactor';
 import { refactorJava } from './javaRefactor';
 import { refactorGeneric } from './genericRefactor';
+import { refactorSQL } from './sqlRefactor';
 
 export interface RefactoringOptions {
   /**
@@ -80,6 +80,12 @@ export const refactorCode = (
 
   // Switch based on language to use the appropriate refactoring function
   switch(language.toLowerCase()) {
+    case 'sql':
+    case 'pgsql':
+    case 'plsql':
+    case 'mysql':
+      return refactorSQL(code, refactoringOptions);
+      
     case 'js':
     case 'jsx':
     case 'ts':
@@ -291,6 +297,7 @@ export {
   refactorCPP,
   refactorJava,
   refactorGeneric,
+  refactorSQL,
   calculateReadabilityScore,
   calculateMaintainabilityScore,
   calculatePerformanceScore,

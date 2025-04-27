@@ -19,8 +19,12 @@ export const getFileLanguage = (fileName: string | null): string => {
     'php': 'php',
     'sh': 'bash',
     'sql': 'sql',
+    'pgsql': 'sql',
+    'plsql': 'sql',
+    'mysql': 'sql',
     'html': 'html',
     'css': 'css'
   };
   return extensionMap[extension] || 'python';
 };
+
