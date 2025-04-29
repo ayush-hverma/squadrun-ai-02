@@ -1,3 +1,4 @@
+
 import { toast } from "sonner"; // Assuming 'sonner' is a toast library you are using
 
 /**
@@ -13,7 +14,7 @@ interface GeminiConfig {
 
 // Default configuration with placeholder API key
 const defaultGeminiConfig: GeminiConfig = {
-  apiKey: "AIzaSyAMranDv79YHxNAvMAyPGRVK0HsTbRgT2U", // Replace with your actual Google API key
+  apiKey: "", // Empty API key placeholder for users to insert their own
   model: "gemini-1.5-pro-latest", // Use a suitable Gemini model
   temperature: 0.1, // Lower temperature for more deterministic results
   maxOutputTokens: 8192 // Sufficient tokens for code analysis (adjust as needed, 8192 is common for 1.5 Pro)
@@ -33,7 +34,7 @@ export const configureGemini = (config: Partial<GeminiConfig>): void => {
  * Check if Gemini is configured with an API key
  */
 export const isGeminiConfigured = (): boolean => {
-  return Boolean(geminiConfig.apiKey && geminiConfig.apiKey !== "YOUR_GOOGLE_API_KEY");
+  return Boolean(geminiConfig.apiKey && geminiConfig.apiKey !== "");
 };
 
 /**

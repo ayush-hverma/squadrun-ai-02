@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cpu, Search } from "lucide-react";
@@ -5,7 +6,6 @@ import CodeDisplay from "../CodeDisplay";
 import { toast } from "sonner";
 import { QualityResults } from "@/types/codeQuality";
 import { analyzeCodeQuality } from "@/utils/qualityUtils/codeAnalyzer";
-import { analyzeCodeQualityWithAI, isOpenAIConfigured } from "@/utils/aiUtils/openAiUtils";
 import NoCodeMessage from "./quality/NoCodeMessage";
 import AnalysisView from "./quality/AnalysisView";
 import { Button } from "@/components/ui/button";
@@ -29,41 +29,17 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       const language = fileName?.split('.').pop() || 'javascript';
       let results: QualityResults;
       
-      const isSmallFile = fileContent.split('\n').length < 500;
-      const isNotebook = language === 'ipynb' || 
-                        (fileContent.trim().startsWith('{') && 
-                         fileContent.includes('"cell_type"') && 
-                         fileContent.includes('"source"'));
+      // Always use the built-in analyzer
+      results = analyzeCodeQuality(fileContent, language);
       
-      if (isOpenAIConfigured() && !isSmallFile && !isNotebook) {
-        try {
-          toast.info("Analyzing code with AI...", {
-            description: "This may take a moment for larger files.",
-          });
-          
-          results = await analyzeCodeQualityWithAI(fileContent, language);
-          toast.success("AI-powered analysis complete", {
-            description: `Overall Score: ${results.score}/100`,
-          });
-        } catch (error) {
-          console.warn("AI analysis failed, using built-in analyzer:", error);
-          results = analyzeCodeQuality(fileContent, language);
-          toast.info("Using built-in analyzer", {
-            description: "AI analysis unavailable. Using standard tools.",
-          });
-        }
+      if (fileName?.endsWith('.ipynb')) {
+        toast.success("Jupyter Notebook Analysis Complete", {
+          description: `Overall Score: ${results.score}/100`,
+        });
       } else {
-        results = analyzeCodeQuality(fileContent, language);
-        
-        if (isNotebook) {
-          toast.success("Jupyter Notebook Analysis Complete", {
-            description: `Overall Score: ${results.score}/100`,
-          });
-        } else {
-          toast.success("Analysis Complete", {
-            description: `Overall Score: ${results.score}/100`,
-          });
-        }
+        toast.success("Analysis Complete", {
+          description: `Overall Score: ${results.score}/100`,
+        });
       }
       
       setQualityResults(results);
