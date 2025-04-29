@@ -1,10 +1,11 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { CategoryScore } from "@/types/codeQuality";
 import { BookOpen, CircleCheck, ShieldCheck, AlertTriangle, Zap } from "lucide-react";
 
 interface CategoryBreakdownProps {
-  categories: CategoryScore[] | undefined | null; // Allow categories to be undefined or null initially
+  categories: CategoryScore[];
 }
 
 /**
@@ -36,8 +37,7 @@ const CategoryBreakdown = ({ categories }: CategoryBreakdownProps) => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {/* Add a check here: Ensure categories is an array before mapping */}
-          {categories && Array.isArray(categories) && categories.map((category, index) => (
+          {categories.map((category, index) => (
             <div key={index}>
               <div className="flex justify-between items-center mb-1">
                 <div className="flex items-center">
@@ -46,16 +46,12 @@ const CategoryBreakdown = ({ categories }: CategoryBreakdownProps) => {
                 </div>
                 <span className="text-sm text-squadrun-gray">{category.score}/100</span>
               </div>
-              <Progress
-                value={category.score}
+              <Progress 
+                value={category.score} 
                 className="h-2 bg-squadrun-darker"
               />
             </div>
           ))}
-          {/* Optional: Add a loading or no data message if categories is not available */}
-           {(!categories || !Array.isArray(categories) || categories.length === 0) && (
-               <p className="text-squadrun-gray text-center">No category data available.</p>
-           )}
         </div>
       </CardContent>
     </Card>
