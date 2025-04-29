@@ -8,14 +8,14 @@ import { callGeminiApi } from "./geminiApi";
 export const getCodeCompletion = async (
   prompt: string,
   language: string,
-  maxTokens: number = 500
+  maxTokens: number = 1500
 ): Promise<string> => {
   const systemInstruction = `You are a helpful code completion assistant for ${language}. Provide only the code to complete the user's input.`;
 
   try {
     const completion = await callGeminiApi(prompt, systemInstruction, {
         maxOutputTokens: maxTokens,
-        temperature: 0.4,
+        temperature: 0.1,
         stopSequences: ["```", "\n\n"]
     });
 
