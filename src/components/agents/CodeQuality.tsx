@@ -1,13 +1,11 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Cpu, Search } from "lucide-react";
 import CodeDisplay from "../CodeDisplay";
 import { toast } from "sonner";
-// Import the analyzeCodeWithAI function from your AI utilities
-import { analyzeCodeWithAI } from "@/utils/aiUtils/codeAnalysis"; // Assuming this is the correct path
-import { QualityResults } from "@/types/codeQuality"; // Assuming this type matches the AI response structure
-// Removing the import for the local analyzer as we'll use the AI one
-// import { analyzeCodeQuality } from "@/utils/qualityUtils/codeAnalyzer";
+import { QualityResults } from "@/types/codeQuality";
+import { analyzeCodeQuality } from "@/utils/qualityUtils/codeAnalyzer";
 import NoCodeMessage from "./quality/NoCodeMessage";
 import AnalysisView from "./quality/AnalysisView";
 import { Button } from "@/components/ui/button";
@@ -22,47 +20,40 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
   const [qualityResults, setQualityResults] = useState<QualityResults | null>(null);
 
   const handleAssessQuality = async () => {
-    // Prevent analysis if no file content is available or if already processing
-    if (!fileContent || isProcessing) return;
-
+    if (!fileContent) return;
+    
     setIsProcessing(true);
-    setQualityResults(null); // Clear previous results
-
+    setQualityResults(null);
+    
     try {
-      // Determine language based on file extension, default to 'javascript'
       const language = fileName?.split('.').pop() || 'javascript';
-
-      // Call the AI analysis function
-      // We specify 'quality' as the analysis type
-      const results: QualityResults = await analyzeCodeWithAI(fileContent, language, 'quality');
-
-      // Display success toast with the overall score
+      let results: QualityResults;
+      
+      // Always use the built-in analyzer
+      results = analyzeCodeQuality(fileContent, language);
+      
       if (fileName?.endsWith('.ipynb')) {
         toast.success("Jupyter Notebook Analysis Complete", {
-          description: `Overall Score: ${results.overall_score}/100`, // Use overall_score from the JSON structure
+          description: `Overall Score: ${results.score}/100`,
         });
       } else {
         toast.success("Analysis Complete", {
-          description: `Overall Score: ${results.overall_score}/100`, // Use overall_score
+          description: `Overall Score: ${results.score}/100`,
         });
       }
-
-      // Set the quality results state to display the analysis
+      
       setQualityResults(results);
-
+      
     } catch (error) {
-      console.error("AI Analysis error:", error);
-      // Display error toast
+      console.error("Analysis error:", error);
       toast.error("Error Assessing Code Quality", {
-        description: error instanceof Error ? error.message : "An unexpected error occurred during analysis.",
+        description: "Please try again with a different file.",
       });
     } finally {
-      // Always set processing to false after the operation completes
       setIsProcessing(false);
     }
   };
 
-  // Function to clear the analysis results
   const handleClear = () => {
     setQualityResults(null);
     toast.success("Analysis Cleared", {
@@ -70,12 +61,10 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
     });
   };
 
-  // Display a message if no file content is loaded
   if (!fileContent) {
     return <NoCodeMessage />;
   }
 
-  // Render the component UI
   return (
     <div className="p-4 h-full flex flex-col">
       <div className="mb-4">
@@ -85,21 +74,18 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
           {fileName?.endsWith('.ipynb') && " Jupyter Notebooks are fully supported."}
         </p>
       </div>
-
-      {/* Conditional rendering based on whether quality results are available */}
+      
       {!qualityResults ? (
-        // Display the "Assess Quality" button and loading indicator if no results yet
         <div className="flex-1 flex flex-col items-center justify-center">
-          <Button
-            onClick={handleAssessQuality}
-            disabled={isProcessing} // Disable button while processing
+          <Button 
+            onClick={handleAssessQuality} 
+            disabled={isProcessing}
             className="bg-squadrun-primary hover:bg-squadrun-vivid text-white"
           >
             <Search className="mr-2 h-4 w-4" />
-            {isProcessing ? 'Analyzing...' : 'Assess Quality'} {/* Button text changes while processing */}
+            Assess Quality
           </Button>
           {isProcessing && (
-            // Display loading animation and text while processing
             <div className="mt-4 flex flex-col items-center">
               <div className="animate-spin mb-4">
                 <Cpu className="h-16 w-16 text-squadrun-primary" />
@@ -115,13 +101,11 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
           )}
         </div>
       ) : (
-        // Display the analysis results and the "Clear Analysis" button
         <div className="flex-1 flex flex-col">
-          {/* Pass the quality results and file name to the AnalysisView component */}
           <AnalysisView qualityResults={qualityResults} fileName={fileName} />
           <div className="mt-4 flex justify-center">
-            <Button
-              onClick={handleClear}
+            <Button 
+              onClick={handleClear} 
               variant="destructive"
               className="w-full max-w-md"
             >
