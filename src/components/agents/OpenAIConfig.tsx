@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { configureOpenAI, isOpenAIConfigured, getStoredApiKey, clearApiKey } from "@/utils/aiUtils/openAiUtils";
+import { configureGemini, isGeminiConfigured, getStoredApiKey, clearApiKey } from "@/utils/aiUtils/openAiUtils";
 import { Key, Cpu, Info, Shield, Eye, EyeOff } from "lucide-react";
 
 interface OpenAIConfigProps {
@@ -19,12 +19,12 @@ export default function OpenAIConfig({ onConfigChange }: OpenAIConfigProps) {
   const [apiKey, setApiKey] = useState<string>("");
   const [showApiKey, setShowApiKey] = useState<boolean>(false);
   const [isConfigured, setIsConfigured] = useState<boolean>(false);
-  const [model, setModel] = useState<string>("gpt-4-0125-preview");
+  const [model, setModel] = useState<string>("gemini-1.5-pro-latest");
   const [useEnhancedAnalysis, setUseEnhancedAnalysis] = useState<boolean>(true);
   
   useEffect(() => {
     // Check if API key is already configured
-    const configured = isOpenAIConfigured();
+    const configured = isGeminiConfigured();
     setIsConfigured(configured);
     
     // Load stored key if available
@@ -42,22 +42,22 @@ export default function OpenAIConfig({ onConfigChange }: OpenAIConfigProps) {
   const handleSaveConfig = () => {
     if (!apiKey.trim()) {
       toast.error("API Key Required", {
-        description: "Please enter your OpenAI API key to continue."
+        description: "Please enter your Google Gemini API key to continue."
       });
       return;
     }
     
     try {
-      configureOpenAI({
+      configureGemini({
         apiKey: apiKey.trim(),
         model,
         temperature: useEnhancedAnalysis ? 0.1 : 0.3,
-        maxTokens: 8192
+        maxOutputTokens: 8192
       });
       
       setIsConfigured(true);
       
-      toast.success("OpenAI Configuration Saved", {
+      toast.success("Gemini Configuration Saved", {
         description: "Your API key has been securely stored for this session."
       });
       
@@ -78,7 +78,7 @@ export default function OpenAIConfig({ onConfigChange }: OpenAIConfigProps) {
     setIsConfigured(false);
     
     toast.info("API Key Cleared", {
-      description: "Your OpenAI API key has been removed."
+      description: "Your Gemini API key has been removed."
     });
     
     if (onConfigChange) {
@@ -91,7 +91,7 @@ export default function OpenAIConfig({ onConfigChange }: OpenAIConfigProps) {
       <CardHeader className="pb-2">
         <CardTitle className="text-lg flex items-center">
           <Cpu className="mr-2 h-5 w-5 text-squadrun-primary" />
-          OpenAI Integration
+          Google Gemini Integration
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -106,7 +106,7 @@ export default function OpenAIConfig({ onConfigChange }: OpenAIConfigProps) {
                 <TooltipContent>
                   <p className="w-80">
                     Your API key is stored locally in your browser and never sent to our servers.
-                    It's only used to make direct requests to OpenAI API from your browser.
+                    It's only used to make direct requests to Google Gemini API from your browser.
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -124,7 +124,7 @@ export default function OpenAIConfig({ onConfigChange }: OpenAIConfigProps) {
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 type={showApiKey ? "text" : "password"}
-                placeholder="sk-..."
+                placeholder="YOUR_GEMINI_API_KEY"
                 className="bg-squadrun-darker border-squadrun-primary/20 pr-10"
               />
               <button
@@ -157,12 +157,11 @@ export default function OpenAIConfig({ onConfigChange }: OpenAIConfigProps) {
           <Label htmlFor="model" className="text-sm">Model</Label>
           <Select value={model} onValueChange={setModel}>
             <SelectTrigger className="bg-squadrun-darker border-squadrun-primary/20">
-              <SelectValue placeholder="Select OpenAI model" />
+              <SelectValue placeholder="Select Gemini model" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="gpt-4o">GPT-4o (Most Capable)</SelectItem>
-              <SelectItem value="gpt-4-0125-preview">GPT-4 Turbo</SelectItem>
-              <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo (Faster)</SelectItem>
+              <SelectItem value="gemini-1.5-pro-latest">Gemini 1.5 Pro (Most Capable)</SelectItem>
+              <SelectItem value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Faster)</SelectItem>
             </SelectContent>
           </Select>
         </div>

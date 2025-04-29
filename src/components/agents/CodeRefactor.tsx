@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import CodeDisplay from "@/components/CodeDisplay";
 import CodeComparison from "@/components/CodeComparison";
 import NoFileMessage from "@/components/refactor/NoFileMessage";
 import { refactorCode, RefactoringOptions, calculateCodeQualityMetrics } from "@/utils/qualityUtils/refactors";
-import { refactorCodeWithAI, isOpenAIConfigured } from "@/utils/aiUtils/openAiUtils";
+import { refactorCodeWithAI, isGeminiConfigured } from "@/utils/aiUtils/openAiUtils";
 import { toast } from "sonner";
 
 interface CodeRefactorProps {
@@ -67,7 +68,7 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
       
       let result: string;
       
-      if (isOpenAIConfigured()) {
+      if (isGeminiConfigured()) {
         try {
           toast.info("Starting AI-powered refactoring", {
             description: "This may take a moment for larger files."
