@@ -77,6 +77,7 @@ Approach the refactoring process by considering the following aspects:
 Your final response must adhere to these strict output requirements:
 
   Return ONLY the refactored code.
+  ALWAYS GIVE THE FULL REFACTORED CODE.
   Do NOT include any introductory sentences, explanations of changes, analysis summaries, or concluding remarks outside the code block.
 
 Code to analyze and refactor:
