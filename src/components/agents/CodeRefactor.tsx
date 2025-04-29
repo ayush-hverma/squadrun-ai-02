@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -289,7 +288,7 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
                 <div className="mt-4 flex items-center">
                   <Cpu className="text-squadrun-primary mr-2 h-5 w-5" />
                   <span className="text-sm text-squadrun-gray">
-                    {isOpenAIConfigured() ? "AI-powered refactoring available" : "Using built-in refactoring tools"}
+                    {isGeminiConfigured() ? "AI-powered refactoring available" : "Using built-in refactoring tools"}
                   </span>
                 </div>
               </div>
