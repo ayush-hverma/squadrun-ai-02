@@ -15,7 +15,7 @@ const defaultGeminiConfig: GeminiConfig = {
   apiKey: "AIzaSyAMranDv79YHxNAvMAyPGRVK0HsTbRgT2U", // Empty API key placeholder for users to insert their own
   model: "gemini-2.5-flash-preview-04-17",
   temperature: 0.1,
-  maxOutputTokens: 8192
+  maxOutputTokens: 65000
 };
 
 // Global configuration
