@@ -79,8 +79,8 @@ Approach the refactoring process by considering the following aspects:
 Your final response must adhere to these strict output requirements:
 
   Return ONLY the refactored code.
-  Do not include any introductory sentences, explanations of changes, except single line of docstrings/comments explaining some code snippets.
-
+  Reduce the lengths of code by removing redundancy.
+  Do not include any introductory sentences or explanations of changes.
 Code to analyze and refactor:
 
 \`\`\`${language}
