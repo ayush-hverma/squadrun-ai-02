@@ -14,7 +14,7 @@ interface OpenAIConfig {
 // Default configuration with hardcoded API key
 const defaultConfig: OpenAIConfig = {
   apiKey: "AIzaSyAMranDv79YHxNAvMAyPGRVK0HsTbRgT2U", // Replace with your actual API key
-  model: "gemini-2.5-flash-preview-04-17", // Use the latest model
+  model: "gemini-2.5-pro-preview-03-25", // Use the latest model
   temperature: 0.1, // Lower temperature for more deterministic results
   maxTokens: 10000 // Sufficient tokens for code analysis
 };
@@ -234,7 +234,7 @@ export const getCodeCompletion = async (
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: openAIConfig.model || "gpt-4-0125-preview",
+        model: openAIConfig.model || "gemini-2.5-pro-preview-03-25",
         messages: [
           {
             role: "system",
