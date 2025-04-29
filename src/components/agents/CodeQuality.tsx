@@ -37,13 +37,9 @@ export default function CodeQuality({ fileContent, fileName }: CodeQualityProps)
       const results: QualityResults = await analyzeCodeWithAI(fileContent, language, 'quality');
 
       // Display success toast with the overall score
-      if (fileName?.endsWith('.ipynb')) {
-        toast.success("Jupyter Notebook Analysis Complete", {
-          description: `Overall Score: ${results.overall_score}/100`, // Use overall_score from the JSON structure
-        });
-      } else {
-        toast.success("Analysis Complete", {
-          description: `Overall Score: ${results.overall_score}/100`, // Use overall_score
+      
+      toast.success("Analysis Complete", {
+        description: `Overall Score: ${results.overall_score}/100`, // Use overall_score
         });
       }
 
