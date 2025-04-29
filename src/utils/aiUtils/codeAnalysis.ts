@@ -100,35 +100,26 @@ const processAIResponse = (content: string, analysisType: 'quality' | 'refactor'
 
   if (analysisType === 'quality') {
     try {
-      // Extract JSON from the response (handle cases where there might be markdown)
-      // This regex looks for a block starting with ```json and ending with ```
       const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
 
       let jsonContent;
       if (jsonMatch && jsonMatch[1]) {
-        // If markdown block found, use its content
         jsonContent = jsonMatch[1];
       } else {
-        // If no markdown block, assume the whole content is potentially JSON or needs parsing attempts
-        // Attempt to find the first { and last } to be more robust
-         const firstCurly = content.indexOf('{');
-         const lastCurly = content.lastIndexOf('}');
-         if (firstCurly !== -1 && lastCurly !== -1 && lastCurly > firstCurly) {
-             jsonContent = content.substring(firstCurly, lastCurly + 1);
-         } else {
-             // Fallback to the whole content if no curly braces found
-             jsonContent = content;
-         }
+        const firstCurly = content.indexOf('{');
+        const lastCurly = content.lastIndexOf('}');
+        if (firstCurly !== -1 && lastCurly !== -1 && lastCurly > firstCurly) {
+          jsonContent = content.substring(firstCurly, lastCurly + 1);
+        } else {
+          jsonContent = content;
+        }
       }
 
-
-      // Clean up potential trailing commas or comments if necessary
-      // This is a basic cleanup, more complex cases might need a JSON parser with comment support or more sophisticated regex
       const cleanedJsonContent = jsonContent
-        .replace(/,\s*\]/g, ']') // Remove trailing commas before ]
-        .replace(/,\s*\}/g, '}') // Remove trailing commas before }
-        .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments /* ... */
-        .replace(/\/\/.*$/gm, '') // Remove single-line comments // ...
+        .replace(/,\s*\]/g, ']')
+        .replace(/,\s*\}/g, '}')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '')
         .trim();
 
       return JSON.parse(cleanedJsonContent);
@@ -136,14 +127,10 @@ const processAIResponse = (content: string, analysisType: 'quality' | 'refactor'
     } catch (error) {
       console.error("Failed to parse quality analysis JSON from Gemini:", error);
       console.error("Raw content that failed to parse:", content);
-      // Provide the raw content in the error message for easier debugging
-      throw new Error(`Failed to parse the Gemini response for quality analysis. Raw content: "${content.substring(0, 200)}..."`); // Limit raw content length
+      throw new Error(`Failed to parse the Gemini response for quality analysis. Raw content: "${content.substring(0, 200)}..."`);
     }
   } else {
-    // For refactoring, extract code from markdown code blocks if present
-    // This regex looks for any code block ```language or ``` and captures its content
     const codeMatch = content.match(/```(?:\w+)?\s*([\s\S]*?)\s*```/);
-    // Return the content inside the code block, or the raw content if no block found
     return codeMatch ? codeMatch[1].trim() : content.trim();
   }
 };
@@ -156,7 +143,6 @@ export const analyzeCodeWithAI = async (
   language: string,
   analysisType: 'quality' | 'refactor'
 ): Promise<any> => {
-  // Updated system instruction to be more aligned with the specific tasks
   const systemInstruction = `You are an expert code analysis and refactoring AI.
   For quality analysis, provide a JSON response as specified in the prompt.
   For refactoring, provide ONLY the refactored code in a markdown block.
@@ -165,12 +151,11 @@ export const analyzeCodeWithAI = async (
   const prompt = getPromptForAnalysis(code, language, analysisType);
 
   try {
-      const rawResponse = await callGeminiApi(prompt, systemInstruction);
-      return processAIResponse(rawResponse, analysisType);
+    const rawResponse = await callGeminiApi(prompt, systemInstruction);
+    return processAIResponse(rawResponse, analysisType);
   } catch (error) {
-     console.error("Gemini Code Analysis API error:", error);
-     // Re-throw the error so the calling function can handle it (e.g., show toast)
-     throw error;
+    console.error("Gemini Code Analysis API error:", error);
+    throw error;
   }
 };
 
@@ -179,19 +164,16 @@ export const analyzeCodeWithAI = async (
  */
 export const refactorCodeWithAI = async (code: string, language: string): Promise<string> => {
   try {
-    // Ensure the return type is string as expected by the function signature
     const refactoredCode = await analyzeCodeWithAI(code, language, 'refactor');
     if (typeof refactoredCode !== 'string') {
-        console.error("Refactoring response was not a string:", refactoredCode);
-        throw new Error("AI refactoring did not return expected code format.");
+      console.error("Refactoring response was not a string:", refactoredCode);
+      throw new Error("AI refactoring did not return expected code format.");
     }
     return refactoredCode;
   } catch (error) {
-    // Handle the error by showing a toast
     toast.error("AI refactoring failed", {
       description: error instanceof Error ? error.message : "An unknown error occurred during refactoring."
     });
-    // Re-throw the error if further handling is needed up the call stack
     throw error;
   }
 };
@@ -201,16 +183,16 @@ export const refactorCodeWithAI = async (code: string, language: string): Promis
  */
 export const analyzeCodeQualityWithAI = async (code: string, language: string) => {
   try {
-    // The return type is 'any' because the JSON structure is complex,
-    // but in practice, you might want to define an interface for the quality analysis result.
-    return await analyzeCodeWithAI(code, language, 'quality');
+    const analysisResult = await analyzeCodeWithAI(code, language, 'quality');
+    return {
+      overall_score: analysisResult.overall_score,
+      summary: analysisResult.summary,
+      category_scores: analysisResult.category_scores
+    };
   } catch (error) {
-    // Handle the error by showing a toast
     toast.error("AI code quality analysis failed", {
       description: error instanceof Error ? error.message : "An unknown error occurred during quality analysis."
     });
-    // Re-throw the error if further handling is needed up the call stack
     throw error;
   }
 };
-
