@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,7 @@ import CodeDisplay from "@/components/CodeDisplay";
 import CodeComparison from "@/components/CodeComparison";
 import NoFileMessage from "@/components/refactor/NoFileMessage";
 import { refactorCode, RefactoringOptions, calculateCodeQualityMetrics } from "@/utils/qualityUtils/refactors";
-import { refactorCodeWithAI, isGeminiConfigured } from "@/utils/aiUtils/openAiUtils";
+import { refactorCodeWithAI, isGeminiConfigured } from "@/utils/aiUtils";
 import { toast } from "sonner";
 
 interface CodeRefactorProps {

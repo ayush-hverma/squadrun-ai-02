@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { configureGemini, isGeminiConfigured, getStoredApiKey, clearApiKey } from "@/utils/aiUtils/openAiUtils";
+import { configureGemini, isGeminiConfigured, getStoredApiKey, clearApiKey } from "@/utils/aiUtils";
 import { Key, Cpu, Info, Shield, Eye, EyeOff } from "lucide-react";
 
 interface OpenAIConfigProps {
