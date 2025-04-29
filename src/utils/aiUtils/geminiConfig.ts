@@ -13,7 +13,7 @@ export interface GeminiConfig {
 // Default configuration with placeholder API key
 const defaultGeminiConfig: GeminiConfig = {
   apiKey: "AIzaSyAMranDv79YHxNAvMAyPGRVK0HsTbRgT2U", // Empty API key placeholder for users to insert their own
-  model: "gemini-1.5-pro-latest",
+  model: "gemini-2.5-pro-preview-03-25",
   temperature: 0.1,
   maxOutputTokens: 8192
 };
