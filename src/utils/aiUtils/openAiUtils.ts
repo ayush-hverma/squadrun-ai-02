@@ -13,8 +13,8 @@ interface OpenAIConfig {
 
 // Default configuration with hardcoded API key
 const defaultConfig: OpenAIConfig = {
-  apiKey: "sk-svcacct-Gs5xM29XI4feRXOfXiuoK3yEj8an31BG8QZOWuQNOIec9K88D9XKHo7S6B2jXW6bab8oeNzOaT3BlbkFJHmVbdYTPYIdD8R8ho4sAqCvPy0vCPPjoSuyeOCMo3e6voSLxm8izpYTtK6trBysm7SUsYvQmAA", // Replace with your actual API key
-  model: "gpt-4o-mini", // Use the latest model
+  apiKey: "AIzaSyAMranDv79YHxNAvMAyPGRVK0HsTbRgT2U", // Replace with your actual API key
+  model: "gemini-2.5-flash-preview-04-17", // Use the latest model
   temperature: 0.1, // Lower temperature for more deterministic results
   maxTokens: 10000 // Sufficient tokens for code analysis
 };
