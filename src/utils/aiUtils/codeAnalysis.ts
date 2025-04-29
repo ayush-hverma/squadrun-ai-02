@@ -7,7 +7,7 @@ import { callGeminiApi } from "./geminiApi";
 const getPromptForAnalysis = (code: string, language: string, analysisType: 'quality' | 'refactor'): string => {
   if (analysisType === 'quality') {
     return `
-      You are an expert Code Quality Analyzer. Your task is to meticulously analyze the provided ${language} code snippet and evaluate its quality across several key metrics.
+      You are an expert Code Quality Analyzer. Your task is to detect the ${language} code and then do the quality assessment considering the detected ${language}. You must evaluate its quality across several key metrics.
 
 Perform a detailed analysis focusing on the following categories:
 
@@ -51,7 +51,7 @@ ${code}
     `;
   } else {
     return `
-      You are an expert software engineer specializing in code refactoring and optimization. Your task is to take the provided code snippet in ${language} and refactor it to meet high standards of quality, readability, maintainability, and performance, while strictly preserving its original functionality.
+      You are an expert software engineer specializing in code refactoring and optimization. Your task is to take the provided code snippet in ${language} and refactor it to meet high standards of quality, readability, maintainability, code smell, security, and performance, while strictly preserving its original functionality.
 
 Approach the refactoring process by considering the following aspects:
 
@@ -72,12 +72,14 @@ Approach the refactoring process by considering the following aspects:
       Reducing unnecessary computations or resource usage.
       Improving the efficiency of loops or conditional statements.
       Considering language-specific performance best practices.
-6.  Best Practices: Apply widely accepted coding standards and idiomatic patterns for the ${language} programming language.
+6.  Security: Identify and address potential security vulnerabilities, such as injection risks, improper data handling, or weak authentication/authorization patterns, during the refactoring process.
+7.  Code Smell: Identify and address any indicators of deeper underlying issues, such as excessive complexity, long methods, large classes, or unclear naming conventions, even if they don't cause immediate errors.
+8.  Best Practices: Apply widely accepted coding standards and idiomatic patterns for the ${language} programming language.
 
 Your final response must adhere to these strict output requirements:
 
   Return ONLY the refactored code.
-  Do NOT include any introductory sentences, explanations of changes, analysis summaries, or concluding remarks outside the code block.
+  Do not include any introductory sentences, explanations of changes, except single line of docstrings/comments explaining some code snippets.
 
 Code to analyze and refactor:
 
