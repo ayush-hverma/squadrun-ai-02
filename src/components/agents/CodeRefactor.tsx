@@ -7,13 +7,13 @@ import {
   Download, 
   RefreshCw,
   Cpu,
-  X,
-  Settings
+  X
 } from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
 import { toast } from "sonner";
 import { refactorCodeWithAI } from "@/utils/aiUtils";
 import DiffViewer from "@/components/DiffViewer";
+import HighlightedCodeCompare from "@/components/HighlightedCodeCompare";
 
 interface CodeRefactorProps {
   fileContent: string | null;
@@ -25,7 +25,6 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
   const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
-  const [showSettings, setShowSettings] = useState(false);
   const [showDiff, setShowDiff] = useState(true);
 
   useEffect(() => {
@@ -96,10 +95,6 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
     }
   };
 
-  const toggleDiffView = () => {
-    setShowDiff(!showDiff);
-  };
-
   if (!fileContent) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-6">
@@ -119,18 +114,6 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
           <h2 className="text-xl font-bold text-white">AI-Powered Code Refactoring</h2>
           <p className="text-sm text-squadrun-gray">Using advanced AI to improve your code quality</p>
         </div>
-        
-        {refactoredCode && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleDiffView}
-            className="flex items-center gap-1"
-          >
-            <Settings className="h-4 w-4" />
-            <span>{showDiff ? "Show Split View" : "Show Diff View"}</span>
-          </Button>
-        )}
       </div>
       
       {!refactoredCode ? (
@@ -217,21 +200,7 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
           showDiff ? (
             <DiffViewer originalCode={fileContent} newCode={refactoredCode} language={language} />
           ) : (
-            <div className="grid grid-cols-2 gap-4 h-full">
-              <div className="h-full flex flex-col">
-                <h4 className="text-squadrun-gray mb-2 text-sm font-medium">Original Code</h4>
-                <div className="flex-1 overflow-hidden">
-                  <CodeDisplay code={fileContent} language={language} />
-                </div>
-              </div>
-              
-              <div className="h-full flex flex-col">
-                <h4 className="text-squadrun-gray mb-2 text-sm font-medium">Refactored Code</h4>
-                <div className="flex-1 overflow-hidden">
-                  <CodeDisplay code={refactoredCode} language={language} />
-                </div>
-              </div>
-            </div>
+            <HighlightedCodeCompare originalCode={fileContent} refactoredCode={refactoredCode} language={language} />
           )
         ) : (
           <CodeDisplay code={fileContent} language={language} />
