@@ -1,7 +1,5 @@
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowRightCircle, RefreshCw, Code, AlertTriangle, TestTube } from "lucide-react";
 import CodeRefactor from "./CodeRefactor";
@@ -9,15 +7,27 @@ import CodeQuality from "./CodeQuality";
 import TestCase from "./TestCase";
 import NoCodeMessage from "./quality/NoCodeMessage";
 
+interface FileData {
+  path: string;
+  content: string;
+}
+
 interface CodeInspectorProps {
   fileContent: string | null;
   fileName: string | null;
+  repoFiles?: FileData[] | null;
+  repoUrl?: string | null;
 }
 
-export default function CodeInspector({ fileContent, fileName }: CodeInspectorProps) {
+export default function CodeInspector({ 
+  fileContent, 
+  fileName,
+  repoFiles,
+  repoUrl
+}: CodeInspectorProps) {
   const [activeTab, setActiveTab] = useState("refactor");
 
-  if (!fileContent) {
+  if (!fileContent && (!repoFiles || repoFiles.length === 0)) {
     return <NoCodeMessage />;
   }
 
@@ -27,6 +37,7 @@ export default function CodeInspector({ fileContent, fileName }: CodeInspectorPr
         <h1 className="text-2xl font-bold text-white mb-2">Code Inspector</h1>
         <p className="text-squadrun-gray">
           Analyze, refactor, and test your code with AI assistance.
+          {repoUrl && <span className="text-squadrun-primary ml-1">Repository: {repoUrl}</span>}
         </p>
       </div>
 
@@ -51,7 +62,12 @@ export default function CodeInspector({ fileContent, fileName }: CodeInspectorPr
         </TabsContent>
         
         <TabsContent value="quality" className="flex-1 mt-0">
-          <CodeQuality fileContent={fileContent} fileName={fileName} />
+          <CodeQuality 
+            fileContent={fileContent} 
+            fileName={fileName} 
+            repoFiles={repoFiles}
+            repoUrl={repoUrl}
+          />
         </TabsContent>
         
         <TabsContent value="testcase" className="flex-1 mt-0">

@@ -1,15 +1,14 @@
-import { Card, CardContent } from "@/components/ui/card";
 
-/**
- * Component displayed when no code has been uploaded
- */
-const NoCodeMessage = () => {
-  return <div className="flex h-full items-center justify-center">
-      <Card className="w-96 bg-squadrun-darker/50 border border-squadrun-primary/20">
-        <CardContent className="p-6 text-center">
-          <p className="text-squadrun-gray text-lg font-medium text-center">Please upload a code file for assessment.</p>
-        </CardContent>
-      </Card>
-    </div>;
-};
-export default NoCodeMessage;
+import { Cpu } from "lucide-react";
+
+export default function NoCodeMessage() {
+  return (
+    <div className="flex flex-col items-center justify-center h-full p-6">
+      <Cpu className="h-16 w-16 text-squadrun-primary mb-4" />
+      <h2 className="text-2xl font-bold text-white mb-2">No Code Selected</h2>
+      <p className="text-squadrun-gray text-center">
+        Please upload a file or select a file from a repository to start.
+      </p>
+    </div>
+  );
+}

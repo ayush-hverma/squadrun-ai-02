@@ -1,34 +1,11 @@
 
-/**
- * Types for code quality assessment functionality
- */
-
-export interface QualityMetrics {
-  lineLength: number;
-  commentRatio: number;
-  complexityScore: number;
-  securityScore: number;
-  consistencyScore: number;
-  bestPracticesScore: number;
-}
-
-export interface CodeSnippet {
-  title: string;
-  code: string;
-  suggestion: string;
-}
-
-export interface CategoryScore {
-  name: string;
-  score: number;
-  icon: React.ElementType;
-}
-
 export interface QualityResults {
   score: number;
-  summary: string;
-  categories: CategoryScore[];
+  readabilityScore: number;
+  maintainabilityScore: number;
+  performanceScore: number;
+  securityScore: number;
+  codeSmellScore: number;
+  issues: string[];
   recommendations: string[];
-  snippets: CodeSnippet[];
-  refactoredCode: string;
 }

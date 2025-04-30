@@ -1,191 +1,169 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 
-export type FileEntry = {
+export interface FileEntry {
+  name: string;
   path: string;
-  url: string;
   type: string;
-  sha: string;
-};
+  url?: string;
+}
 
-export function useRepoFileSelector(defaultFileContent: string | null, defaultFileName: string | null) {
-  // Repo-related state
-  const [githubUrl, setGithubUrl] = useState("");
-  const [repoValid, setRepoValid] = useState<boolean | null>(null);
+export const useRepoFileSelector = (initialFileContent: string | null, initialFileName: string | null) => {
+  const [githubUrl, setGithubUrl] = useState<string>("");
   const [repoFiles, setRepoFiles] = useState<FileEntry[]>([]);
-  const [fileDropdownOpen, setFileDropdownOpen] = useState(false);
-  const [loadingFiles, setLoadingFiles] = useState(false);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-
-  // Selected file state (repo)
   const [selectedFile, setSelectedFile] = useState<FileEntry | null>(null);
-  const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null);
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
-  const [fetchingFileContent, setFetchingFileContent] = useState(false);
-
-  // Local file state (uploaded file)
+  const [selectedFileContent, setSelectedFileContent] = useState<string | null>(initialFileContent);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(initialFileName);
+  const [fileDropdownOpen, setFileDropdownOpen] = useState<boolean>(false);
+  const [loadingFiles, setLoadingFiles] = useState<boolean>(false);
+  const [fetchingFileContent, setFetchingFileContent] = useState<boolean>(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Helper to extract "owner/repo" from the GitHub URL
-  function extractRepoInfo(url: string): { owner: string; repo: string } | null {
-    try {
-      const match = url.match(/github\.com[:/]+([^/]+)\/([^/]+)/i);
-      if (match) {
-        return { owner: match[1], repo: match[2].replace(/\.git$/, "").replace(/\/$/, "") };
-      }
-    } catch {
-      return null;
-    }
-    return null;
-  }
-
-  // Fetch file tree using the GitHub API
-  async function fetchFiles(url: string) {
+  
+  const fetchRepoFiles = useCallback(async (url: string) => {
     setLoadingFiles(true);
     setFetchError(null);
-    setRepoFiles([]);
-    setSelectedFile(null);
-    const info = extractRepoInfo(url);
-    if (!info) {
-      setRepoValid(false);
+    
+    try {
+      // Extract owner and repo from GitHub URL
+      const urlObj = new URL(url);
+      const pathParts = urlObj.pathname.split('/');
+      
+      if (urlObj.hostname !== 'github.com' || pathParts.length < 3) {
+        throw new Error('Invalid GitHub repository URL');
+      }
+      
+      const owner = pathParts[1];
+      const repo = pathParts[2];
+      
+      // Fetch repository contents
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`);
+      
+      if (!response.ok) {
+        // Try master branch if main doesn't exist
+        const masterResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/master?recursive=1`);
+        
+        if (!masterResponse.ok) {
+          throw new Error('Failed to fetch repository contents');
+        }
+        
+        const data = await masterResponse.json();
+        processRepoData(data, owner, repo);
+      } else {
+        const data = await response.json();
+        processRepoData(data, owner, repo);
+      }
+      
+    } catch (error) {
+      console.error('Error fetching repository:', error);
+      setFetchError(error instanceof Error ? error.message : 'Failed to fetch repository');
+      setRepoFiles([]);
+    } finally {
       setLoadingFiles(false);
-      setFetchError("Invalid GitHub URL");
+    }
+  }, []);
+  
+  const processRepoData = (data: any, owner: string, repo: string) => {
+    if (!data.tree) {
+      setFetchError('Repository structure not found');
       return;
     }
-    setRepoValid(true);
-
-    try {
-      // Try to fetch repository info
-      const resp = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}`);
-      
-      // Check if we hit a rate limit
-      if (resp.status === 403) {
-        const rateLimitError = "GitHub API rate limit exceeded. Please try again later or upload a local file.";
-        console.error("GitHub API rate limit error:", await resp.json());
-        setFetchError(rateLimitError);
-        setLoadingFiles(false);
-        return;
-      }
-      
-      if (!resp.ok) {
-        throw new Error(`Repository not found or is private (${resp.status})`);
-      }
-      
-      const repoData = await resp.json();
-      const branch = repoData.default_branch;
-      
-      // Fetch the file tree
-      const treeRes = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/git/trees/${branch}?recursive=1`);
-      
-      if (treeRes.status === 403) {
-        setFetchError("GitHub API rate limit exceeded. Please try again later or upload a local file.");
-        setLoadingFiles(false);
-        return;
-      }
-      
-      if (!treeRes.ok) {
-        throw new Error(`Failed to fetch file tree (${treeRes.status})`);
-      }
-      
-      const treeData = await treeRes.json();
-      if (!treeData.tree) throw new Error("Could not retrieve file tree");
-      const files = treeData.tree.filter((node: any) => node.type === "blob");
-      setRepoFiles(files);
-    } catch (e: any) {
-      setRepoFiles([]);
-      if (e.message) {
-        setFetchError(e.message);
-      } else {
-        setFetchError("Error fetching files from repo. Is it public?");
-      }
-      console.error("GitHub fetch error:", e);
+    
+    // Filter for code files only
+    const codeExtensions = ['.py', '.js', '.ts', '.jsx', '.tsx', '.html', '.css', '.java', '.cpp', '.c', '.cs', '.go'];
+    
+    const files = data.tree
+      .filter((item: any) => 
+        item.type === 'blob' && 
+        codeExtensions.some(ext => item.path.toLowerCase().endsWith(ext))
+      )
+      .map((item: any) => ({
+        name: item.path.split('/').pop(),
+        path: item.path,
+        type: 'file',
+        url: `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${item.path}`
+      }));
+    
+    setRepoFiles(files);
+    
+    if (files.length === 0) {
+      setFetchError('No code files found in repository');
     }
-    setLoadingFiles(false);
-  }
-
-  // Fetch selected file's raw content
-  async function fetchFileContent(entry: FileEntry) {
-    if (!githubUrl) return;
+  };
+  
+  const fetchFileContent = useCallback(async (file: FileEntry) => {
+    if (!file.url) return;
+    
     setFetchingFileContent(true);
     setFetchError(null);
-    const info = extractRepoInfo(githubUrl);
-    if (!info) return;
+    
     try {
-      const resp = await fetch(`https://api.github.com/repos/${info.owner}/${info.repo}/contents/${entry.path}`);
+      const response = await fetch(file.url);
       
-      if (resp.status === 403) {
-        setFetchError("GitHub API rate limit exceeded. Please try again later.");
-        setFetchingFileContent(false);
-        return;
+      if (!response.ok) {
+        throw new Error('Failed to fetch file content');
       }
       
-      if (!resp.ok) {
-        throw new Error(`Failed to fetch file content (${resp.status})`);
-      }
-      
-      const fileData = await resp.json();
-      let content = "";
-      if (fileData.encoding === "base64") {
-        content = atob(fileData.content.replace(/\n/g, ""));
-      } else {
-        content = fileData.content || "";
-      }
+      const content = await response.text();
       setSelectedFileContent(content);
-      setSelectedFileName(entry.path);
-    } catch (e: any) {
-      if (e.message) {
-        setFetchError(e.message);
-      } else {
-        setFetchError("Could not fetch file content.");
-      }
-      setSelectedFileContent(null);
-      setSelectedFileName(null);
-      console.error("File content fetch error:", e);
+      setSelectedFileName(file.name);
+      
+    } catch (error) {
+      console.error('Error fetching file content:', error);
+      setFetchError(error instanceof Error ? error.message : 'Failed to fetch file content');
+      
+    } finally {
+      setFetchingFileContent(false);
     }
-    setFetchingFileContent(false);
-  }
-
-  // Handle repo input "enter" or blur
-  function handleGithubRepoInput(e: React.FormEvent<HTMLFormElement>) {
+  }, []);
+  
+  const handleGithubRepoInput = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    fetchFiles(githubUrl);
-  }
-
-  // Handle local file upload
-  function handleLocalFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      const reader = new FileReader();
-      reader.onload = ev => {
-        setSelectedFile(null);
-        setSelectedFileContent(ev.target?.result as string);
-        setSelectedFileName(file.name);
-        setRepoFiles([]); // clear repo file selection if uploading local file
-        setGithubUrl(""); // clear repo url input since now using local
-      };
-      reader.readAsText(file);
+    if (githubUrl.trim()) {
+      fetchRepoFiles(githubUrl.trim());
     }
-  }
-
-  function handleClearFile() {
-    setSelectedFile(null);
-    setSelectedFileContent(null);
-    setSelectedFileName(null);
-    setRepoFiles([]);
-    setGithubUrl("");
-    setFetchError(null);
-    setFileDropdownOpen(false);
-  }
-
-  // Output values and actions for consumption
+  }, [githubUrl, fetchRepoFiles]);
+  
+  const handleLocalFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    
+    if (!files || files.length === 0) return;
+    
+    const file = files[0];
+    const reader = new FileReader();
+    
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setSelectedFileContent(content);
+      setSelectedFileName(file.name);
+      setSelectedFile(null);
+      setRepoFiles([]);
+    };
+    
+    reader.onerror = () => {
+      setFetchError('Error reading file');
+    };
+    
+    reader.readAsText(file);
+  }, []);
+  
   return {
-    githubUrl, setGithubUrl,
-    repoValid, repoFiles, setFileDropdownOpen, fileDropdownOpen,
-    loadingFiles, fetchError,
-    selectedFile, setSelectedFile, fetchFileContent, fetchingFileContent,
-    selectedFileContent, selectedFileName,
-    fileInputRef, handleLocalFileChange,
-    handleGithubRepoInput, handleClearFile
+    githubUrl,
+    setGithubUrl,
+    repoFiles,
+    selectedFile,
+    setSelectedFile,
+    selectedFileContent,
+    selectedFileName,
+    fetchFileContent,
+    fileDropdownOpen,
+    setFileDropdownOpen,
+    fetchingFileContent,
+    fetchError,
+    fileInputRef,
+    handleLocalFileChange,
+    handleGithubRepoInput,
+    loadingFiles
   };
-}
+};

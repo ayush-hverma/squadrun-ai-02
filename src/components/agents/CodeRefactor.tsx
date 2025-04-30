@@ -11,11 +11,9 @@ import {
   Settings
 } from "lucide-react";
 import CodeDisplay from "@/components/CodeDisplay";
-import CodeComparison from "@/components/CodeComparison";
-import NoFileMessage from "@/components/refactor/NoFileMessage";
-import { refactorCode, RefactoringOptions, calculateCodeQualityMetrics } from "@/utils/qualityUtils/refactors";
-import { refactorCodeWithAI, isGeminiConfigured } from "@/utils/aiUtils";
 import { toast } from "sonner";
+import { refactorCodeWithAI } from "@/utils/aiUtils";
+import DiffViewer from "@/components/DiffViewer";
 
 interface CodeRefactorProps {
   fileContent: string | null;
@@ -28,30 +26,10 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
   const [showSettings, setShowSettings] = useState(false);
-  const [refactoringOptions, setRefactoringOptions] = useState<RefactoringOptions>({
-    aggressive: false,
-    focus: {
-      readability: true,
-      maintainability: true,
-      performance: true,
-      security: true,
-      codeSmell: true
-    },
-    techniques: {
-      extractConstants: true,
-      extractFunctions: true,
-      improveNaming: true,
-      addTyping: false,
-      addComments: true,
-      addErrorHandling: false,
-      formatCode: true
-    }
-  });
-  const [metrics, setMetrics] = useState<any>(null);
+  const [showDiff, setShowDiff] = useState(true);
 
   useEffect(() => {
     setRefactoredCode(null);
-    setMetrics(null);
     if (fileName) {
       const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
       setLanguage(fileExtension);
@@ -64,40 +42,15 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
     setIsRefactoring(true);
     
     try {
-      const instructions = 'improve readability, enhance maintainability, optimize performance, fix security issues, apply DRY principles';
+      toast.info("Starting AI-powered refactoring", {
+        description: "This may take a moment for larger files."
+      });
       
-      let result: string;
+      const result = await refactorCodeWithAI(fileContent, language);
       
-      if (isGeminiConfigured()) {
-        try {
-          toast.info("Starting AI-powered refactoring", {
-            description: "This may take a moment for larger files."
-          });
-          
-          result = await refactorCodeWithAI(fileContent, language);
-          
-          toast.success("AI-powered refactoring complete", {
-            description: "Your code has been refactored using advanced AI techniques."
-          });
-        } catch (error) {
-          console.warn("AI refactoring failed, falling back to built-in refactorer:", error);
-          result = refactorCode(fileContent, language, refactoringOptions);
-          
-          toast.info("Using built-in refactoring tools", {
-            description: "AI refactoring unavailable. Using standard refactoring techniques."
-          });
-        }
-      } else {
-        result = refactorCode(fileContent, language, refactoringOptions);
-        
-        toast.success("Refactoring complete", {
-          description: "Your code has been refactored successfully."
-        });
-      }
-      
-      // Calculate metrics
-      const qualityMetrics = calculateCodeQualityMetrics(result, language);
-      setMetrics(qualityMetrics);
+      toast.success("AI-powered refactoring complete", {
+        description: "Your code has been refactored using advanced AI techniques."
+      });
       
       setRefactoredCode(result);
       
@@ -134,7 +87,6 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
 
   const handleClear = () => {
     setRefactoredCode(null);
-    setMetrics(null);
     if (onClearFile) {
       onClearFile();
     } else {
@@ -144,118 +96,42 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
     }
   };
 
-  const toggleOption = (category: keyof RefactoringOptions, option: string) => {
-    setRefactoringOptions(prev => {
-      const newOptions = { ...prev };
-      
-      if (category === 'focus' && newOptions.focus) {
-        newOptions.focus = {
-          ...newOptions.focus,
-          [option]: !newOptions.focus[option as keyof typeof newOptions.focus]
-        };
-      } else if (category === 'techniques' && newOptions.techniques) {
-        newOptions.techniques = {
-          ...newOptions.techniques,
-          [option]: !newOptions.techniques[option as keyof typeof newOptions.techniques]
-        };
-      } else if (category === 'aggressive') {
-        newOptions.aggressive = !newOptions.aggressive;
-      }
-      
-      return newOptions;
-    });
+  const toggleDiffView = () => {
+    setShowDiff(!showDiff);
   };
 
   if (!fileContent) {
-    return <NoFileMessage />;
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6">
+        <Cpu className="h-16 w-16 text-squadrun-primary mb-4" />
+        <h2 className="text-2xl font-bold text-white mb-2">No Code Selected</h2>
+        <p className="text-squadrun-gray text-center">
+          Please upload a file or select a file from a repository to start refactoring.
+        </p>
+      </div>
+    );
   }
 
   return (
     <div className="p-4 h-full flex flex-col gap-4">
       <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center">
-          {/* Remove ModelPicker UI */}
+        <div>
+          <h2 className="text-xl font-bold text-white">AI-Powered Code Refactoring</h2>
+          <p className="text-sm text-squadrun-gray">Using advanced AI to improve your code quality</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowSettings(!showSettings)}
-          className="flex items-center gap-1"
-        >
-          <Settings className="h-4 w-4" />
-          <span>Refactoring Options</span>
-        </Button>
+        
+        {refactoredCode && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleDiffView}
+            className="flex items-center gap-1"
+          >
+            <Settings className="h-4 w-4" />
+            <span>{showDiff ? "Show Split View" : "Show Diff View"}</span>
+          </Button>
+        )}
       </div>
-      
-      {showSettings && (
-        <Card className="border border-squadrun-primary/20 mb-4">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-bold text-white">Refactoring Settings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <h3 className="text-sm font-semibold mb-2 text-squadrun-gray">Focus Areas</h3>
-                <div className="space-y-2">
-                  {refactoringOptions.focus && Object.keys(refactoringOptions.focus).map(option => (
-                    <div key={option} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id={`focus-${option}`}
-                        checked={refactoringOptions.focus[option as keyof typeof refactoringOptions.focus]}
-                        onChange={() => toggleOption('focus', option)}
-                        className="mr-2 h-4 w-4"
-                      />
-                      <label htmlFor={`focus-${option}`} className="text-sm text-squadrun-gray capitalize">
-                        {option}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-semibold mb-2 text-squadrun-gray">Refactoring Techniques</h3>
-                <div className="space-y-2">
-                  {refactoringOptions.techniques && Object.keys(refactoringOptions.techniques).map(option => (
-                    <div key={option} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id={`technique-${option}`}
-                        checked={refactoringOptions.techniques[option as keyof typeof refactoringOptions.techniques]}
-                        onChange={() => toggleOption('techniques', option)}
-                        className="mr-2 h-4 w-4"
-                      />
-                      <label htmlFor={`technique-${option}`} className="text-sm text-squadrun-gray capitalize">
-                        {option.replace(/([A-Z])/g, ' $1').trim()}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              
-              <div>
-                <h3 className="text-sm font-semibold mb-2 text-squadrun-gray">Refactoring Intensity</h3>
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="aggressive-refactoring"
-                    checked={refactoringOptions.aggressive}
-                    onChange={() => toggleOption('aggressive', '')}
-                    className="mr-2 h-4 w-4"
-                  />
-                  <label htmlFor="aggressive-refactoring" className="text-sm text-squadrun-gray">
-                    Aggressive Refactoring
-                  </label>
-                </div>
-                <p className="text-xs text-squadrun-gray mt-1">
-                  Applies more thorough refactoring but may change code behavior more significantly.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
       
       {!refactoredCode ? (
         <Card className="border border-squadrun-primary/20">
@@ -266,7 +142,7 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
                 <p className="text-sm text-squadrun-gray mb-2">
-                  The refactoring engine will automatically apply best practices for:
+                  The AI refactoring engine will automatically apply best practices for:
                 </p>
                 <div className="space-y-2">
                   <ul className="list-disc list-inside text-squadrun-gray">
@@ -289,7 +165,7 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
                 <div className="mt-4 flex items-center">
                   <Cpu className="text-squadrun-primary mr-2 h-5 w-5" />
                   <span className="text-sm text-squadrun-gray">
-                    {isGeminiConfigured() ? "AI-powered refactoring available" : "Using built-in refactoring tools"}
+                    AI-powered refactoring engine
                   </span>
                 </div>
               </div>
@@ -336,24 +212,27 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
         </div>
       )}
 
-      {!refactoredCode && <div className="flex mt-4">
-        <Button
-          onClick={handleClear}
-          variant="destructive"
-          className="ml-auto"
-        >
-          <X className="mr-2 h-4 w-4" />
-          Clear & Start Over
-        </Button>
-      </div>}
-
       <div className="flex-1 overflow-hidden">
         {refactoredCode ? (
-          <CodeComparison 
-            originalCode={fileContent} 
-            refactoredCode={metrics ? { code: refactoredCode, metrics } : refactoredCode} 
-            language={language} 
-          />
+          showDiff ? (
+            <DiffViewer originalCode={fileContent} newCode={refactoredCode} language={language} />
+          ) : (
+            <div className="grid grid-cols-2 gap-4 h-full">
+              <div className="h-full flex flex-col">
+                <h4 className="text-squadrun-gray mb-2 text-sm font-medium">Original Code</h4>
+                <div className="flex-1 overflow-hidden">
+                  <CodeDisplay code={fileContent} language={language} />
+                </div>
+              </div>
+              
+              <div className="h-full flex flex-col">
+                <h4 className="text-squadrun-gray mb-2 text-sm font-medium">Refactored Code</h4>
+                <div className="flex-1 overflow-hidden">
+                  <CodeDisplay code={refactoredCode} language={language} />
+                </div>
+              </div>
+            </div>
+          )
         ) : (
           <CodeDisplay code={fileContent} language={language} />
         )}
