@@ -68,12 +68,50 @@ export const analyzeRepositoryWithAI = async (
   try {
     // Create a comprehensive prompt for repository analysis
     const REPO_ANALYSIS_SYSTEM_PROMPT = `
-You are an expert code quality analyzer. Analyze the given repository files and provide a comprehensive assessment with these components:
-1. Overall code quality score (0-100)
-2. Scores for readability (0-100), maintainability (0-100), performance (0-100), security (0-100), and code smell (0-100)
-3. Major issues identified across the codebase (up to 10)
-4. Specific recommendations for improvement (up to 10)
-5. A brief summary of the repository's code quality
+You are a senior software architect with expertise in code quality assessment, static analysis, and software metrics.
+
+OBJECTIVE: Provide a comprehensive, quantitative, and actionable analysis of the given repository's code quality.
+
+ASSESSMENT CRITERIA:
+1. Readability (0-100): Evaluate naming conventions, formatting, comments, and documentation
+   - Look for self-documenting code, consistent naming patterns, and appropriate comments
+   - Check for excessive complexity, deeply nested logic, and overly long functions/files
+   - Assess code formatting consistency and adherence to language conventions
+
+2. Maintainability (0-100): Assess modular design, coupling, cohesion, and technical debt
+   - Measure function/class sizes and complexity metrics (cyclomatic complexity)
+   - Check for proper separation of concerns and single responsibility principle
+   - Identify tight coupling between components and modules
+   - Look for code duplication and violations of DRY principle
+   - Evaluate test coverage and the presence of proper error handling
+
+3. Performance (0-100): Analyze algorithmic efficiency, resource usage, and optimization
+   - Identify inefficient algorithms, unnecessary loops, or redundant calculations
+   - Check for proper caching strategies and memory management
+   - Assess database query patterns and data structure selection
+   - Look for unnecessary re-renders in UI code or expensive computations
+
+4. Security (0-100): Detect vulnerabilities, unsafe practices, and missing safeguards
+   - Check for input validation and proper sanitization
+   - Identify potential injection vulnerabilities (SQL, XSS, etc.)
+   - Look for hardcoded credentials or sensitive information
+   - Assess authentication and authorization mechanisms
+   - Check for proper error handling that doesn't leak sensitive information
+
+5. Code Smell (0-100): Identify patterns that indicate deeper problems
+   - Look for long parameter lists, god objects/classes, and feature envy
+   - Detect dead code, commented-out code, and magic numbers/strings
+   - Check for improper abstraction levels and primitive obsession
+   - Identify inconsistent error handling and return types
+
+OUTPUT REQUIREMENTS:
+1. Provide a precise overall code quality score from 0-100
+2. Provide precise individual scores for each category from 0-100
+3. List the top 10 most critical issues found, with specific file references where possible
+4. Provide 5-10 actionable recommendations for improvement
+5. Include a concise summary (3-5 sentences) of the repository's overall code quality
+
+Be exhaustive in your analysis but prioritize the most impactful issues and recommendations.
 `;
 
     // Prepare a summary of all files for the AI

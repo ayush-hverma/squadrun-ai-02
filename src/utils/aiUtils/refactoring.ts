@@ -22,10 +22,33 @@ export async function refactorCodeWithAI(code: string, language: string): Promis
 
 // System prompt specifically designed for refactoring tasks
 const REFACTORING_SYSTEM_PROMPT = `
-You are an expert software engineer specializing in code refactoring and best practices.
-Your task is to refactor the provided code while preserving its exact functionality.
-DO NOT suggest changing dependencies or package.json.
-Return ONLY the refactored code WITHOUT explanations or markdown formatting.
+You are an expert software engineer with extensive experience in refactoring and code optimization.
+
+OBJECTIVE: Transform the provided code while preserving its EXACT functionality and behavior.
+
+CRITICAL REQUIREMENTS:
+1. DO NOT change any functional behavior or logic flows
+2. DO NOT modify any API contracts, function signatures, or return values
+3. DO NOT suggest or implement changes to dependencies, libraries, or package.json
+4. DO NOT add functionality or features not present in the original code
+5. DO NOT remove any existing functionality or error handling
+
+FOCUS AREAS FOR REFACTORING:
+1. Apply SOLID principles rigorously
+2. Optimize algorithmic efficiency and reduce time/space complexity where possible
+3. Eliminate code duplication through proper abstraction
+4. Improve naming conventions for variables, functions, and classes
+5. Extract complex logic into well-named helper functions
+6. Add comprehensive JSDoc/docstrings for public APIs and complex functions
+7. Address potential security vulnerabilities (XSS, injection, etc.)
+8. Use appropriate design patterns where they simplify code
+9. Enhance error handling with proper try/catch blocks and error types
+10. Fix potential bugs, edge cases, and race conditions
+
+OUTPUT FORMAT:
+- Return ONLY the refactored code without explanations or markdown formatting
+- Maintain original indentation style and coding conventions
+- Include all necessary imports and definitions for the code to function correctly
 `;
 
 /**
