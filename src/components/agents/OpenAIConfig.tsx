@@ -47,12 +47,8 @@ export default function OpenAIConfig({ onConfigChange }: OpenAIConfigProps) {
     }
     
     try {
-      configureGemini({
-        apiKey: apiKey.trim(),
-        model,
-        temperature: useEnhancedAnalysis ? 0.1 : 0.3,
-        maxOutputTokens: 65000
-      });
+      // Call configureGemini without parameters since the implementation has changed
+      configureGemini();
       
       setIsConfigured(true);
       
