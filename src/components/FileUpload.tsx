@@ -3,15 +3,18 @@ import { useState, useRef, DragEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+
 interface FileUploadProps {
   onFileUpload: (file: File) => void;
 }
+
 export default function FileUpload({
   onFileUpload
 }: FileUploadProps) {
   const [fileName, setFileName] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
@@ -19,19 +22,23 @@ export default function FileUpload({
       onFileUpload(files[0]);
     }
   };
+
   const handleBrowseClick = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
+
   const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(true);
   };
+
   const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
   };
+
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
@@ -42,10 +49,11 @@ export default function FileUpload({
     }
   };
 
-  // Get accepted file extensions for code files
+  // Now accepting all file types
   const getAcceptedFileTypes = () => {
-    return ".py,.js,.ts,.jsx,.tsx,.java,.cpp,.c,.cs,.go,.rb,.rs,.php,.sh,.sql,.html,.css";
+    return "*";
   };
+
   return <Card className="border border-squadrun-primary/30 shadow-lg transition-all duration-300 hover:shadow-squadrun-primary/20">
       <CardContent className="p-3 px-px py-px mx-[240px]">
         <div className={`flex flex-col items-center transition-all duration-300 
@@ -61,7 +69,7 @@ export default function FileUpload({
             </Button>
 
             {!fileName && <p className="text-squadrun-gray text-sm mt-2 text-center">
-                Drag and drop any code file here<br />or click Browse Files
+                Drag and drop any file here<br />or click Browse Files
               </p>}
           </div>
 

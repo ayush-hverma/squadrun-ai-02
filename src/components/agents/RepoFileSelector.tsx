@@ -66,7 +66,7 @@ export default function RepoFileSelector({
           ref={fileInputRef}
           type="file"
           className="hidden"
-          accept=".py,.js,.ts,.jsx,.tsx,.java,.cpp,.c,.cs,.go,.rb,.rs,.php,.sh,.sql,.html,.css"
+          accept="*"
           onChange={handleLocalFileChange}
         />
         <Button

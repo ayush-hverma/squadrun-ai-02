@@ -111,7 +111,9 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
         item.type === "blob" && 
         !item.path.startsWith('.git/') &&
         !item.path.includes('node_modules/') &&
-        isCodeFile(item.path)
+        // Remove the file extension filter to show all files
+        !item.path.includes('/dist/') &&
+        !item.path.includes('/build/')
       )
       .map((item: any) => ({
         path: item.path,
@@ -120,7 +122,7 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
       }));
     
     if (files.length === 0) {
-      setFetchError("No code files found in repository");
+      setFetchError("No files found in repository");
       return;
     }
     
@@ -168,7 +170,7 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     }
   };
   
-  // Check if file is a code file
+  // Check if file is a code file - retained but not used for filtering anymore
   const isCodeFile = (path: string) => {
     const codeExtensions = [
       '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.cpp', '.c', '.cs', '.go', 
