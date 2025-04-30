@@ -1,21 +1,10 @@
 
-// Re-export all necessary functions from the refactored modules
-export {
-  isGeminiConfigured,
-  getGeminiConfig
-} from './geminiConfig';
+// Re-export everything from the new module structure
+export * from './codeAnalysis';
+export * from './codeCompletion';
+export * from './geminiApi';
+export * from './geminiConfig';
+export * from './refactoring';
 
-export {
-  refactorCodeWithAI,
-  analyzeCodeQualityWithAI,
-  analyzeRepositoryWithAI,
-  analyzeCodeWithAI
-} from './codeAnalysis';
-
-export {
-  getCodeCompletion,
-  codeCompletion
-} from './codeCompletion';
-
-// Backward compatibility exports
-export { configureGemini, getStoredApiKey, clearApiKey } from './geminiConfig';
+// Export the refactorCodeWithAI function directly to maintain compatibility
+export { refactorCodeWithAI } from './refactoring';
