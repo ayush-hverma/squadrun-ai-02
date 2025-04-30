@@ -13,7 +13,8 @@ export {
 } from './codeAnalysis';
 
 export {
-  getCodeCompletion
+  getCodeCompletion,
+  codeCompletion
 } from './codeCompletion';
 
 // Backward compatibility exports
