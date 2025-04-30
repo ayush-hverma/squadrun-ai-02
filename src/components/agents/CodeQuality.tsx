@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Cpu, Search, FolderOpen } from "lucide-react";
@@ -50,8 +49,8 @@ export default function CodeQuality({ fileContent, fileName, repoFiles, repoUrl,
 
   const handleRepoAssessQuality = async () => {
     if (!repoFiles || repoFiles.length === 0) {
-      toast.error("No repository files available", {
-        description: "Please load a GitHub repository first.",
+      toast.info("Repository files are being fetched in the background", {
+        description: "The analysis will begin once files are loaded. Please wait.",
       });
       return;
     }
@@ -173,7 +172,7 @@ export default function CodeQuality({ fileContent, fileName, repoFiles, repoUrl,
             {hasRepoUrl && (
               <Button
                 onClick={handleRepoAssessQuality}
-                disabled={isProcessing || (!repoFiles || repoFiles.length === 0)}
+                disabled={isProcessing}
                 className="bg-squadrun-vivid hover:bg-squadrun-primary text-white"
               >
                 <FolderOpen className="mr-2 h-4 w-4" />
