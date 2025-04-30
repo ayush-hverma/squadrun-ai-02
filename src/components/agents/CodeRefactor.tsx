@@ -12,7 +12,6 @@ import {
 import CodeDisplay from "@/components/CodeDisplay";
 import { toast } from "sonner";
 import { refactorCodeWithAI } from "@/utils/aiUtils";
-import DiffViewer from "@/components/DiffViewer";
 import HighlightedCodeCompare from "@/components/HighlightedCodeCompare";
 
 interface CodeRefactorProps {
@@ -25,7 +24,6 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
   const [refactoredCode, setRefactoredCode] = useState<string | null>(null);
   const [isRefactoring, setIsRefactoring] = useState(false);
   const [language, setLanguage] = useState<string>('js');
-  const [showDiff, setShowDiff] = useState(true);
 
   useEffect(() => {
     setRefactoredCode(null);
@@ -197,11 +195,7 @@ export default function CodeRefactor({ fileContent, fileName, onClearFile }: Cod
 
       <div className="flex-1 overflow-hidden">
         {refactoredCode ? (
-          showDiff ? (
-            <DiffViewer originalCode={fileContent} newCode={refactoredCode} language={language} />
-          ) : (
-            <HighlightedCodeCompare originalCode={fileContent} refactoredCode={refactoredCode} language={language} />
-          )
+          <HighlightedCodeCompare originalCode={fileContent} refactoredCode={refactoredCode} language={language} />
         ) : (
           <CodeDisplay code={fileContent} language={language} />
         )}
