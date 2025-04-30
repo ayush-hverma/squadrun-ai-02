@@ -20,6 +20,29 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
   const [loadingFiles, setLoadingFiles] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Extract owner and repo from GitHub URL
+  const extractRepoInfo = (url: string): { owner: string; repo: string } | null => {
+    try {
+      // Parse different GitHub URL formats
+      const githubRegex = /github\.com\/([^\/]+)\/([^\/]+)/;
+      const matches = url.match(githubRegex);
+      
+      if (matches && matches.length >= 3) {
+        const owner = matches[1];
+        // Remove .git suffix if present
+        let repo = matches[2];
+        if (repo.endsWith('.git')) {
+          repo = repo.slice(0, -4);
+        }
+        return { owner, repo };
+      }
+      return null;
+    } catch (error) {
+      console.error("Error parsing GitHub URL:", error);
+      return null;
+    }
+  };
+
   // Handle GitHub repository input
   const handleGithubRepoInput = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -36,20 +59,30 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     setFetchError(null);
 
     try {
-      // This is a mock implementation
-      // In a real app, this would make an API call to fetch repository files
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const repoInfo = extractRepoInfo(githubUrl);
+      if (!repoInfo) {
+        throw new Error("Invalid GitHub repository URL");
+      }
+
+      const { owner, repo } = repoInfo;
       
-      // Mock repo files for demo purposes
-      const mockFiles = [
-        { path: "src/index.js", type: "file" as const, size: 1024 },
-        { path: "src/components/App.js", type: "file" as const, size: 2048 },
-        { path: "src/utils/helpers.js", type: "file" as const, size: 512 },
-      ];
+      // Fetch repository contents using GitHub API
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`);
       
-      setRepoFiles(mockFiles);
-      toast.success("Repository files loaded successfully");
-      setFileDropdownOpen(true);
+      if (!response.ok) {
+        // Try with master branch if main doesn't exist
+        const masterResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/master?recursive=1`);
+        if (!masterResponse.ok) {
+          throw new Error("Failed to fetch repository files. Repository may be private or doesn't exist.");
+        }
+        
+        const data = await masterResponse.json();
+        processRepoFiles(data);
+      } else {
+        const data = await response.json();
+        processRepoFiles(data);
+      }
+      
     } catch (error) {
       setFetchError(error instanceof Error ? error.message : "Failed to fetch repository files");
       toast.error("Failed to fetch repository files");
@@ -58,19 +91,75 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     }
   };
 
+  // Process repository files from GitHub API response
+  const processRepoFiles = (data: any) => {
+    if (!data.tree || !Array.isArray(data.tree)) {
+      setFetchError("Invalid repository data structure");
+      return;
+    }
+    
+    // Filter only files, exclude folders, git files, etc.
+    const files = data.tree
+      .filter((item: any) => 
+        item.type === "blob" && 
+        !item.path.startsWith('.git/') &&
+        !item.path.includes('node_modules/') &&
+        isCodeFile(item.path)
+      )
+      .map((item: any) => ({
+        path: item.path,
+        type: item.type === "blob" ? "file" : "dir",
+        size: item.size
+      }));
+    
+    if (files.length === 0) {
+      setFetchError("No code files found in repository");
+      return;
+    }
+    
+    setRepoFiles(files);
+    toast.success("Repository files loaded successfully");
+    setFileDropdownOpen(true);
+  };
+  
+  // Check if file is a code file
+  const isCodeFile = (path: string) => {
+    const codeExtensions = [
+      '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.cpp', '.c', '.cs', '.go', 
+      '.rb', '.rs', '.php', '.sh', '.sql', '.html', '.css', '.json', '.md'
+    ];
+    return codeExtensions.some(ext => path.endsWith(ext));
+  };
+
   // Handle file selection and fetch content
   const fetchFileContent = async (file: FileEntry) => {
     setFetchingFileContent(true);
     setFetchError(null);
 
     try {
-      // Mock API call to fetch file content
-      await new Promise(resolve => setTimeout(resolve, 800));
+      const repoInfo = extractRepoInfo(githubUrl);
+      if (!repoInfo) {
+        throw new Error("Invalid GitHub repository URL");
+      }
+
+      const { owner, repo } = repoInfo;
       
-      // Mock file content
-      const mockContent = `// This is mock content for: ${file.path}\n\nconst exampleFunction = () => {\n  console.log("Hello world");\n};\n\nexport default exampleFunction;`;
+      // Fetch raw file content from GitHub
+      const response = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/main/${file.path}`);
       
-      setSelectedFileContent(mockContent);
+      if (!response.ok) {
+        // Try with master branch if main doesn't exist
+        const masterResponse = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/master/${file.path}`);
+        if (!masterResponse.ok) {
+          throw new Error("Failed to fetch file content");
+        }
+        const content = await masterResponse.text();
+        setSelectedFileContent(content);
+      } else {
+        const content = await response.text();
+        setSelectedFileContent(content);
+      }
+      
       setSelectedFileName(file.path.split('/').pop() || file.path);
     } catch (error) {
       setFetchError(error instanceof Error ? error.message : "Failed to fetch file content");
