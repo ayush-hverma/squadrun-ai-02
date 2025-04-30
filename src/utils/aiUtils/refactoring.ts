@@ -1,5 +1,5 @@
 
-import { fetchGeminiResponse } from './geminiApi';
+import { callGeminiApi } from './geminiApi';
 
 /**
  * Refactor code using AI
@@ -12,7 +12,7 @@ export async function refactorCodeWithAI(code: string, language: string): Promis
   const prompt = buildRefactoringPrompt(code, language);
   
   try {
-    const response = await fetchGeminiResponse(prompt);
+    const response = await callGeminiApi(prompt, REFACTORING_SYSTEM_PROMPT);
     return extractRefactoredCode(response, code);
   } catch (error) {
     console.error("Error during AI refactoring:", error);
@@ -20,13 +20,19 @@ export async function refactorCodeWithAI(code: string, language: string): Promis
   }
 }
 
+// System prompt specifically designed for refactoring tasks
+const REFACTORING_SYSTEM_PROMPT = `
+You are an expert software engineer specializing in code refactoring and best practices.
+Your task is to refactor the provided code while preserving its exact functionality.
+DO NOT suggest changing dependencies or package.json.
+Return ONLY the refactored code WITHOUT explanations or markdown formatting.
+`;
+
 /**
  * Build a comprehensive refactoring prompt
  */
 function buildRefactoringPrompt(code: string, language: string): string {
   return `
-You are an expert software engineer specializing in code refactoring and best practices.
-
 Please refactor the following ${language} code to improve:
 1. Readability
 2. Maintainability
