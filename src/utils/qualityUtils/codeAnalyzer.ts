@@ -1,3 +1,4 @@
+
 import { QualityResults, CategoryScore, CodeSnippet } from "@/types/codeQuality";
 import { 
   BookOpen, 
@@ -811,9 +812,15 @@ export const analyzeCodeQuality = (code: string, language: string): QualityResul
   
   return {
     score: overallScore,
+    readabilityScore,
+    maintainabilityScore,
+    performanceScore,
+    securityScore,
+    codeSmellScore,
+    issues: recommendations,
+    recommendations: recommendations,
     summary,
     categories,
-    recommendations,
     snippets,
     refactoredCode
   };

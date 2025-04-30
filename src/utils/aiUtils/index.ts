@@ -9,11 +9,13 @@ export {
 
 export {
   refactorCodeWithAI,
-  analyzeCodeQualityWithAI
+  analyzeCodeQualityWithAI,
+  analyzeRepositoryWithAI
 } from './codeAnalysis';
 
 export {
-  getCodeCompletion
+  getCodeCompletion,
+  codeCompletion
 } from './codeCompletion';
 
 // Legacy re-exports to maintain backward compatibility

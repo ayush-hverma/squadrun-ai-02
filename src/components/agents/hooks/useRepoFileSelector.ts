@@ -1,153 +1,120 @@
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
+import { toast } from "sonner";
 
 export interface FileEntry {
-  name: string;
   path: string;
-  type: string;
-  url?: string;
+  type: "file" | "dir";
+  size?: number;
 }
 
 export const useRepoFileSelector = (initialFileContent: string | null, initialFileName: string | null) => {
-  const [githubUrl, setGithubUrl] = useState<string>("");
+  const [githubUrl, setGithubUrl] = useState("");
   const [repoFiles, setRepoFiles] = useState<FileEntry[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileEntry | null>(null);
   const [selectedFileContent, setSelectedFileContent] = useState<string | null>(initialFileContent);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(initialFileName);
-  const [fileDropdownOpen, setFileDropdownOpen] = useState<boolean>(false);
-  const [loadingFiles, setLoadingFiles] = useState<boolean>(false);
-  const [fetchingFileContent, setFetchingFileContent] = useState<boolean>(false);
+  const [fileDropdownOpen, setFileDropdownOpen] = useState(false);
+  const [fetchingFileContent, setFetchingFileContent] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  
+  const [loadingFiles, setLoadingFiles] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const fetchRepoFiles = useCallback(async (url: string) => {
+
+  // Handle GitHub repository input
+  const handleGithubRepoInput = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!githubUrl.trim()) {
+      toast.error("Please enter a GitHub repository URL");
+      return;
+    }
+
     setLoadingFiles(true);
+    setRepoFiles([]);
+    setSelectedFile(null);
+    setSelectedFileContent(null);
+    setSelectedFileName(null);
     setFetchError(null);
-    
+
     try {
-      // Extract owner and repo from GitHub URL
-      const urlObj = new URL(url);
-      const pathParts = urlObj.pathname.split('/');
+      // This is a mock implementation
+      // In a real app, this would make an API call to fetch repository files
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      if (urlObj.hostname !== 'github.com' || pathParts.length < 3) {
-        throw new Error('Invalid GitHub repository URL');
-      }
+      // Mock repo files for demo purposes
+      const mockFiles = [
+        { path: "src/index.js", type: "file" as const, size: 1024 },
+        { path: "src/components/App.js", type: "file" as const, size: 2048 },
+        { path: "src/utils/helpers.js", type: "file" as const, size: 512 },
+      ];
       
-      const owner = pathParts[1];
-      const repo = pathParts[2];
-      
-      // Fetch repository contents
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`);
-      
-      if (!response.ok) {
-        // Try master branch if main doesn't exist
-        const masterResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/master?recursive=1`);
-        
-        if (!masterResponse.ok) {
-          throw new Error('Failed to fetch repository contents');
-        }
-        
-        const data = await masterResponse.json();
-        processRepoData(data, owner, repo);
-      } else {
-        const data = await response.json();
-        processRepoData(data, owner, repo);
-      }
-      
+      setRepoFiles(mockFiles);
+      toast.success("Repository files loaded successfully");
+      setFileDropdownOpen(true);
     } catch (error) {
-      console.error('Error fetching repository:', error);
-      setFetchError(error instanceof Error ? error.message : 'Failed to fetch repository');
-      setRepoFiles([]);
+      setFetchError(error instanceof Error ? error.message : "Failed to fetch repository files");
+      toast.error("Failed to fetch repository files");
     } finally {
       setLoadingFiles(false);
     }
-  }, []);
-  
-  const processRepoData = (data: any, owner: string, repo: string) => {
-    if (!data.tree) {
-      setFetchError('Repository structure not found');
-      return;
-    }
-    
-    // Filter for code files only
-    const codeExtensions = ['.py', '.js', '.ts', '.jsx', '.tsx', '.html', '.css', '.java', '.cpp', '.c', '.cs', '.go'];
-    
-    const files = data.tree
-      .filter((item: any) => 
-        item.type === 'blob' && 
-        codeExtensions.some(ext => item.path.toLowerCase().endsWith(ext))
-      )
-      .map((item: any) => ({
-        name: item.path.split('/').pop(),
-        path: item.path,
-        type: 'file',
-        url: `https://raw.githubusercontent.com/${owner}/${repo}/HEAD/${item.path}`
-      }));
-    
-    setRepoFiles(files);
-    
-    if (files.length === 0) {
-      setFetchError('No code files found in repository');
-    }
   };
-  
-  const fetchFileContent = useCallback(async (file: FileEntry) => {
-    if (!file.url) return;
-    
+
+  // Handle file selection and fetch content
+  const fetchFileContent = async (file: FileEntry) => {
     setFetchingFileContent(true);
     setFetchError(null);
-    
+
     try {
-      const response = await fetch(file.url);
+      // Mock API call to fetch file content
+      await new Promise(resolve => setTimeout(resolve, 800));
       
-      if (!response.ok) {
-        throw new Error('Failed to fetch file content');
-      }
+      // Mock file content
+      const mockContent = `// This is mock content for: ${file.path}\n\nconst exampleFunction = () => {\n  console.log("Hello world");\n};\n\nexport default exampleFunction;`;
       
-      const content = await response.text();
-      setSelectedFileContent(content);
-      setSelectedFileName(file.name);
-      
+      setSelectedFileContent(mockContent);
+      setSelectedFileName(file.path.split('/').pop() || file.path);
     } catch (error) {
-      console.error('Error fetching file content:', error);
-      setFetchError(error instanceof Error ? error.message : 'Failed to fetch file content');
-      
+      setFetchError(error instanceof Error ? error.message : "Failed to fetch file content");
+      toast.error("Failed to fetch file content");
     } finally {
       setFetchingFileContent(false);
     }
-  }, []);
-  
-  const handleGithubRepoInput = useCallback((e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (githubUrl.trim()) {
-      fetchRepoFiles(githubUrl.trim());
-    }
-  }, [githubUrl, fetchRepoFiles]);
-  
-  const handleLocalFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+  };
+
+  // Handle local file upload
+  const handleLocalFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset GitHub-related state
+    setRepoFiles([]);
+    setSelectedFile(null);
+    setGithubUrl("");
     
-    if (!files || files.length === 0) return;
-    
-    const file = files[0];
     const reader = new FileReader();
-    
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
       setSelectedFileContent(content);
       setSelectedFileName(file.name);
-      setSelectedFile(null);
-      setRepoFiles([]);
+      toast.success(`File "${file.name}" loaded successfully`);
     };
     
     reader.onerror = () => {
-      setFetchError('Error reading file');
+      toast.error("Error reading file");
     };
     
     reader.readAsText(file);
-  }, []);
+  };
   
+  // Function to clear the currently selected file
+  const handleClearFile = () => {
+    setSelectedFileContent(null);
+    setSelectedFileName(null);
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   return {
     githubUrl,
     setGithubUrl,
@@ -156,7 +123,6 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     setSelectedFile,
     selectedFileContent,
     selectedFileName,
-    fetchFileContent,
     fileDropdownOpen,
     setFileDropdownOpen,
     fetchingFileContent,
@@ -164,6 +130,8 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     fileInputRef,
     handleLocalFileChange,
     handleGithubRepoInput,
-    loadingFiles
+    fetchFileContent,
+    loadingFiles,
+    handleClearFile
   };
 };

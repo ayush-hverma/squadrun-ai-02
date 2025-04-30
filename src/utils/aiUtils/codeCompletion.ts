@@ -29,3 +29,6 @@ export const getCodeCompletion = async (
     throw error;
   }
 };
+
+// For backward compatibility
+export const codeCompletion = getCodeCompletion;
