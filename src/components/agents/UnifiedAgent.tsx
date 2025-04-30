@@ -82,7 +82,10 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
             ? <CodeQuality 
                 fileContent={effectiveFileContent} 
                 fileName={effectiveFileName} 
-                repoFiles={selector.allRepoFilesWithContent}
+                repoFiles={selector.allRepoFilesWithContent.map(file => ({
+                  path: file.path,
+                  content: file.content || ''
+                }))}
                 repoUrl={selector.repositoryName}
               />
             : <NoCodeMessage />
