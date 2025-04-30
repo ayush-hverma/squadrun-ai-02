@@ -1,4 +1,3 @@
-
 /**
  * Gemini API configuration module
  */
@@ -12,7 +11,7 @@ export interface GeminiConfig {
 
 // Fixed configuration for Gemini API with pre-configured API key
 const geminiConfig: GeminiConfig = {
-  apiKey: "AIzaSyAMranDv79YHxNAvMAyPGRVK0HsTbRgT2U", // Pre-configured API key
+  apiKey: process.env.GEMINI_API_KEY || "", // Pre-configured API key
   model: "gemini-2.5-flash-preview-04-17",
   temperature: 0.1,
   maxOutputTokens: 65000

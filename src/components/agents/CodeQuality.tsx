@@ -1,12 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Cpu, Search, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 import { QualityResults } from "@/types/codeQuality";
 import { analyzeCodeWithAI, analyzeRepositoryWithAI } from "@/utils/aiUtils/codeAnalysis";
+import { isGeminiConfigured } from "@/utils/aiUtils/geminiConfig";
 import AnalysisView from "./quality/AnalysisView";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+
+/**
+ * Logging utility for debugging
+ */
+const log = {
+  info: (message: string, data?: any) => {
+    console.log(`[CodeQuality] ${message}`, data ? data : '');
+  },
+  error: (message: string, error?: any) => {
+    console.error(`[CodeQuality] ${message}`, error ? error : '');
+    if (error instanceof Error) {
+      console.error(`[CodeQuality] Stack trace:`, error.stack);
+    }
+  },
+  warn: (message: string, data?: any) => {
+    console.warn(`[CodeQuality] ${message}`, data ? data : '');
+  },
+  debug: (message: string, data?: any) => {
+    // Always log in debug mode
+    console.debug(`[CodeQuality] ${message}`, data ? data : '');
+  }
+};
 
 interface CodeQualityProps {
   fileContent: string | null;
@@ -21,16 +44,75 @@ export default function CodeQuality({ fileContent, fileName, repoFiles, repoUrl,
   const [qualityResults, setQualityResults] = useState<QualityResults | null>(null);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [isRepoAnalysis, setIsRepoAnalysis] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [currentFile, setCurrentFile] = useState('');
+  const [currentBatch, setCurrentBatch] = useState(0);
+  const [totalBatches, setTotalBatches] = useState(0);
+
+  log.debug('Component rendered', { 
+    hasFileContent: !!fileContent, 
+    fileName, 
+    repoFilesCount: repoFiles?.length,
+    repoUrl,
+    hasRepoUrl
+  });
+
+  useEffect(() => {
+    const checkGeminiConfig = async () => {
+      try {
+        // Since we have a hardcoded API key, this will always return true
+        const configured = true;
+        log.info('Gemini configuration check', { configured });
+      } catch (error) {
+        log.error('Error checking Gemini configuration', error);
+        setError('Failed to check Gemini configuration');
+      }
+    };
+    checkGeminiConfig();
+  }, []);
 
   const handleAssessQuality = async () => {
-    if (!fileContent) return;
-
-    setIsProcessing(true);
-    setQualityResults(null);
-
     try {
+      setError(null);
+      setIsProcessing(true);
+      setProcessingProgress(0);
+      setQualityResults(null);
+
+      log.info('Starting file quality assessment', {
+        hasFileContent: !!fileContent,
+        contentLength: fileContent?.length
+      });
+
+      if (!fileContent) {
+        throw new Error('No file content provided');
+      }
+
       const language = fileName?.split(".").pop() || "javascript";
+      log.debug('Analyzing file', { fileName, language });
+      
       const results = await analyzeCodeWithAI(fileContent, language);
+      
+      // Log raw Gemini response
+      log.info('Gemini API Response - File Analysis', {
+        fileName,
+        rawResponse: results,
+        responseType: typeof results,
+        hasScore: 'score' in results,
+        hasIssues: 'issues' in results,
+        hasRecommendations: 'recommendations' in results
+      });
+      
+      log.info('Analysis complete', { 
+        fileName,
+        overallScore: results.score,
+        metrics: {
+          readability: results.readabilityScore,
+          maintainability: results.maintainabilityScore,
+          performance: results.performanceScore,
+          security: results.securityScore,
+          codeSmells: results.codeSmellScore
+        }
+      });
 
       toast.success("Analysis Complete", {
         description: `Overall Score: ${results.score}/100`,
@@ -38,95 +120,53 @@ export default function CodeQuality({ fileContent, fileName, repoFiles, repoUrl,
 
       setQualityResults(results);
     } catch (error) {
-      console.error("Analysis error:", error);
-      toast.error("Error Assessing Code Quality", {
-        description: "Please try again with a different file.",
-      });
+      log.error('Error assessing file quality', error);
+      setError(error instanceof Error ? error.message : 'Failed to assess code quality');
+      toast.error(error instanceof Error ? error.message : 'Failed to assess code quality');
     } finally {
       setIsProcessing(false);
+      setProcessingProgress(100);
     }
   };
 
   const handleRepoAssessQuality = async () => {
-    if (!repoFiles || repoFiles.length === 0) {
-      toast.info("Repository files are being fetched in the background", {
-        description: "The analysis will begin once files are loaded. Please wait.",
-      });
-      return;
-    }
-
-    setIsProcessing(true);
-    setQualityResults(null);
-    setIsRepoAnalysis(true);
-    
     try {
-      // Process files in batches of 7
-      const batchSize = 7;
-      const totalBatches = Math.ceil(repoFiles.length / batchSize);
-      let overallResults: QualityResults = {
-        score: 0,
-        readabilityScore: 0,
-        maintainabilityScore: 0,
-        performanceScore: 0,
-        securityScore: 0,
-        codeSmellScore: 0,
-        issues: [],
-        recommendations: []
-      };
-      
-      let processedBatches = 0;
-      
-      // Process files in batches
-      for (let i = 0; i < repoFiles.length; i += batchSize) {
-        const batch = repoFiles.slice(i, i + batchSize);
-        setProcessingProgress(Math.floor((processedBatches / totalBatches) * 100));
-        
-        // Create a combined analysis request for the batch
-        const results = await analyzeRepositoryWithAI(batch);
-        
-        // Aggregate results
-        overallResults.score += results.score;
-        overallResults.readabilityScore += results.readabilityScore;
-        overallResults.maintainabilityScore += results.maintainabilityScore;
-        overallResults.performanceScore += results.performanceScore;
-        overallResults.securityScore += results.securityScore;
-        overallResults.codeSmellScore += results.codeSmellScore;
-        overallResults.issues = [...overallResults.issues, ...results.issues];
-        overallResults.recommendations = [...overallResults.recommendations, ...results.recommendations];
-        
-        processedBatches++;
-        setProcessingProgress(Math.floor((processedBatches / totalBatches) * 100));
+      setError(null);
+      setIsProcessing(true);
+      setProcessingProgress(0);
+      setQualityResults(null);
+      setCurrentFile('');
+      setCurrentBatch(0);
+      setTotalBatches(0);
+
+      log.info('Starting repository quality assessment', {
+        totalFiles: repoFiles?.length,
+        repoUrl
+      });
+
+      if (!repoFiles || repoFiles.length === 0) {
+        throw new Error('No repository files provided');
       }
-      
-      // Calculate averages
-      overallResults.score = Math.round(overallResults.score / totalBatches);
-      overallResults.readabilityScore = Math.round(overallResults.readabilityScore / totalBatches);
-      overallResults.maintainabilityScore = Math.round(overallResults.maintainabilityScore / totalBatches);
-      overallResults.performanceScore = Math.round(overallResults.performanceScore / totalBatches);
-      overallResults.securityScore = Math.round(overallResults.securityScore / totalBatches);
-      overallResults.codeSmellScore = Math.round(overallResults.codeSmellScore / totalBatches);
-      
-      // Deduplicate recommendations and issues
-      overallResults.recommendations = Array.from(new Set(overallResults.recommendations));
-      overallResults.issues = overallResults.issues.slice(0, 10); // Limit to top 10 issues
 
-      toast.success("Repository Analysis Complete", {
-        description: `Overall Score: ${overallResults.score}/100`,
+      const results = await analyzeRepositoryWithAI(repoFiles);
+      setQualityResults(results);
+      log.info('Repository quality assessment complete', {
+        score: results.score,
+        issues: results.issues.length,
+        recommendations: results.recommendations.length
       });
-
-      setQualityResults(overallResults);
     } catch (error) {
-      console.error("Repository analysis error:", error);
-      toast.error("Error Assessing Repository Quality", {
-        description: "Please try again with a different repository.",
-      });
+      log.error('Error assessing repository quality', error);
+      setError(error instanceof Error ? error.message : 'Failed to assess repository quality');
+      toast.error(error instanceof Error ? error.message : 'Failed to assess repository quality');
     } finally {
       setIsProcessing(false);
-      setProcessingProgress(0);
+      setProcessingProgress(100);
     }
   };
 
   const handleClear = () => {
+    log.info('Clearing analysis results');
     setQualityResults(null);
     setIsRepoAnalysis(false);
     toast.success("Analysis Cleared", {

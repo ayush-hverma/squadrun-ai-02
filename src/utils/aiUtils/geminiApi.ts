@@ -1,4 +1,3 @@
-
 import { toast } from "sonner";
 import { getGeminiConfig } from "./geminiConfig";
 
@@ -22,6 +21,13 @@ export const callGeminiApi = async (
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   try {
+    console.log('Making Gemini API request:', {
+      model,
+      promptLength: prompt.length,
+      systemInstructionLength: systemInstruction.length,
+      options
+    });
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
@@ -46,11 +52,19 @@ export const callGeminiApi = async (
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('Gemini API error response:', errorData);
       const errorMessage = errorData.error?.message || JSON.stringify(errorData);
       throw new Error(`Gemini API error: ${errorMessage}`);
     }
 
     const data = await response.json();
+    console.log('Gemini API response:', {
+      hasCandidates: !!data.candidates,
+      candidatesLength: data.candidates?.length,
+      hasContent: !!data.candidates?.[0]?.content,
+      hasParts: !!data.candidates?.[0]?.content?.parts,
+      partsLength: data.candidates?.[0]?.content?.parts?.length
+    });
 
     // Check for candidates and parts before accessing text
     if (!data.candidates || data.candidates.length === 0 || 
@@ -75,7 +89,14 @@ export const callGeminiApi = async (
 
     return content;
   } catch (error) {
-    console.error("Gemini API error:", error);
+    console.error("Gemini API error:", {
+      error,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      errorStack: error instanceof Error ? error.stack : undefined,
+      endpoint,
+      model,
+      promptLength: prompt.length
+    });
     throw error;
   }
 };
