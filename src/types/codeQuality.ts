@@ -1,5 +1,5 @@
 
-import { IconComponent } from "lucide-react";
+import { LucideIcon } from "lucide-react";
 
 export interface QualityResults {
   score: number;
@@ -19,7 +19,7 @@ export interface QualityResults {
 export interface CategoryScore {
   name: string;
   score: number;
-  icon?: IconComponent;
+  icon?: LucideIcon;
 }
 
 export interface CodeSnippet {

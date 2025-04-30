@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { getCodeCompletion } from '@/utils/aiUtils';
+import { getCodeCompletion } from '@/utils/aiUtils/codeCompletion';
 import { toast } from 'sonner';
 
 export interface CompletionResult {
