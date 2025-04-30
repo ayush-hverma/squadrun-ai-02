@@ -1,23 +1,20 @@
 
 // Re-export all necessary functions from the refactored modules
 export {
-  configureGemini,
   isGeminiConfigured,
-  getStoredApiKey,
-  clearApiKey
+  getGeminiConfig
 } from './geminiConfig';
 
 export {
   refactorCodeWithAI,
   analyzeCodeQualityWithAI,
-  analyzeRepositoryWithAI
+  analyzeRepositoryWithAI,
+  analyzeCodeWithAI
 } from './codeAnalysis';
 
 export {
-  getCodeCompletion,
-  codeCompletion
+  getCodeCompletion
 } from './codeCompletion';
 
-// Legacy re-exports to maintain backward compatibility
-export { configureGemini as configureOpenAI } from './geminiConfig';
-export { isGeminiConfigured as isOpenAIConfigured } from './geminiConfig';
+// Backward compatibility exports
+export { configureGemini, getStoredApiKey, clearApiKey } from './geminiConfig';

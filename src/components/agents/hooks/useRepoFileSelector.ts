@@ -6,6 +6,7 @@ export interface FileEntry {
   path: string;
   type: "file" | "dir";
   size?: number;
+  content?: string;
 }
 
 export const useRepoFileSelector = (initialFileContent: string | null, initialFileName: string | null) => {
@@ -19,7 +20,11 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  
+  // Track repository files with content for bulk analysis
+  const [allRepoFilesWithContent, setAllRepoFilesWithContent] = useState<FileEntry[]>([]);
+  const [repositoryName, setRepositoryName] = useState<string | null>(null);
+  
   // Extract owner and repo from GitHub URL
   const extractRepoInfo = (url: string): { owner: string; repo: string } | null => {
     try {
@@ -57,6 +62,7 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     setSelectedFileContent(null);
     setSelectedFileName(null);
     setFetchError(null);
+    setAllRepoFilesWithContent([]);
 
     try {
       const repoInfo = extractRepoInfo(githubUrl);
@@ -65,6 +71,7 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
       }
 
       const { owner, repo } = repoInfo;
+      setRepositoryName(`${owner}/${repo}`);
       
       // Fetch repository contents using GitHub API
       const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`);
@@ -77,10 +84,10 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
         }
         
         const data = await masterResponse.json();
-        processRepoFiles(data);
+        processRepoFiles(data, owner, repo, "master");
       } else {
         const data = await response.json();
-        processRepoFiles(data);
+        processRepoFiles(data, owner, repo, "main");
       }
       
     } catch (error) {
@@ -92,7 +99,7 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
   };
 
   // Process repository files from GitHub API response
-  const processRepoFiles = (data: any) => {
+  const processRepoFiles = async (data: any, owner: string, repo: string, branch: string) => {
     if (!data.tree || !Array.isArray(data.tree)) {
       setFetchError("Invalid repository data structure");
       return;
@@ -118,8 +125,47 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     }
     
     setRepoFiles(files);
-    toast.success("Repository files loaded successfully");
+    toast.success(`${files.length} repository files loaded successfully`);
     setFileDropdownOpen(true);
+    
+    // Load file contents for bulk analysis (limit to reasonable number to avoid rate limiting)
+    const filesToAnalyze = files.slice(0, 50); // Limit to 50 files for analysis
+    
+    // Fetch content for each file
+    let filesWithContent: FileEntry[] = [];
+    let loadedCount = 0;
+    
+    // Create a promise for each file content fetch
+    const fetchPromises = filesToAnalyze.map(async (file) => {
+      try {
+        const fileUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${file.path}`;
+        const response = await fetch(fileUrl);
+        
+        if (response.ok) {
+          const content = await response.text();
+          loadedCount++;
+          if (loadedCount % 10 === 0) {
+            toast.info(`Loaded ${loadedCount}/${filesToAnalyze.length} files for analysis...`);
+          }
+          return { ...file, content };
+        }
+        return file; // Return without content if fetch fails
+      } catch (error) {
+        console.error(`Error fetching content for ${file.path}:`, error);
+        return file;
+      }
+    });
+    
+    // Wait for all fetches to complete
+    const results = await Promise.all(fetchPromises);
+    filesWithContent = results.filter(file => file.content) as FileEntry[];
+    
+    // Update state with files that have content
+    setAllRepoFilesWithContent(filesWithContent);
+    
+    if (filesWithContent.length > 0) {
+      toast.success(`Loaded content for ${filesWithContent.length} files for repository analysis`);
+    }
   };
   
   // Check if file is a code file
@@ -178,6 +224,8 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     setRepoFiles([]);
     setSelectedFile(null);
     setGithubUrl("");
+    setRepositoryName(null);
+    setAllRepoFilesWithContent([]);
     
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -221,6 +269,8 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     handleGithubRepoInput,
     fetchFileContent,
     loadingFiles,
-    handleClearFile
+    handleClearFile,
+    allRepoFilesWithContent,
+    repositoryName
   };
 };

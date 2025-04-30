@@ -21,6 +21,7 @@ interface RepoFileSelectorProps {
   handleLocalFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleGithubRepoInput: (e: React.FormEvent<HTMLFormElement>) => void;
   loadingFiles: boolean;
+  handleClearFile?: () => void;
 }
 
 export default function RepoFileSelector({
@@ -37,7 +38,8 @@ export default function RepoFileSelector({
   fileInputRef,
   handleLocalFileChange,
   handleGithubRepoInput,
-  loadingFiles
+  loadingFiles,
+  handleClearFile
 }: RepoFileSelectorProps) {
   return (
     <div>

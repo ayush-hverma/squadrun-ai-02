@@ -51,6 +51,7 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
         handleLocalFileChange={selector.handleLocalFileChange}
         handleGithubRepoInput={selector.handleGithubRepoInput}
         loadingFiles={selector.loadingFiles}
+        handleClearFile={selector.handleClearFile}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
@@ -78,7 +79,12 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
         
         <TabsContent value="quality" className="flex-1 mt-0">
           {effectiveFileContent
-            ? <CodeQuality fileContent={effectiveFileContent} fileName={effectiveFileName} />
+            ? <CodeQuality 
+                fileContent={effectiveFileContent} 
+                fileName={effectiveFileName} 
+                repoFiles={selector.allRepoFilesWithContent}
+                repoUrl={selector.repositoryName}
+              />
             : <NoCodeMessage />
           }
         </TabsContent>
