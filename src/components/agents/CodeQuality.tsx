@@ -1,10 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CodeQualityScore } from "@/components/visualizers/code-quality-score";
+import { QualityResults } from "@/types/codeQuality";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Cpu, Search } from "lucide-react";
+import CodeDisplay from "../CodeDisplay";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import NoCodeMessage from "./quality/NoCodeMessage";
+import AnalysisView from "./quality/AnalysisView";
+import { Button } from "@/components/ui/button";
 import { analyzeCodeWithAI } from "@/lib/codeAnalysis"; // Updated import
 
 interface Props {
