@@ -87,6 +87,7 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
                   content: file.content || ''
                 }))}
                 repoUrl={selector.repositoryName}
+                hasRepoUrl={!!selector.githubUrl.trim()}
               />
             : <NoCodeMessage />
           }

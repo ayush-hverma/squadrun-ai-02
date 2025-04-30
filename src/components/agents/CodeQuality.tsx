@@ -14,9 +14,10 @@ interface CodeQualityProps {
   fileName: string | null;
   repoFiles?: Array<{path: string, content: string}> | null;
   repoUrl?: string | null;
+  hasRepoUrl?: boolean; // New prop to indicate if a repo URL is present
 }
 
-export default function CodeQuality({ fileContent, fileName, repoFiles, repoUrl }: CodeQualityProps) {
+export default function CodeQuality({ fileContent, fileName, repoFiles, repoUrl, hasRepoUrl }: CodeQualityProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [qualityResults, setQualityResults] = useState<QualityResults | null>(null);
   const [processingProgress, setProcessingProgress] = useState(0);
@@ -134,7 +135,7 @@ export default function CodeQuality({ fileContent, fileName, repoFiles, repoUrl 
     });
   };
 
-  if (!fileContent && !repoFiles?.length) {
+  if (!fileContent && !repoFiles?.length && !hasRepoUrl) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-6">
         <Cpu className="h-16 w-16 text-squadrun-primary mb-4" />
@@ -169,10 +170,10 @@ export default function CodeQuality({ fileContent, fileName, repoFiles, repoUrl 
               </Button>
             )}
             
-            {repoFiles && repoFiles.length > 0 && (
+            {hasRepoUrl && (
               <Button
                 onClick={handleRepoAssessQuality}
-                disabled={isProcessing}
+                disabled={isProcessing || (!repoFiles || repoFiles.length === 0)}
                 className="bg-squadrun-vivid hover:bg-squadrun-primary text-white"
               >
                 <FolderOpen className="mr-2 h-4 w-4" />
