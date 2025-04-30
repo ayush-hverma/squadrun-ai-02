@@ -51,7 +51,7 @@ export default function OpenAIConfig({ onConfigChange }: OpenAIConfigProps) {
         apiKey: apiKey.trim(),
         model,
         temperature: useEnhancedAnalysis ? 0.1 : 0.3,
-        maxOutputTokens: 8192
+        maxOutputTokens: 65000
       });
       
       setIsConfigured(true);
@@ -159,7 +159,7 @@ export default function OpenAIConfig({ onConfigChange }: OpenAIConfigProps) {
               <SelectValue placeholder="Select Gemini model" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="gemini-1.5-pro-latest">Gemini 1.5 Pro (Most Capable)</SelectItem>
+              <SelectItem value="gemini-2.5-flash-preview-04-17">Gemini 2.5 Pro (Most Capable)</SelectItem>
               <SelectItem value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Faster)</SelectItem>
             </SelectContent>
           </Select>
