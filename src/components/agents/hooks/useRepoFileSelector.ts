@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 
@@ -7,12 +6,14 @@ export interface FileEntry {
   type: "file" | "dir";
   size?: number;
   content?: string;
+  selected?: boolean; // New property to track selection state
 }
 
 export const useRepoFileSelector = (initialFileContent: string | null, initialFileName: string | null) => {
   const [githubUrl, setGithubUrl] = useState("");
   const [repoFiles, setRepoFiles] = useState<FileEntry[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileEntry | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<FileEntry[]>([]); // New state for multiple selected files
   const [selectedFileContent, setSelectedFileContent] = useState<string | null>(initialFileContent);
   const [selectedFileName, setSelectedFileName] = useState<string | null>(initialFileName);
   const [fileDropdownOpen, setFileDropdownOpen] = useState(false);
@@ -118,7 +119,8 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
       .map((item: any) => ({
         path: item.path,
         type: item.type === "blob" ? "file" : "dir",
-        size: item.size
+        size: item.size,
+        selected: false // Initialize with unselected state
       }));
     
     if (files.length === 0) {
@@ -254,12 +256,31 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     }
   };
 
+  // New function to toggle selection of a file
+  const toggleFileSelection = (file: FileEntry) => {
+    const updatedFiles = repoFiles.map(f => 
+      f.path === file.path ? { ...f, selected: !f.selected } : f
+    );
+    
+    setRepoFiles(updatedFiles);
+    
+    // Update selectedFiles array
+    const newSelectedFiles = updatedFiles.filter(f => f.selected);
+    setSelectedFiles(newSelectedFiles);
+    
+    // If files were selected, show a toast
+    if (newSelectedFiles.length > 0) {
+      toast.success(`${newSelectedFiles.length} files selected for analysis`);
+    }
+  };
+
   return {
     githubUrl,
     setGithubUrl,
     repoFiles,
     selectedFile,
     setSelectedFile,
+    selectedFiles, // New: export selected files array
     selectedFileContent,
     selectedFileName,
     fileDropdownOpen,
@@ -273,6 +294,7 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     loadingFiles,
     handleClearFile,
     allRepoFilesWithContent,
-    repositoryName
+    repositoryName,
+    toggleFileSelection // New: export toggle selection function
   };
 };
