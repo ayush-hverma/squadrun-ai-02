@@ -5,12 +5,14 @@ import { AlertCircle, ArrowDown, File, Loader2, Upload } from "lucide-react";
 import React from "react";
 import type { FileEntry } from "./hooks/useRepoFileSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface RepoFileSelectorProps {
   githubUrl: string;
   setGithubUrl: (val: string) => void;
   repoFiles: FileEntry[];
   selectedFile: FileEntry | null;
+  selectedFiles?: FileEntry[]; // New: array of selected files
   setSelectedFile: (file: FileEntry) => void;
   fetchFileContent: (file: FileEntry) => void;
   fileDropdownOpen: boolean;
@@ -22,6 +24,7 @@ interface RepoFileSelectorProps {
   handleGithubRepoInput: (e: React.FormEvent<HTMLFormElement>) => void;
   loadingFiles: boolean;
   handleClearFile?: () => void;
+  toggleFileSelection?: (file: FileEntry) => void; // New: function to toggle file selection
 }
 
 export default function RepoFileSelector({
@@ -29,6 +32,7 @@ export default function RepoFileSelector({
   setGithubUrl,
   repoFiles,
   selectedFile,
+  selectedFiles = [],
   setSelectedFile,
   fetchFileContent,
   fileDropdownOpen,
@@ -39,7 +43,8 @@ export default function RepoFileSelector({
   handleLocalFileChange,
   handleGithubRepoInput,
   loadingFiles,
-  handleClearFile
+  handleClearFile,
+  toggleFileSelection
 }: RepoFileSelectorProps) {
   return (
     <div>
@@ -103,38 +108,57 @@ export default function RepoFileSelector({
             <span>
               {selectedFile
                 ? <span className="flex items-center gap-2"><File className="w-4 h-4" /> {selectedFile.path}</span>
-                : "Select file from repo" }
+                : selectedFiles && selectedFiles.length > 0 
+                  ? `${selectedFiles.length} files selected` 
+                  : "Select files from repo" }
             </span>
           </Button>
           {fileDropdownOpen && (
             <div className="max-h-64 overflow-auto rounded border bg-popover mt-2 shadow z-10 absolute w-[400px]">
-              {repoFiles.map(entry =>
+              {repoFiles.map(entry => (
                 <div
                   key={entry.path}
                   tabIndex={0}
-                  className={`flex items-center px-3 py-2 cursor-pointer hover:bg-squadrun-primary/10 ${selectedFile?.path === entry.path ? "bg-squadrun-primary/20" : ""}`}
+                  className={`flex items-center px-3 py-2 cursor-pointer hover:bg-squadrun-primary/10 ${
+                    selectedFile?.path === entry.path ? "bg-squadrun-primary/20" : ""
+                  }`}
                   onClick={() => {
                     setSelectedFile(entry);
                     fetchFileContent(entry);
-                    setFileDropdownOpen(false);
-                  }}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") {
-                      setSelectedFile(entry);
-                      fetchFileContent(entry);
-                      setFileDropdownOpen(false);
-                    }
                   }}
                 >
+                  {/* Add checkbox for multi-selection */}
+                  {toggleFileSelection && (
+                    <div 
+                      className="mr-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFileSelection(entry);
+                      }}
+                    >
+                      <Checkbox 
+                        checked={entry.selected} 
+                        onCheckedChange={() => toggleFileSelection(entry)}
+                        aria-label={`Select ${entry.path}`}
+                      />
+                    </div>
+                  )}
                   <File className="mr-2 w-4 h-4" />
                   <span className="truncate">{entry.path}</span>
                 </div>
-              )}
+              ))}
             </div>
           )}
           {fetchingFileContent && (
             <div className="text-xs text-squadrun-gray mt-1 flex items-center">
               <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Loading file...
+            </div>
+          )}
+          
+          {/* Show count of selected files */}
+          {selectedFiles && selectedFiles.length > 0 && !fileDropdownOpen && (
+            <div className="text-xs text-squadrun-primary mt-1">
+              {selectedFiles.length} {selectedFiles.length === 1 ? 'file' : 'files'} selected for analysis
             </div>
           )}
         </div>

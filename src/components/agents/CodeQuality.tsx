@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Cpu, Search, FolderOpen } from "lucide-react";
@@ -7,6 +8,7 @@ import { analyzeCodeWithAI, analyzeRepositoryWithAI } from "@/utils/aiUtils/code
 import AnalysisView from "./quality/AnalysisView";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { FileEntry } from "./hooks/useRepoFileSelector";
 
 /**
  * Logging utility for debugging
@@ -33,15 +35,17 @@ interface CodeQualityProps {
   fileContent: string | null;
   fileName: string | null;
   repoFiles?: Array<{path: string, content: string}> | null;
+  selectedFiles?: FileEntry[]; // New prop for selected files
   repoUrl?: string | null;
-  hasRepoUrl?: boolean; // New prop to indicate if a repo URL is present
-  githubUrl?: string; // Add githubUrl prop to check if URL is entered
+  hasRepoUrl?: boolean;
+  githubUrl?: string;
 }
 
 export default function CodeQuality({ 
   fileContent, 
   fileName, 
   repoFiles, 
+  selectedFiles = [], // Default to empty array
   repoUrl, 
   hasRepoUrl,
   githubUrl 
@@ -63,6 +67,7 @@ export default function CodeQuality({
     hasFileContent: !!fileContent, 
     fileName, 
     repoFilesCount: repoFiles?.length,
+    selectedFilesCount: selectedFiles?.length,
     repoUrl,
     hasRepoUrl,
     githubUrl,
@@ -171,22 +176,34 @@ export default function CodeQuality({
       setTotalBatches(0);
       setIsRepoAnalysis(true);
 
+      // Use selected files if available, otherwise use all repo files
+      const filesToAnalyze = selectedFiles && selectedFiles.length > 0
+        ? selectedFiles.filter(f => f.content).map(f => ({ path: f.path, content: f.content || '' }))
+        : repoFiles;
+
       log.info('Starting repository quality assessment', {
-        totalFiles: repoFiles?.length,
+        totalFiles: filesToAnalyze?.length,
+        selectedFilesCount: selectedFiles?.length,
         repoUrl,
         repositoryName
       });
 
-      if (!repoFiles || repoFiles.length === 0) {
-        throw new Error('No repository files provided');
+      if (!filesToAnalyze || filesToAnalyze.length === 0) {
+        throw new Error('No files selected for analysis');
       }
 
-      const results = await analyzeRepositoryWithAI(repoFiles);
+      const results = await analyzeRepositoryWithAI(filesToAnalyze);
       setQualityResults(results);
       log.info('Repository quality assessment complete', {
         score: results.score,
         issues: results.issues.length,
-        recommendations: results.recommendations.length
+        recommendations: results.recommendations.length,
+        analyzedFileCount: filesToAnalyze.length
+      });
+      
+      // Show toast with analyzed file count
+      toast.success(`Analysis Complete for ${filesToAnalyze.length} files`, {
+        description: `Overall Score: ${results.score}/100`,
       });
     } catch (error) {
       log.error('Error assessing repository quality', error);
@@ -242,7 +259,7 @@ export default function CodeQuality({
               </Button>
             )}
             
-            {/* Show repo assessment button as soon as GitHub URL is entered */}
+            {/* Update text to show selected file count if any */}
             {(hasRepoUrl || hasGithubUrl) && (
               <Button
                 onClick={handleRepoAssessQuality}
@@ -250,7 +267,9 @@ export default function CodeQuality({
                 className="bg-squadrun-vivid hover:bg-squadrun-primary text-white"
               >
                 <FolderOpen className="mr-2 h-4 w-4" />
-                Assess Repository Quality
+                {selectedFiles && selectedFiles.length > 0 
+                  ? `Assess ${selectedFiles.length} Selected Files` 
+                  : "Assess Repository Quality"}
               </Button>
             )}
           </div>
