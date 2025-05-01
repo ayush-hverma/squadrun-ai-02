@@ -1,6 +1,5 @@
 import { QualityResults } from '@/types/codeQuality';
-import { callGeminiApi } from './geminiApi';
-import { getGeminiConfig } from './geminiConfig';
+import { callGeminiApi, getGeminiConfig } from './geminiApi';
 
 interface FileData {
   path: string;
@@ -126,7 +125,7 @@ MANDATORY ANALYSIS DIMENSIONS:
    - Flag inefficient or wasteful algorithms.
    - Identify outdated libraries, insecure patterns, poor error handling.
    - Penalize inconsistent styles, dead code, magic values, and silent failures.
-   - Coverage must be discussed: What’s tested? What’s not?
+   - Coverage must be discussed: What's tested? What's not?
 
 3. Cross-Cutting Concerns (20% weight)
    - Analyze logging coverage, error boundaries, and monitoring hooks.

@@ -5,7 +5,7 @@ export * from './codeCompletion';
 export * from './geminiApi';
 
 // Re-export specific functions from geminiConfig to avoid conflicts
-export { configureGemini, isGeminiConfigured, getStoredApiKey, clearApiKey } from './geminiConfig';
+export { configureGemini, isGeminiConfigured, getStoredApiKey, clearApiKey } from './geminiApi';
 export * from './refactoring';
 
 // Export the refactorCodeWithAI function directly to maintain compatibility

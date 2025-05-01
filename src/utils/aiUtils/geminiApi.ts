@@ -1,5 +1,58 @@
 import { toast } from "sonner";
-import { getGeminiConfig } from "./geminiConfig";
+
+// Default configuration
+const DEFAULT_CONFIG = {
+  apiKey: import.meta.env.VITE_GEMINI_API_KEY, 
+  model: "gemini-1.5-pro",
+  temperature: 0.7,
+  maxOutputTokens: 2048
+};
+
+// Store configuration in localStorage
+const CONFIG_KEY = "gemini_config";
+
+/**
+ * Configure Gemini API settings 
+ */
+export const configureGemini = (config: Partial<typeof DEFAULT_CONFIG>) => {
+  const currentConfig = getGeminiConfig();
+  const newConfig = { ...currentConfig, ...config };
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(newConfig));
+  return newConfig;
+};
+
+/**
+ * Check if Gemini is configured
+ */
+export const isGeminiConfigured = () => {
+  const config = getGeminiConfig();
+  return !!config.apiKey && config.apiKey !== "YOUR_GOOGLE_API_KEY";
+};
+
+/**
+ * Get stored API key
+ */
+export const getStoredApiKey = () => {
+  const config = getGeminiConfig();
+  return config.apiKey;
+};
+
+/**
+ * Clear stored API key
+ */
+export const clearApiKey = () => {
+  const config = getGeminiConfig();
+  config.apiKey = "";
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+};
+
+/**
+ * Get Gemini configuration
+ */
+export const getGeminiConfig = () => {
+  const stored = localStorage.getItem(CONFIG_KEY);
+  return stored ? JSON.parse(stored) : { ...DEFAULT_CONFIG };
+};
 
 /**
  * Make a request to Google Gemini API
