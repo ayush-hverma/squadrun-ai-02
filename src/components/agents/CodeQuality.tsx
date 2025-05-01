@@ -4,7 +4,6 @@ import { Cpu, Search, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 import { QualityResults } from "@/types/codeQuality";
 import { analyzeCodeWithAI, analyzeRepositoryWithAI } from "@/utils/aiUtils/codeAnalysis";
-import { isGeminiConfigured } from "@/utils/aiUtils/geminiConfig";
 import AnalysisView from "./quality/AnalysisView";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -26,7 +25,6 @@ const log = {
     console.warn(`[CodeQuality] ${message}`, data ? data : '');
   },
   debug: (message: string, data?: any) => {
-    // Always log in debug mode
     console.debug(`[CodeQuality] ${message}`, data ? data : '');
   }
 };
@@ -37,9 +35,17 @@ interface CodeQualityProps {
   repoFiles?: Array<{path: string, content: string}> | null;
   repoUrl?: string | null;
   hasRepoUrl?: boolean; // New prop to indicate if a repo URL is present
+  githubUrl?: string; // Add githubUrl prop to check if URL is entered
 }
 
-export default function CodeQuality({ fileContent, fileName, repoFiles, repoUrl, hasRepoUrl }: CodeQualityProps) {
+export default function CodeQuality({ 
+  fileContent, 
+  fileName, 
+  repoFiles, 
+  repoUrl, 
+  hasRepoUrl,
+  githubUrl 
+}: CodeQualityProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [qualityResults, setQualityResults] = useState<QualityResults | null>(null);
   const [processingProgress, setProcessingProgress] = useState(0);
@@ -49,12 +55,17 @@ export default function CodeQuality({ fileContent, fileName, repoFiles, repoUrl,
   const [currentBatch, setCurrentBatch] = useState(0);
   const [totalBatches, setTotalBatches] = useState(0);
 
+  // Check if GitHub URL is entered (not empty)
+  const hasGithubUrl = Boolean(githubUrl?.trim());
+
   log.debug('Component rendered', { 
     hasFileContent: !!fileContent, 
     fileName, 
     repoFilesCount: repoFiles?.length,
     repoUrl,
-    hasRepoUrl
+    hasRepoUrl,
+    githubUrl,
+    hasGithubUrl
   });
 
   useEffect(() => {
@@ -174,7 +185,7 @@ export default function CodeQuality({ fileContent, fileName, repoFiles, repoUrl,
     });
   };
 
-  if (!fileContent && !repoFiles?.length && !hasRepoUrl) {
+  if (!fileContent && !repoFiles?.length && !hasRepoUrl && !hasGithubUrl) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-6">
         <Cpu className="h-16 w-16 text-squadrun-primary mb-4" />
@@ -209,7 +220,8 @@ export default function CodeQuality({ fileContent, fileName, repoFiles, repoUrl,
               </Button>
             )}
             
-            {hasRepoUrl && (
+            {/* Show repo assessment button as soon as GitHub URL is entered */}
+            {(hasRepoUrl || hasGithubUrl) && (
               <Button
                 onClick={handleRepoAssessQuality}
                 disabled={isProcessing}

@@ -78,19 +78,21 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
         </TabsContent>
         
         <TabsContent value="quality" className="flex-1 mt-0">
-          {effectiveFileContent
-            ? <CodeQuality 
-                fileContent={effectiveFileContent} 
-                fileName={effectiveFileName} 
-                repoFiles={selector.allRepoFilesWithContent.map(file => ({
-                  path: file.path,
-                  content: file.content || ''
-                }))}
-                repoUrl={selector.repositoryName}
-                hasRepoUrl={!!selector.githubUrl.trim()}
-              />
-            : <NoCodeMessage />
-          }
+          {effectiveFileContent || selector.githubUrl ? (
+            <CodeQuality 
+              fileContent={effectiveFileContent} 
+              fileName={effectiveFileName} 
+              repoFiles={selector.allRepoFilesWithContent.map(file => ({
+                path: file.path,
+                content: file.content || ''
+              }))}
+              repoUrl={selector.repositoryName}
+              hasRepoUrl={!!selector.githubUrl.trim()}
+              githubUrl={selector.githubUrl} // Pass the githubUrl to CodeQuality
+            />
+          ) : (
+            <NoCodeMessage />
+          )}
         </TabsContent>
         
         <TabsContent value="testcase" className="flex-1 mt-0">
