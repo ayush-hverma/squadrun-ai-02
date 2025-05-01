@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,8 +48,8 @@ export default function OpenAIConfig({ onConfigChange }: OpenAIConfigProps) {
     }
     
     try {
-      // Call configureGemini without parameters since the implementation has changed
-      configureGemini();
+      // Fix: Pass the apiKey to the configureGemini function
+      configureGemini(apiKey);
       
       setIsConfigured(true);
       
