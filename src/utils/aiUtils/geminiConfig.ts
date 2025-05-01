@@ -11,7 +11,7 @@ export interface GeminiConfig {
 
 // Fixed configuration for Gemini API with pre-configured API key
 const geminiConfig: GeminiConfig = {
-  apiKey: import.meta.env.VITE_GEMINI_API_KEY,  // Pre-configured API key
+  apiKey: import.meta.env.VITE_GEMINI_API_KEY || "", // Pre-configured API key
   model: "gemini-1.5-pro",
   temperature: 0.1,
   maxOutputTokens: 8192
