@@ -48,9 +48,8 @@ export default function OpenAIConfig({ onConfigChange }: OpenAIConfigProps) {
     }
     
     try {
-      // Since configureGemini doesn't accept parameters anymore, we'll just call it
-      // The apiKey setting is now handled elsewhere or through environment variables
-      configureGemini();
+      // Fix: Pass the apiKey to the configureGemini function
+      configureGemini(apiKey);
       
       setIsConfigured(true);
       
