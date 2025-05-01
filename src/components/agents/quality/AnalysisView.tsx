@@ -7,9 +7,16 @@ import { QualityResults } from "@/types/codeQuality";
 interface AnalysisViewProps {
   qualityResults: QualityResults;
   fileName: string | null;
+  isRepositoryAnalysis?: boolean;
+  repositoryName?: string | null;
 }
 
-export default function AnalysisView({ qualityResults, fileName }: AnalysisViewProps) {
+export default function AnalysisView({ 
+  qualityResults, 
+  fileName, 
+  isRepositoryAnalysis = false,
+  repositoryName = null
+}: AnalysisViewProps) {
   return (
     <div className="space-y-4 flex-1 overflow-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

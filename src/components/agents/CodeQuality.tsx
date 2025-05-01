@@ -54,6 +54,7 @@ export default function CodeQuality({
   const [currentFile, setCurrentFile] = useState('');
   const [currentBatch, setCurrentBatch] = useState(0);
   const [totalBatches, setTotalBatches] = useState(0);
+  const [repositoryName, setRepositoryName] = useState<string | null>(null);
 
   // Check if GitHub URL is entered (not empty)
   const hasGithubUrl = Boolean(githubUrl?.trim());
@@ -67,6 +68,25 @@ export default function CodeQuality({
     githubUrl,
     hasGithubUrl
   });
+
+  useEffect(() => {
+    // Extract repository name from GitHub URL if available
+    if (githubUrl) {
+      try {
+        const url = new URL(githubUrl);
+        const pathParts = url.pathname.split('/').filter(Boolean);
+        if (pathParts.length >= 2) {
+          setRepositoryName(`${pathParts[0]}/${pathParts[1]}`);
+        } else {
+          setRepositoryName(url.hostname);
+        }
+      } catch (e) {
+        setRepositoryName(githubUrl);
+      }
+    } else if (repoUrl) {
+      setRepositoryName(repoUrl);
+    }
+  }, [githubUrl, repoUrl]);
 
   useEffect(() => {
     const checkGeminiConfig = async () => {
@@ -149,10 +169,12 @@ export default function CodeQuality({
       setCurrentFile('');
       setCurrentBatch(0);
       setTotalBatches(0);
+      setIsRepoAnalysis(true);
 
       log.info('Starting repository quality assessment', {
         totalFiles: repoFiles?.length,
-        repoUrl
+        repoUrl,
+        repositoryName
       });
 
       if (!repoFiles || repoFiles.length === 0) {
@@ -264,7 +286,7 @@ export default function CodeQuality({
             <CardContent className="p-4">
               <h2 className="text-lg font-bold text-white mb-2">
                 {isRepoAnalysis ? (
-                  <>Repository Analysis: <span className="text-squadrun-primary">{repoUrl || "GitHub Repository"}</span></>
+                  <>Repository Analysis: <span className="text-squadrun-primary">{repositoryName}</span></>
                 ) : (
                   <>File Analysis: <span className="text-squadrun-primary">{fileName}</span></>
                 )}
@@ -277,7 +299,12 @@ export default function CodeQuality({
             </CardContent>
           </Card>
           
-          <AnalysisView qualityResults={qualityResults} fileName={isRepoAnalysis ? "Repository" : fileName} />
+          <AnalysisView 
+            qualityResults={qualityResults} 
+            fileName={fileName} 
+            isRepositoryAnalysis={isRepoAnalysis} 
+            repositoryName={repositoryName} 
+          />
           
           <div className="mt-4 flex justify-center">
             <Button onClick={handleClear} variant="destructive" className="w-full max-w-md">
