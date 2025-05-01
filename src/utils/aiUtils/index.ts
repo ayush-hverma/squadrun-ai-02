@@ -3,7 +3,7 @@
 export * from './codeAnalysis';
 export * from './codeCompletion';
 export * from './geminiApi';
-//export * from './geminiConfig';
+export * from './geminiConfig';
 export * from './refactoring';
 
 // Export the refactorCodeWithAI function directly to maintain compatibility
