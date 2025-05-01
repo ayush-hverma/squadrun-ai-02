@@ -61,6 +61,13 @@ STRICT ANALYSIS DIMENSIONS:
    - Report inconsistent coding styles or architectural violations.
    - Penalize poor cohesion or excessive coupling.
 
+6. SOLID Principles (10% weight)
+   - Single Responsibility: each class/module has a focused, clear purpose
+   - Open/Closed: modules are extensible without modification
+   - Liskov Substitution: inheritance hierarchies are safely substitutable
+   - Interface Segregation: no client is forced to depend on unused interfaces
+   - Dependency Inversion: high-level modules do not depend on low-level modules 
+
 SCORING GUIDELINES:
 - 90–100: Elite quality – minimal, negligible issues
 - 80–89: Strong quality – minor issues, no architectural flaws
@@ -140,6 +147,14 @@ MANDATORY ANALYSIS DIMENSIONS:
    - Evaluate environment reproducibility and config isolation.
    - Assess collaboration artifacts: contribution guides, onboarding, changelogs.
 
+6. Adherence to SOLID principles:
+   - Single Responsibility: each class/module has a focused, clear purpose
+   - Open/Closed: modules are extensible without modification
+   - Liskov Substitution: inheritance hierarchies are safely substitutable
+   - Interface Segregation: no client is forced to depend on unused interfaces
+   - Dependency Inversion: high-level modules do not depend on low-level modules 
+
+
 SCORING RULES (NO EXCEPTIONS):
 - 90–100: Flawless, enterprise-grade repository. No critical issues. Benchmark quality.
 - 80–89: High quality with only minor, isolated issues.
@@ -211,6 +226,18 @@ MANDATORY ANALYSIS – NO DIMENSION MAY BE SKIPPED:
    - Detect dead code, magic values, or inconsistent logic
    - Highlight code violating best practices or SOLID principles
    - Penalize lack of cohesion and excessive coupling
+
+6. Code Complexity Analysis (10% weight)
+   - Analyze the complexity of the codebase
+   - Identify areas of the code that are too complex
+   - Provide recommendations for refactoring the code to improve readability and maintainability
+
+7. Adherence to SOLID principles:
+   - Single Responsibility: each class/module has a focused, clear purpose
+   - Open/Closed: modules are extensible without modification
+   - Liskov Substitution: inheritance hierarchies are safely substitutable
+   - Interface Segregation: no client is forced to depend on unused interfaces
+   - Dependency Inversion: high-level modules do not depend on low-level modules 
 
 STRICT RESPONSE REQUIREMENTS:
 - Assign a score from 0–100 for each dimension using the defined weight
@@ -289,6 +316,14 @@ MANDATORY EVALUATION DIMENSIONS:
    - Assess use of linters, hooks, code review enforcement.
    - Evaluate build isolation, environment reproducibility, and .env safety.
    - Review onboarding, CONTRIBUTING.md, and team standards.
+
+6. Adherence to SOLID principles:
+   - Single Responsibility: each class/module has a focused, clear purpose
+   - Open/Closed: modules are extensible without modification
+   - Liskov Substitution: inheritance hierarchies are safely substitutable
+   - Interface Segregation: no client is forced to depend on unused interfaces
+   - Dependency Inversion: high-level modules do not depend on low-level modules 
+
 
 STRICT RESPONSE GUIDELINES:
 - You must assign a **numerical score (0–100)** for each dimension, based on objective criteria.
