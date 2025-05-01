@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,26 +73,56 @@ export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
         { temperature: 0.2, maxOutputTokens: 8192 }
       );
 
-      // Try to parse the response as JSON
-      let parsedResponse;
-      try {
-        // Find JSON content in the response - look for the first { and the last }
-        const jsonStart = response.indexOf('{');
-        const jsonEnd = response.lastIndexOf('}') + 1;
+      console.log("Raw AI response:", response);
+
+      // Enhanced JSON extraction logic
+      const extractJSON = (text: string): any => {
+        // Try to find JSON using regex patterns
+        const jsonPattern = /\{[\s\S]*\}/g;
+        const matches = text.match(jsonPattern);
         
-        if (jsonStart >= 0 && jsonEnd > jsonStart) {
-          const jsonContent = response.substring(jsonStart, jsonEnd);
-          parsedResponse = JSON.parse(jsonContent);
-        } else {
+        if (!matches || matches.length === 0) {
+          console.error("No JSON object found in response");
           throw new Error("Could not find valid JSON in the response");
         }
+        
+        // Try each match until one works
+        for (const match of matches) {
+          try {
+            return JSON.parse(match);
+          } catch (e) {
+            console.log("Failed to parse potential JSON match:", match.substring(0, 100) + "...");
+            // Continue to next match if this one fails
+          }
+        }
+        
+        // If we got here, none of the matches worked
+        throw new Error("Failed to parse any JSON objects in the response");
+      };
+
+      try {
+        // First attempt: Try direct parsing
+        let parsedResponse;
+        try {
+          parsedResponse = JSON.parse(response);
+          console.log("Direct JSON parsing successful");
+        } catch (e) {
+          console.log("Direct JSON parsing failed, trying extraction methods");
+          parsedResponse = extractJSON(response);
+        }
+        
+        // Validate the parsed response structure
+        if (!parsedResponse.overview || !parsedResponse.endpoints || !parsedResponse.dataModels) {
+          console.error("Parsed response is missing required fields", parsedResponse);
+          throw new Error("AI response is missing required API plan structure");
+        }
+        
+        return parsedResponse as ApiPlan;
       } catch (parseError) {
         console.error("Error parsing AI response:", parseError);
-        console.log("Raw response:", response);
-        throw new Error("Failed to parse AI response as JSON");
+        console.log("Raw response preview:", response.substring(0, 200));
+        throw new Error("Failed to parse AI response as JSON. The response format was unexpected.");
       }
-
-      return parsedResponse as ApiPlan;
     } catch (error) {
       console.error("Error generating API plan:", error);
       throw error;
