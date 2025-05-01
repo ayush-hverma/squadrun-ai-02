@@ -17,7 +17,7 @@ export const callGeminiApi = async (
     throw new Error("Google Gemini API key not configured properly. Please update the API key.");
   }
 
-  const model = geminiConfig.model || "gemini-2.5-flash-preview-04-17";
+  const model = geminiConfig.model || "gemini-1.5-pro";
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
   try {

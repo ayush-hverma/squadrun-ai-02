@@ -10,302 +10,299 @@ interface FileData {
 /**
  * Valid file extensions for code analysis
  */
-const VALID_EXTENSIONS = ['js', 'ts', 'tsx', 'jsx', 'sql', 'json', 'yaml', 'yml', 'toml', 'php', 'css', 'html', 'py', 'java', 'c', 'cpp', 'go', 'rb'];
+const VALID_EXTENSIONS = ['js', 'ts', 'txt', 'md', 'mdx', 'bin', 'gitignore', 'tsx', 'jsx', 'sql', 'sqlx', 'sqlx-migrations', 'sqlite', 'sqlite3', 'json', 'yaml', 'yml', 'toml', 'php', 'css', 'html', 'py', 'java', 'c', 'cpp', 'go', 'rb'];
 
 /**
  * System instruction for code analysis
  */
 const CODE_ANALYSIS_SYSTEM_INSTRUCTION = `
-You are an expert code quality analyzer with strict evaluation criteria. Your task is to analyze code and provide detailed quality metrics.
+You are a senior-level static code analysis agent with strict evaluation criteria. Your role is to **deeply inspect and grade** the quality of a given codebase with **zero tolerance for ambiguity or superficial analysis**.
 
-CRITICAL REQUIREMENTS:
-1. Evaluate code quality across ALL specified dimensions
-2. Provide numerical scores (0-100) for each metric
-3. List specific issues found with line numbers or code snippets
-4. Give actionable recommendations with code examples
-5. Follow strict scoring guidelines for each metric
+MANDATORY REQUIREMENTS:
+1. Assess the code against **every listed dimension** without skipping any aspect.
+2. Assign **numerical scores (0-100)** for each metric using the defined weighting.
+3. Detect and document **specific issues** with file names, line numbers, and relevant code snippets.
+4. Provide **actionable, example-based recommendations** for each issue detected.
+5. Apply the **strict scoring rubric** outlined below—do not inflate scores.
 
-ANALYSIS DIMENSIONS:
+STRICT ANALYSIS DIMENSIONS:
 
 1. Readability (30% weight)
-   - Code structure and organization
-   - Naming conventions and consistency
-   - Comment quality and documentation
-   - Code formatting and style
-   - Variable and function naming clarity
-   - Code complexity and nesting levels
+   - Assess structure, indentation, and logical layout.
+   - Validate naming conventions for clarity and consistency.
+   - Check for high-quality, meaningful comments and docstrings.
+   - Flag poor formatting, mixed styles, or unreadable logic blocks.
+   - Penalize deeply nested logic and lack of separation of concerns.
 
 2. Maintainability (25% weight)
-   - Code organization and modularity
-   - Function and class design
-   - Code duplication and DRY principles
-   - Error handling patterns
-   - Configuration management
-   - Dependency management
+   - Ensure well-defined modules, single-responsibility functions/classes.
+   - Flag repeated code violating DRY principles.
+   - Highlight brittle or unsafe error handling.
+   - Review use of environment variables, configs, and hardcoded values.
+   - Identify poor or unsafe dependency handling.
 
 3. Performance (20% weight)
-   - Algorithm efficiency
-   - Resource usage and optimization
-   - Memory management
-   - Asynchronous operations
-   - Database queries and caching
-   - Network request optimization
+   - Analyze algorithmic complexity and efficiency.
+   - Flag unnecessary loops, redundant operations, or inefficient patterns.
+   - Identify memory-intensive logic or blocking calls.
+   - Detect performance bottlenecks in I/O, network, or database operations.
+   - Recommend scalable alternatives where applicable.
 
 4. Security (15% weight)
-   - Input validation and sanitization
-   - Authentication and authorization
-   - Data encryption and protection
-   - Secure coding practices
-   - Vulnerability prevention
-   - Security best practices
+   - Strictly check for missing input validation, injection risks, and insecure data flows.
+   - Flag unsafe practices in authentication and session management.
+   - Check for absence of encryption, exposed secrets, or insecure storage.
+   - Evaluate dependency security (e.g., known CVEs).
+   - Demand adherence to OWASP and other secure coding standards.
 
 5. Code Smells (10% weight)
-   - Anti-patterns
-   - Technical debt
-   - Code complexity
-   - Dead code
-   - Magic numbers/strings
-   - Inconsistent patterns
+   - Detect anti-patterns, dead code, god functions, or overly complex blocks.
+   - Identify magic values, repeated logic, or misplaced responsibilities.
+   - Report inconsistent coding styles or architectural violations.
+   - Penalize poor cohesion or excessive coupling.
 
 SCORING GUIDELINES:
-- 90-100: Exceptional code quality, minimal issues
-- 80-89: Very good code quality, minor issues
-- 70-79: Good code quality, some issues
-- 60-69: Acceptable code quality, several issues
-- 50-59: Poor code quality, many issues
-- 0-49: Critical issues, requires major refactoring
+- 90–100: Elite quality – minimal, negligible issues
+- 80–89: Strong quality – minor issues, no architectural flaws
+- 70–79: Good quality – several improvable areas, some technical debt
+- 60–69: Acceptable – structural concerns, moderate issues
+- 50–59: Poor – major problems in readability, structure, or safety
+- 0–49: Critical – severe flaws, refactoring or reengineering required
 
-RESPONSE FORMAT:
+RESPONSE FORMAT (STRICT):
+Respond with a structured JSON object conforming to the following schema:
+
 {
-  "score": number, // Overall weighted score (0-100)
-  "readabilityScore": number, // Readability score (0-100)
-  "maintainabilityScore": number, // Maintainability score (0-100)
-  "performanceScore": number, // Performance score (0-100)
-  "securityScore": number, // Security score (0-100)
-  "codeSmellScore": number, // Code smell score (0-100)
-  "issues": string[], // List of specific issues with line numbers
-  "recommendations": string[] // List of improvement recommendations with examples
+  "score": number,                  // Overall weighted score (0–100)
+  "readabilityScore": number,      // (0–100)
+  "maintainabilityScore": number,  // (0–100)
+  "performanceScore": number,      // (0–100)
+  "securityScore": number,         // (0–100)
+  "codeSmellScore": number,        // (0–100)
+  "issues": string[],              // List issues as: "file.py:Line X - Description"
+  "recommendations": string[]      // Detailed, example-based improvements per issue
 }
+
+STRICT ENFORCEMENT:
+- Vague or generic responses are unacceptable.
+- Every point must be supported by **concrete file paths, line numbers, and examples**.
+- Your analysis must reflect **production-grade engineering standards**.
 `;
 
 /**
  * System instruction for repository analysis
  */
 const REPOSITORY_ANALYSIS_SYSTEM_INSTRUCTION = `
-You are an expert repository quality analyzer with strict evaluation criteria. Your task is to analyze a collection of code files and provide comprehensive quality metrics for the entire codebase.
+You are an elite-level repository auditor with zero tolerance for ambiguity or oversight. Your role is to conduct an exhaustive, forensic-grade analysis of a complete codebase and deliver precise, measurable quality metrics with justified scoring.
 
-CRITICAL REQUIREMENTS:
-1. Evaluate repository quality across ALL specified dimensions
-2. Provide numerical scores (0-100) for each metric
-3. List specific issues found with file paths and line numbers
-4. Give actionable recommendations with implementation examples
-5. Follow strict scoring guidelines for each metric
-6. Consider cross-file dependencies and patterns
+STRICT ENFORCEMENT REQUIREMENTS:
+1. **Do NOT omit any dimension** in the analysis.
+2. **Every score (0-100)** must be critically justified with references to exact files and line numbers.
+3. **List a minimum of 5 issues per category** if problems exist.
+4. **All recommendations must include file names, line numbers, and concrete before/after code examples.**
+5. **Cross-file patterns, architectural flaws, and systemic issues MUST be highlighted.**
+6. Your analysis should be objective, direct, and technically grounded—avoid vague language or generic comments.
 
-ANALYSIS DIMENSIONS:
+MANDATORY ANALYSIS DIMENSIONS:
 
 1. Architecture & Structure (30% weight)
-   - Project organization and file structure
-   - Module dependencies and coupling
-   - Code reuse and DRY principles
-   - Configuration management
-   - Build and deployment setup
-   - Directory organization
-   - File naming conventions
-   - Module boundaries
+   - Assess file/directory layout and modular boundaries.
+   - Evaluate inter-module coupling and cohesion.
+   - Identify duplicate logic or poor reuse (DRY violations).
+   - Analyze config, build, and deployment strategies.
+   - Enforce strict naming conventions and folder hygiene.
+   - Penalize monolithic or tangled structures.
 
 2. Code Quality (25% weight)
-   - Readability (code structure, naming, comments)
-   - Maintainability (organization, modularity, complexity)
-   - Performance (algorithms, resource usage)
-   - Security (vulnerabilities, best practices)
-   - Code Smells (anti-patterns, technical debt)
-   - Code consistency across files
-   - Error handling patterns
-   - Testing coverage
+   - Rate readability: naming, comments, formatting.
+   - Evaluate maintainability: code modularity, function length, cyclomatic complexity.
+   - Flag inefficient or wasteful algorithms.
+   - Identify outdated libraries, insecure patterns, poor error handling.
+   - Penalize inconsistent styles, dead code, magic values, and silent failures.
+   - Coverage must be discussed: What’s tested? What’s not?
 
 3. Cross-Cutting Concerns (20% weight)
-   - Error handling patterns
-   - Logging and monitoring
-   - Testing coverage and quality
-   - Documentation completeness
-   - Dependency management
-   - Version control practices
-   - CI/CD configuration
-   - Environment management
+   - Analyze logging coverage, error boundaries, and monitoring hooks.
+   - Examine test coverage depth, quality of assertions, and mocking.
+   - Evaluate documentation for completeness, versioning, and clarity.
+   - Flag dependency mismanagement (e.g., unused packages, version drift).
+   - Review CI/CD logic, version control tagging, and release automation.
 
 4. Security & Compliance (15% weight)
-   - Security best practices
-   - Authentication and authorization
-   - Data protection
-   - API security
-   - Dependency vulnerabilities
-   - Compliance requirements
-   - Security documentation
-   - Access control
+   - Identify missing auth layers, hardcoded secrets, and insecure defaults.
+   - Review access control flows, data handling, and API protections.
+   - Highlight use of vulnerable libraries (CVE risks).
+   - Enforce basic compliance expectations (e.g., logging PII access, TLS enforcement).
 
 5. Development Practices (10% weight)
-   - Version control usage
-   - Branch management
-   - Code review process
-   - Documentation standards
-   - Build and deployment
-   - Environment configuration
-   - Development workflow
-   - Team collaboration
+   - Analyze branching strategy, commit hygiene, and PR workflows.
+   - Assess documentation standards across READMEs, wikis, and inline docs.
+   - Evaluate environment reproducibility and config isolation.
+   - Assess collaboration artifacts: contribution guides, onboarding, changelogs.
 
-SCORING GUIDELINES:
-- 90-100: Exceptional repository quality, minimal issues
-- 80-89: Very good repository quality, minor issues
-- 70-79: Good repository quality, some issues
-- 60-69: Acceptable repository quality, several issues
-- 50-59: Poor repository quality, many issues
-- 0-49: Critical issues, requires major restructuring
+SCORING RULES (NO EXCEPTIONS):
+- 90–100: Flawless, enterprise-grade repository. No critical issues. Benchmark quality.
+- 80–89: High quality with only minor, isolated issues.
+- 70–79: Solid codebase but contains several moderate issues.
+- 60–69: Acceptable, but notable architectural, security, or quality gaps.
+- 50–59: Below standard. Major issues needing attention.
+- 0–49: Critically flawed. Not production-ready. Urgent refactoring required.
 
-RESPONSE FORMAT:
+STRICT RESPONSE FORMAT:
 {
-  "score": number, // Overall weighted score (0-100)
-  "readabilityScore": number, // Overall readability score (0-100)
-  "maintainabilityScore": number, // Overall maintainability score (0-100)
-  "performanceScore": number, // Overall performance score (0-100)
-  "securityScore": number, // Overall security score (0-100)
-  "codeSmellScore": number, // Overall code smell score (0-100)
-  "issues": string[], // List of specific issues with file paths and line numbers
-  "recommendations": string[] // List of improvement recommendations with examples
+  "score": number, // Weighted overall score (0–100)
+  "readabilityScore": number, // Clarity and readability (0–100)
+  "maintainabilityScore": number, // Structure and maintainability (0–100)
+  "performanceScore": number, // Efficiency and optimization (0–100)
+  "securityScore": number, // Security and compliance (0–100)
+  "codeSmellScore": number, // Code smell presence (0–100)
+  "issues": string[], // Specific, file-linked issues with line numbers
+  "recommendations": string[] // Specific, actionable improvements with file paths and code examples
 }
 `;
+
 
 /**
  * Template for code analysis prompt
  */
 const CODE_ANALYSIS_PROMPT = `
-Analyze the following {language} code for quality metrics:
+You are a senior static code analysis engine with zero tolerance for sloppy or vague responses. Analyze the following {language} code with expert-level scrutiny, providing **precise metrics and evidence-backed insights** for each quality dimension.
 
-Code:
+Code to Analyze:
 {code}
 
-REQUIRED ANALYSIS:
+MANDATORY ANALYSIS – NO DIMENSION MAY BE SKIPPED:
 
-1. Readability Analysis
-   - Evaluate code structure and organization
-   - Check naming conventions and consistency
-   - Assess comment quality and documentation
-   - Review code formatting and style
-   - Analyze variable and function naming
-   - Measure code complexity
+1. Readability Analysis (30% weight)
+   - Assess structural clarity and logical flow
+   - Validate naming conventions (variables, functions, classes)
+   - Flag inconsistent or missing documentation and comments
+   - Detect poor formatting (indentation, spacing, layout)
+   - Highlight complex/nested logic
+   - Penalize unclear naming or cryptic constructs
 
-2. Maintainability Analysis
-   - Evaluate code organization and modularity
-   - Assess function and class design
-   - Check for code duplication
-   - Review error handling patterns
-   - Analyze configuration management
-   - Evaluate dependency management
+2. Maintainability Analysis (25% weight)
+   - Evaluate separation of concerns and modularity
+   - Identify oversized functions or misused classes
+   - Detect code duplication and violation of DRY
+   - Assess consistency and robustness of error handling
+   - Analyze configuration hygiene and decoupling
+   - Flag unsafe dependency handling or hardcoded values
 
-3. Performance Analysis
-   - Evaluate algorithm efficiency
-   - Check resource usage and optimization
-   - Review memory management
-   - Assess asynchronous operations
-   - Analyze database operations
-   - Review network requests
+3. Performance Analysis (20% weight)
+   - Review algorithmic complexity and runtime efficiency
+   - Identify excessive loops, redundant calculations, or blocking logic
+   - Flag poor memory or resource usage
+   - Detect misuse of asynchronous flows or thread management
+   - Analyze bottlenecks in database or network interactions
+   - Suggest performance-optimized refactoring
 
-4. Security Analysis
-   - Check input validation
-   - Review authentication mechanisms
-   - Assess data protection
-   - Evaluate secure coding practices
-   - Check for vulnerabilities
-   - Review security patterns
+4. Security Analysis (15% weight)
+   - Strictly check for input/output sanitization
+   - Review authentication, authorization, and session management
+   - Flag hardcoded secrets, missing encryption, or insecure storage
+   - Detect insecure use of external libraries
+   - Validate conformance to OWASP and secure coding standards
+   - Identify exposure of sensitive data or weak access controls
 
-5. Code Smell Analysis
-   - Identify anti-patterns
-   - Check for technical debt
-   - Measure code complexity
-   - Look for dead code
-   - Check for magic numbers/strings
-   - Review coding patterns
+5. Code Smell Analysis (10% weight)
+   - Identify all instances of anti-patterns (god objects, shotgun surgery, etc.)
+   - Flag technical debt and outdated practices
+   - Detect dead code, magic values, or inconsistent logic
+   - Highlight code violating best practices or SOLID principles
+   - Penalize lack of cohesion and excessive coupling
 
-For each category:
-- Provide a score from 0-100
-- List specific issues with line numbers
-- Give actionable recommendations with code examples
+STRICT RESPONSE REQUIREMENTS:
+- Assign a score from 0–100 for each dimension using the defined weight
+- Total score must reflect a strict weighted average
+- List **specific issues** with exact file and line references or code snippets
+- Provide **detailed, example-based** recommendations for every major issue
 
-Format the response as a structured JSON object matching the QualityResults interface.
+RESPONSE FORMAT (STRICT JSON):
+{
+  "score": number,                  // Total weighted score (0–100)
+  "readabilityScore": number,      // (0–100)
+  "maintainabilityScore": number,  // (0–100)
+  "performanceScore": number,      // (0–100)
+  "securityScore": number,         // (0–100)
+  "codeSmellScore": number,        // (0–100)
+  "issues": string[],              // "Line X: <Description>" or "file.ext:Line Y - <Issue>"
+  "recommendations": string[]      // "Fix <problem> by <solution>. Example: <code>"
+}
+
+ENFORCEMENT POLICY:
+- Do NOT give generic feedback
+- Do NOT skip any metric
+- Each score must reflect real, concrete evidence from the input
+- Responses must demonstrate expert-level reasoning and engineering discipline
 `;
 
 /**
  * Template for repository analysis prompt
  */
 const REPOSITORY_ANALYSIS_PROMPT = `
-Analyze the following repository for quality metrics:
+You are a senior-level static analysis agent with strict standards for repository quality. Perform a **comprehensive, line-by-line audit** of the following repository. Your analysis must be **exhaustive, exact, and aligned with industry best practices.**
 
-Files:
+Repository Files:
 {files}
 
 Repository Structure:
 {structure}
 
-REQUIRED ANALYSIS:
+MANDATORY EVALUATION DIMENSIONS:
 
-1. Architecture & Structure Analysis
-   - Evaluate project organization
-   - Check module dependencies
-   - Assess code reuse
-   - Review configuration management
-   - Analyze build setup
-   - Check directory structure
-   - Review file naming
-   - Evaluate module boundaries
+1. Architecture & Structure (Weight: 30%)
+   - Critically assess project organization and modular layout.
+   - Identify any tight coupling or poor separation of concerns.
+   - Highlight repeated logic violating DRY principles.
+   - Evaluate configuration and build management rigor.
+   - Review naming conventions, folder hierarchy, and boundaries.
+   - Penalize ambiguous structure or scattered logic.
 
-2. Code Quality Analysis
-   - Evaluate overall readability
-   - Check maintainability
-   - Assess performance patterns
-   - Review security practices
-   - Identify code smells
-   - Check code consistency
-   - Review error handling
-   - Assess testing coverage
+2. Code Quality (Weight: 25%)
+   - Rigorously rate readability: naming, formatting, inline docs.
+   - Measure maintainability: function size, cohesion, complexity.
+   - Identify inefficient or unscalable implementations.
+   - Flag poor security practices, bad exception handling, and unsafe patterns.
+   - Detect code smells (e.g., long methods, nested conditionals, magic values).
+   - Ensure consistent coding standards across all files.
+   - Report untested logic, brittle tests, or poor test design.
 
-3. Cross-Cutting Concerns Analysis
-   - Evaluate error handling
-   - Check logging practices
-   - Review testing coverage
-   - Assess documentation
-   - Check dependency management
-   - Review version control
-   - Analyze CI/CD setup
-   - Check environment management
+3. Cross-Cutting Concerns (Weight: 20%)
+   - Examine logging granularity and traceability.
+   - Analyze error handling and fallback mechanisms.
+   - Evaluate testing coverage and assertion quality.
+   - Review all documentation: technical, usage, and config.
+   - Flag outdated or unpinned dependencies.
+   - Check for CI/CD configuration, release automation, and reproducibility.
 
-4. Security & Compliance Analysis
-   - Review security practices
-   - Check authentication
-   - Assess data protection
-   - Evaluate API security
-   - Check dependencies
-   - Review compliance
-   - Assess documentation
-   - Check access control
+4. Security & Compliance (Weight: 15%)
+   - Identify hardcoded secrets, unencrypted data, and unsafe APIs.
+   - Validate authentication/authorization flows.
+   - Flag unsafe dependency usage (e.g., known CVEs).
+   - Assess data privacy compliance and access controls.
+   - Review security documentation and policy enforcement.
 
-5. Development Practices Analysis
-   - Review version control
-   - Check branch management
-   - Assess code review
-   - Review documentation
-   - Check build process
-   - Evaluate environments
-   - Review workflow
-   - Check collaboration
+5. Development Practices (Weight: 10%)
+   - Inspect version control hygiene: commit style, PR process.
+   - Review branching model and release discipline.
+   - Assess use of linters, hooks, code review enforcement.
+   - Evaluate build isolation, environment reproducibility, and .env safety.
+   - Review onboarding, CONTRIBUTING.md, and team standards.
 
-For each category:
-- Provide a score from 0-100
-- List specific issues with file paths and line numbers
-- Give actionable recommendations with implementation examples
+STRICT RESPONSE GUIDELINES:
+- You must assign a **numerical score (0–100)** for each dimension, based on objective criteria.
+- Provide a minimum of **3–5 specific issues per dimension**, with file paths and exact line numbers.
+- All recommendations must include:
+  - **File and line reference**
+  - **Code example (before and after)**
+  - **Clear rationale for change**
 
-Format the response as a structured JSON object matching the QualityResults interface.
+OUTPUT FORMAT:
+Return your results as a strictly structured JSON object matching the **QualityResults** interface. Inaccurate or unstructured output is unacceptable.
+
+DO NOT generalize. Your answers must be file-specific, line-specific, and actionable.
 `;
-
 /**
  * Logging utility for debugging
  */
@@ -432,7 +429,7 @@ export const analyzeCodeWithAI = async (
     try {
       response = await callGeminiApi(prompt, CODE_ANALYSIS_SYSTEM_INSTRUCTION, {
         temperature: 0.1,
-        maxOutputTokens: 4000
+        maxOutputTokens: 8192
       });
     } catch (apiError) {
       log.error('Gemini API call failed', { 
@@ -452,47 +449,85 @@ export const analyzeCodeWithAI = async (
     // Parse and validate the response
     let results: QualityResults;
     try {
-      results = JSON.parse(response);
-      
-      // Validate required fields
-      const requiredFields = [
-        'score', 'readabilityScore', 'maintainabilityScore',
-        'performanceScore', 'securityScore', 'codeSmellScore',
-        'issues', 'recommendations'
-      ];
-      
-      for (const field of requiredFields) {
-        if (!(field in results)) {
-          throw new Error(`Missing required field: ${field}`);
+      // First try to parse the response directly
+      try {
+        results = JSON.parse(response);
+      } catch (parseError) {
+        // If direct parsing fails, try to extract JSON from the response
+        // First try to remove markdown code block formatting
+        const cleanResponse = response.replace(/```json\n?|\n?```/g, '').trim();
+        try {
+          results = JSON.parse(cleanResponse);
+        } catch (markdownParseError) {
+          // If that fails, try to extract JSON using regex
+          const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) {
+            throw new Error('No valid JSON found in response');
+          }
+          results = JSON.parse(jsonMatch[0]);
         }
       }
+      
+      // Ensure all required fields exist with default values if missing
+      results = {
+        score: typeof results.score === 'number' ? results.score : 0,
+        readabilityScore: typeof results.readabilityScore === 'number' ? results.readabilityScore : 0,
+        maintainabilityScore: typeof results.maintainabilityScore === 'number' ? results.maintainabilityScore : 0,
+        performanceScore: typeof results.performanceScore === 'number' ? results.performanceScore : 0,
+        securityScore: typeof results.securityScore === 'number' ? results.securityScore : 0,
+        codeSmellScore: typeof results.codeSmellScore === 'number' ? results.codeSmellScore : 0,
+        issues: Array.isArray(results.issues) ? results.issues : [],
+        recommendations: Array.isArray(results.recommendations) ? results.recommendations : []
+      };
 
       // Validate numeric fields are within range
       const numericFields = [
         'score', 'readabilityScore', 'maintainabilityScore',
         'performanceScore', 'securityScore', 'codeSmellScore'
-      ];
+      ] as const;
       
       for (const field of numericFields) {
-        const value = results[field as keyof QualityResults];
+        const value = results[field];
         if (typeof value !== 'number' || value < 0 || value > 100) {
-          throw new Error(`Invalid score for ${field}: ${value}`);
+          // Clamp values to valid range
+          (results as any)[field] = Math.max(0, Math.min(100, Number(value) || 0));
         }
       }
 
-      // Validate arrays
-      if (!Array.isArray(results.issues) || !Array.isArray(results.recommendations)) {
-        throw new Error('Issues and recommendations must be arrays');
-      }
+      log.info('Successfully parsed and validated response', {
+        scores: {
+          overall: results.score,
+          readability: results.readabilityScore,
+          maintainability: results.maintainabilityScore,
+          performance: results.performanceScore,
+          security: results.securityScore,
+          codeSmells: results.codeSmellScore
+        },
+        issuesCount: results.issues.length,
+        recommendationsCount: results.recommendations.length
+      });
 
     } catch (parseError) {
       log.error('Failed to parse Gemini API response', { 
         error: parseError,
+        errorMessage: parseError instanceof Error ? parseError.message : 'Unknown parse error',
+        errorStack: parseError instanceof Error ? parseError.stack : undefined,
         response,
         language,
         codeLength: code.length
       });
-      throw new Error('Failed to parse analysis results');
+      
+      // Return a default response instead of throwing
+      results = {
+        score: 0,
+        readabilityScore: 0,
+        maintainabilityScore: 0,
+        performanceScore: 0,
+        securityScore: 0,
+        codeSmellScore: 0,
+        issues: ['Failed to parse analysis results. Please try again.'],
+        recommendations: ['The analysis could not be completed. Please ensure the code is valid and try again.']
+      };
     }
 
     log.info('Analysis complete', {
@@ -625,38 +660,63 @@ export const analyzeRepositoryWithAI = async (
     // Parse and validate the response
     let results: QualityResults;
     try {
-      results = JSON.parse(response);
-      
-      // Validate required fields
-      const requiredFields = [
-        'score', 'readabilityScore', 'maintainabilityScore',
-        'performanceScore', 'securityScore', 'codeSmellScore',
-        'issues', 'recommendations'
-      ];
-      
-      for (const field of requiredFields) {
-        if (!(field in results)) {
-          throw new Error(`Missing required field: ${field}`);
+      // First try to parse the response directly
+      try {
+        results = JSON.parse(response);
+      } catch (parseError) {
+        // If direct parsing fails, try to extract JSON from the response
+        // First try to remove markdown code block formatting
+        const cleanResponse = response.replace(/```json\n?|\n?```/g, '').trim();
+        try {
+          results = JSON.parse(cleanResponse);
+        } catch (markdownParseError) {
+          // If that fails, try to extract JSON using regex
+          const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+          if (!jsonMatch) {
+            throw new Error('No valid JSON found in response');
+          }
+          results = JSON.parse(jsonMatch[0]);
         }
       }
+      
+      // Ensure all required fields exist with default values if missing
+      results = {
+        score: typeof results.score === 'number' ? results.score : 0,
+        readabilityScore: typeof results.readabilityScore === 'number' ? results.readabilityScore : 0,
+        maintainabilityScore: typeof results.maintainabilityScore === 'number' ? results.maintainabilityScore : 0,
+        performanceScore: typeof results.performanceScore === 'number' ? results.performanceScore : 0,
+        securityScore: typeof results.securityScore === 'number' ? results.securityScore : 0,
+        codeSmellScore: typeof results.codeSmellScore === 'number' ? results.codeSmellScore : 0,
+        issues: Array.isArray(results.issues) ? results.issues : [],
+        recommendations: Array.isArray(results.recommendations) ? results.recommendations : []
+      };
 
       // Validate numeric fields are within range
       const numericFields = [
         'score', 'readabilityScore', 'maintainabilityScore',
         'performanceScore', 'securityScore', 'codeSmellScore'
-      ];
+      ] as const;
       
       for (const field of numericFields) {
-        const value = results[field as keyof QualityResults];
+        const value = results[field];
         if (typeof value !== 'number' || value < 0 || value > 100) {
-          throw new Error(`Invalid score for ${field}: ${value}`);
+          // Clamp values to valid range
+          (results as any)[field] = Math.max(0, Math.min(100, Number(value) || 0));
         }
       }
 
-      // Validate arrays
-      if (!Array.isArray(results.issues) || !Array.isArray(results.recommendations)) {
-        throw new Error('Issues and recommendations must be arrays');
-      }
+      log.info('Successfully parsed and validated response', {
+        scores: {
+          overall: results.score,
+          readability: results.readabilityScore,
+          maintainability: results.maintainabilityScore,
+          performance: results.performanceScore,
+          security: results.securityScore,
+          codeSmells: results.codeSmellScore
+        },
+        issuesCount: results.issues.length,
+        recommendationsCount: results.recommendations.length
+      });
 
     } catch (parseError) {
       log.error('Failed to parse Gemini API response', { 
@@ -666,7 +726,18 @@ export const analyzeRepositoryWithAI = async (
         response,
         totalFiles: validFiles.length
       });
-      throw new Error(`Failed to parse analysis results: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`);
+      
+      // Return a default response instead of throwing
+      results = {
+        score: 0,
+        readabilityScore: 0,
+        maintainabilityScore: 0,
+        performanceScore: 0,
+        securityScore: 0,
+        codeSmellScore: 0,
+        issues: ['Failed to parse analysis results. Please try again.'],
+        recommendations: ['The analysis could not be completed. Please ensure the code is valid and try again.']
+      };
     }
 
     log.info('Repository analysis complete', {
