@@ -13,6 +13,9 @@ import CodeDisplay from "../CodeDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { AutogrowingTextarea } from "@/components/ui/autogrowing-textarea";
 import ModelPicker from "@/components/ModelPicker";
+import { callGeminiApi } from "@/utils/aiUtils";
+import { systemInstructionTemplate, getApiPlanPrompt } from "@/utils/aiUtils/apiPromptTemplates";
+import { toast } from "sonner";
 
 interface ApiCreatorProps {
   fileContent?: string | null;
@@ -23,6 +26,7 @@ interface ApiEndpoint {
   method: string;
   path: string;
   description: string;
+  
   requestBody: string;
   response: string;
 }
@@ -52,1213 +56,182 @@ interface ApiPlan {
 
 export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
   const { toast } = useToast();
-  const [description, setDescription] = useState<string>(
-    fileContent ? `Create an API based on this code:\n\n${fileContent.substring(0, 200)}...` : ""
-  );
+  const [description, setDescription] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [apiPlan, setApiPlan] = useState<ApiPlan | null>(null);
-  const [model, setModel] = useState<"gemini" | "openai" | "groq">("openai");
+  const [model, setModel] = useState<"gemini" | "openai" | "groq">("gemini");
+  const [error, setError] = useState<string | null>(null);
 
-  const analyzeRequirements = (text: string): ApiPlan => {
-    const isAuthRequired = /auth|login|register|sign|user/i.test(text);
-    const isEcommerce = /ecommerce|product|cart|order|payment|shop/i.test(text);
-    const isTodo = /todo|task|list|item/i.test(text);
-    const isBlog = /blog|post|article|comment/i.test(text);
-    const isFileSystem = /file|upload|download|storage/i.test(text);
-    
-    if (isEcommerce) {
-      return generateEcommerceApi();
-    } else if (isTodo) {
-      return generateTodoApi();
-    } else if (isBlog) {
-      return generateBlogApi();
-    } else if (isFileSystem) {
-      return generateFileSystemApi();
-    } else {
-      return generateUserManagementApi(isAuthRequired);
-    }
-  };
-
-  const generateUserManagementApi = (includeAuth: boolean = true): ApiPlan => {
-    return {
-      overview: {
-        purpose: "User management API for handling authentication and profile data",
-        techStack: "Node.js, Express, MongoDB, JWT authentication",
-        architecture: "RESTful API with MVC pattern"
-      },
-      endpoints: [
-        { 
-          method: "POST", 
-          path: "/api/auth/register", 
-          description: "Register a new user", 
-          requestBody: "{ \"username\": \"string\", \"email\": \"string\", \"password\": \"string\" }",
-          response: "{ \"id\": \"string\", \"username\": \"string\", \"email\": \"string\", \"token\": \"string\" }"
-        },
-        { 
-          method: "POST", 
-          path: "/api/auth/login", 
-          description: "Authenticate a user", 
-          requestBody: "{ \"email\": \"string\", \"password\": \"string\" }",
-          response: "{ \"id\": \"string\", \"username\": \"string\", \"token\": \"string\" }"
-        },
-        { 
-          method: "GET", 
-          path: "/api/users/profile", 
-          description: "Get user profile", 
-          requestBody: "No body (JWT in Authorization header)",
-          response: "{ \"id\": \"string\", \"username\": \"string\", \"email\": \"string\", \"profile\": { ... } }"
-        },
-        { 
-          method: "PUT", 
-          path: "/api/users/profile", 
-          description: "Update user profile", 
-          requestBody: "{ \"username\": \"string\", \"bio\": \"string\", ... }",
-          response: "{ \"id\": \"string\", \"username\": \"string\", \"profile\": { ... } }"
-        }
-      ],
-      dataModels: [
-        {
-          name: "User",
-          schema: `const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
-  profile: {
-    bio: String,
-    location: String,
-    website: String,
-    avatar: String
-  }
-});`
-        }
-      ],
-      implementation: {
-        setup: `// Install dependencies
-npm init -y
-npm install express mongoose jsonwebtoken bcryptjs cors dotenv
-
-// Create server.js
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/users', require('./routes/users'));
-
-// Database connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error(err));
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`,
-        
-        authentication: `// models/User.js
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-
-const userSchema = new mongoose.Schema({
-  username: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  createdAt: { type: Date, default: Date.now },
-  profile: {
-    bio: String,
-    location: String,
-    website: String,
-    avatar: String
-  }
-});
-
-// Hash password before saving
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Compare password method
-userSchema.methods.comparePassword = async function(password) {
-  return await bcrypt.compare(password, this.password);
-};
-
-module.exports = mongoose.model('User', userSchema);`,
-        
-        middleware: `// middleware/auth.js
-const jwt = require('jsonwebtoken');
-
-module.exports = function(req, res, next) {
-  // Get token from header
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-
-  // Check if no token
-  if (!token) {
-    return res.status(401).json({ message: 'No token, authorization denied' });
-  }
-
-  // Verify token
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded.user;
-    next();
-  } catch (err) {
-    res.status(401).json({ message: 'Token is not valid' });
-  }
-};`
-      },
-      security: [
-        "Use HTTPS in production",
-        "Implement rate limiting",
-        "Validate all inputs",
-        "Apply proper authentication/authorization", 
-        "Use environment variables for secrets"
-      ],
-      deployment: [
-        "Set up CI/CD pipeline with GitHub Actions",
-        "Deploy API on AWS, Heroku, or similar cloud provider",
-        "Configure environment variables in deployment platform",
-        "Set up monitoring with tools like New Relic or DataDog"
-      ]
-    };
-  };
-
-  const generateTodoApi = (): ApiPlan => {
-    return {
-      overview: {
-        purpose: "Task management API for creating and managing to-do items",
-        techStack: "Node.js, Express, MongoDB, JWT authentication",
-        architecture: "RESTful API with CRUD operations"
-      },
-      endpoints: [
-        { 
-          method: "GET", 
-          path: "/api/tasks", 
-          description: "Get all tasks for the authenticated user", 
-          requestBody: "No body (JWT in Authorization header)",
-          response: "[{ \"id\": \"string\", \"title\": \"string\", \"completed\": boolean, \"createdAt\": \"date\" }]"
-        },
-        { 
-          method: "POST", 
-          path: "/api/tasks", 
-          description: "Create a new task", 
-          requestBody: "{ \"title\": \"string\", \"description\": \"string\", \"dueDate\": \"date\" }",
-          response: "{ \"id\": \"string\", \"title\": \"string\", \"description\": \"string\", \"completed\": false }"
-        },
-        { 
-          method: "PUT", 
-          path: "/api/tasks/:id", 
-          description: "Update an existing task", 
-          requestBody: "{ \"title\": \"string\", \"description\": \"string\", \"completed\": boolean }",
-          response: "{ \"id\": \"string\", \"title\": \"string\", \"description\": \"string\", \"completed\": boolean }"
-        },
-        { 
-          method: "DELETE", 
-          path: "/api/tasks/:id", 
-          description: "Delete a task", 
-          requestBody: "No body (JWT in Authorization header)",
-          response: "{ \"message\": \"Task deleted\" }"
-        }
-      ],
-      dataModels: [
-        {
-          name: "Task",
-          schema: `const taskSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  title: {
-    type: String,
-    required: true
-  },
-  description: {
-    type: String,
-    default: ''
-  },
-  completed: {
-    type: Boolean,
-    default: false
-  },
-  dueDate: {
-    type: Date
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-});`
-        }
-      ],
-      implementation: {
-        setup: `// Install dependencies
-npm init -y
-npm install express mongoose jsonwebtoken cors dotenv
-
-// Create server.js
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/tasks', require('./routes/tasks'));
-
-// Database connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error(err));
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`,
-        
-        routes: `// routes/tasks.js
-const express = require('express');
-const router = express.Router();
-const Task = require('../models/Task');
-const auth = require('../middleware/auth');
-
-// Get all tasks
-router.get('/', auth, async (req, res) => {
-  try {
-    const tasks = await Task.find({ user: req.user.id }).sort({ createdAt: -1 });
-    res.json(tasks);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// Create a task
-router.post('/', auth, async (req, res) => {
-  const { title, description, dueDate } = req.body;
-  
-  try {
-    const newTask = new Task({
-      title,
-      description,
-      dueDate,
-      user: req.user.id
-    });
-    
-    const task = await newTask.save();
-    res.json(task);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// Update a task
-router.put('/:id', auth, async (req, res) => {
-  const { title, description, completed } = req.body;
-  
-  // Build task object
-  const taskFields = {};
-  if (title !== undefined) taskFields.title = title;
-  if (description !== undefined) taskFields.description = description;
-  if (completed !== undefined) taskFields.completed = completed;
-  
-  try {
-    let task = await Task.findById(req.params.id);
-    
-    if (!task) return res.status(404).json({ msg: 'Task not found' });
-    
-    // Make sure user owns task
-    if (task.user.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'Not authorized' });
-    }
-    
-    task = await Task.findByIdAndUpdate(
-      req.params.id,
-      { $set: taskFields },
-      { new: true }
-    );
-    
-    res.json(task);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// Delete a task
-router.delete('/:id', auth, async (req, res) => {
-  try {
-    let task = await Task.findById(req.params.id);
-    
-    if (!task) return res.status(404).json({ msg: 'Task not found' });
-    
-    // Make sure user owns task
-    if (task.user.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'Not authorized' });
-    }
-    
-    await Task.findByIdAndRemove(req.params.id);
-    
-    res.json({ msg: 'Task removed' });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-module.exports = router;`
-      },
-      security: [
-        "Implement JWT authentication",
-        "Validate task ownership for all operations",
-        "Sanitize and validate input data",
-        "Implement rate limiting for API endpoints"
-      ],
-      deployment: [
-        "Deploy using Docker containers",
-        "Set up MongoDB Atlas for database hosting",
-        "Implement CI/CD pipeline with automated testing",
-        "Set up monitoring for API performance"
-      ]
-    };
-  };
-
-  const generateEcommerceApi = (): ApiPlan => {
-    return {
-      overview: {
-        purpose: "E-commerce API for product management, shopping cart, and order processing",
-        techStack: "Node.js, Express, MongoDB, Stripe for payments",
-        architecture: "RESTful API with product catalog, cart, and order management"
-      },
-      endpoints: [
-        { 
-          method: "GET", 
-          path: "/api/products", 
-          description: "Get all products with optional filtering", 
-          requestBody: "No body, query parameters for filtering",
-          response: "[{ \"id\": \"string\", \"name\": \"string\", \"price\": number, \"description\": \"string\", \"image\": \"string\" }]"
-        },
-        { 
-          method: "GET", 
-          path: "/api/products/:id", 
-          description: "Get a single product by ID", 
-          requestBody: "No body",
-          response: "{ \"id\": \"string\", \"name\": \"string\", \"price\": number, \"description\": \"string\", \"image\": \"string\", \"stock\": number }"
-        },
-        { 
-          method: "POST", 
-          path: "/api/cart", 
-          description: "Add item to cart", 
-          requestBody: "{ \"productId\": \"string\", \"quantity\": number }",
-          response: "{ \"items\": [{ \"product\": {...}, \"quantity\": number, \"price\": number }], \"total\": number }"
-        },
-        { 
-          method: "POST", 
-          path: "/api/orders", 
-          description: "Create an order from cart", 
-          requestBody: "{ \"shippingAddress\": { \"street\": \"string\", \"city\": \"string\", \"postalCode\": \"string\", \"country\": \"string\" }, \"paymentMethod\": \"string\" }",
-          response: "{ \"id\": \"string\", \"items\": [...], \"total\": number, \"status\": \"string\", \"createdAt\": \"date\" }"
-        }
-      ],
-      dataModels: [
-        {
-          name: "Product",
-          schema: `const productSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true
-  },
-  description: {
-    type: String,
-    required: true
-  },
-  price: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  image: {
-    type: String,
-    required: true
-  },
-  category: {
-    type: String,
-    required: true
-  },
-  stock: {
-    type: Number,
-    required: true,
-    min: 0,
-    default: 0
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-});`
-        },
-        {
-          name: "Order",
-          schema: `const orderSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  items: [
-    {
-      product: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true
-      },
-      quantity: {
-        type: Number,
-        required: true,
-        min: 1
-      },
-      price: {
-        type: Number,
-        required: true
+  const validateApiPlan = (plan: any): plan is ApiPlan => {
+    try {
+      // Check if plan is an object
+      if (!plan || typeof plan !== 'object') {
+        console.error("Plan is not a valid object");
+        return false;
       }
-    }
-  ],
-  shippingAddress: {
-    street: { type: String, required: true },
-    city: { type: String, required: true },
-    postalCode: { type: String, required: true },
-    country: { type: String, required: true }
-  },
-  paymentMethod: {
-    type: String,
-    required: true
-  },
-  paymentResult: {
-    id: String,
-    status: String,
-    update_time: String,
-    email_address: String
-  },
-  total: {
-    type: Number,
-    required: true
-  },
-  status: {
-    type: String,
-    required: true,
-    default: 'pending'
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-});`
+
+      // Ensure basic structure exists
+      const requiredSections = ['overview', 'endpoints', 'dataModels', 'implementation', 'security', 'deployment'];
+      for (const section of requiredSections) {
+        if (!(section in plan)) {
+          console.error(`Missing required section: ${section}`);
+          return false;
         }
-      ],
-      implementation: {
-        setup: `// Install dependencies
-npm init -y
-npm install express mongoose stripe cors dotenv jsonwebtoken
+      }
 
-// Create server.js
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
+      // Validate overview (allow partial data)
+      if (!plan.overview || typeof plan.overview !== 'object') {
+        console.error("Invalid overview section");
+        return false;
+      }
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+      // Validate endpoints (allow empty array)
+      if (!Array.isArray(plan.endpoints)) {
+        console.error("Endpoints must be an array");
+        return false;
+      }
 
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/products', require('./routes/products'));
-app.use('/api/cart', require('./routes/cart'));
-app.use('/api/orders', require('./routes/orders'));
+      // Validate data models (allow empty array)
+      if (!Array.isArray(plan.dataModels)) {
+        console.error("Data models must be an array");
+        return false;
+      }
 
-// Database connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error(err));
+      // Validate implementation (allow partial data)
+      if (!plan.implementation || typeof plan.implementation !== 'object') {
+        console.error("Invalid implementation section");
+        return false;
+      }
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`,
-        
-        routes: `// routes/products.js
-const express = require('express');
-const router = express.Router();
-const Product = require('../models/Product');
-const auth = require('../middleware/auth');
-const admin = require('../middleware/admin');
+      // Validate security and deployment (allow empty arrays)
+      if (!Array.isArray(plan.security)) {
+        console.error("Security must be an array");
+        return false;
+      }
+      if (!Array.isArray(plan.deployment)) {
+        console.error("Deployment must be an array");
+        return false;
+      }
 
-// Get all products
-router.get('/', async (req, res) => {
-  try {
-    const { category, search } = req.query;
-    let query = {};
-    
-    if (category) {
-      query.category = category;
+      // Ensure at least one endpoint exists
+      if (plan.endpoints.length === 0) {
+        console.error("At least one endpoint is required");
+        return false;
+      }
+
+      // Validate each endpoint has required fields
+      for (const endpoint of plan.endpoints) {
+        if (!endpoint.method || !endpoint.path) {
+          console.error("Endpoint missing required fields (method or path)");
+          return false;
+        }
+      }
+
+      // Ensure at least one data model exists
+      if (plan.dataModels.length === 0) {
+        console.error("At least one data model is required");
+        return false;
+      }
+
+      // Validate each data model has required fields
+      for (const model of plan.dataModels) {
+        if (!model.name) {
+          console.error("Data model missing required field (name)");
+          return false;
+        }
+      }
+
+      // Ensure implementation has setup
+      if (!plan.implementation.setup) {
+        console.error("Implementation missing setup");
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error validating API plan:", error);
+      return false;
     }
-    
-    if (search) {
-      query.name = { $regex: search, $options: 'i' };
-    }
-    
-    const products = await Product.find(query);
-    res.json(products);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// Get single product
-router.get('/:id', async (req, res) => {
-  try {
-    const product = await Product.findById(req.params.id);
-    
-    if (!product) {
-      return res.status(404).json({ msg: 'Product not found' });
-    }
-    
-    res.json(product);
-  } catch (err) {
-    console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ msg: 'Product not found' });
-    }
-    res.status(500).send('Server Error');
-  }
-});
-
-// Create a product (admin only)
-router.post('/', [auth, admin], async (req, res) => {
-  const { name, description, price, image, category, stock } = req.body;
-  
-  try {
-    const newProduct = new Product({
-      name,
-      description,
-      price,
-      image,
-      category,
-      stock
-    });
-    
-    const product = await newProduct.save();
-    res.json(product);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-module.exports = router;`
-      },
-      security: [
-        "Implement secure payment processing with Stripe",
-        "Apply role-based access control for admin operations",
-        "Validate products stock before order placement",
-        "Implement transaction history for order tracking"
-      ],
-      deployment: [
-        "Set up separate environments for development, staging, and production",
-        "Implement automated database backups",
-        "Set up order notification system via email",
-        "Configure CDN for product images"
-      ]
-    };
   };
 
-  const generateBlogApi = (): ApiPlan => {
-    return {
-      overview: {
-        purpose: "Blog API for creating and managing blog posts and comments",
-        techStack: "Node.js, Express, MongoDB, JWT authentication",
-        architecture: "RESTful API with content management features"
-      },
-      endpoints: [
-        { 
-          method: "GET", 
-          path: "/api/posts", 
-          description: "Get all blog posts with pagination", 
-          requestBody: "No body, query parameters for pagination",
-          response: "{ \"posts\": [{ \"id\": \"string\", \"title\": \"string\", \"excerpt\": \"string\", \"author\": {...} }], \"total\": number, \"page\": number, \"totalPages\": number }"
-        },
-        { 
-          method: "GET", 
-          path: "/api/posts/:id", 
-          description: "Get a single blog post with comments", 
-          requestBody: "No body",
-          response: "{ \"id\": \"string\", \"title\": \"string\", \"content\": \"string\", \"author\": {...}, \"comments\": [...] }"
-        },
-        { 
-          method: "POST", 
-          path: "/api/posts", 
-          description: "Create a new blog post", 
-          requestBody: "{ \"title\": \"string\", \"content\": \"string\", \"tags\": [\"string\"] }",
-          response: "{ \"id\": \"string\", \"title\": \"string\", \"content\": \"string\", \"createdAt\": \"date\" }"
-        },
-        { 
-          method: "POST", 
-          path: "/api/posts/:id/comments", 
-          description: "Add a comment to a blog post", 
-          requestBody: "{ \"content\": \"string\" }",
-          response: "{ \"id\": \"string\", \"content\": \"string\", \"author\": {...}, \"createdAt\": \"date\" }"
-        }
-      ],
-      dataModels: [
-        {
-          name: "Post",
-          schema: `const postSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true
-  },
-  content: {
-    type: String,
-    required: true
-  },
-  excerpt: {
-    type: String,
-    required: true
-  },
-  author: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  tags: [String],
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  },
-  comments: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Comment'
-    }
-  ]
-});`
-        },
-        {
-          name: "Comment",
-          schema: `const commentSchema = new mongoose.Schema({
-  content: {
-    type: String,
-    required: true
-  },
-  post: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Post',
-    required: true
-  },
-  author: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  }
-});`
-        }
-      ],
-      implementation: {
-        setup: `// Install dependencies
-npm init -y
-npm install express mongoose jsonwebtoken cors dotenv
+  const generateApiPlanWithAI = async (prompt: string): Promise<ApiPlan> => {
+    try {
+      const systemInstruction = systemInstructionTemplate;
+      const response = await callGeminiApi(
+        prompt,
+        systemInstruction,
+        { temperature: 0.2, maxOutputTokens: 8192 }
+      );
 
-// Create server.js
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/posts', require('./routes/posts'));
-app.use('/api/comments', require('./routes/comments'));
-
-// Database connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error(err));
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`,
+      // Try to parse the response as JSON
+      let parsedResponse;
+      try {
+        // Find JSON content in the response - look for the first { and the last }
+        const jsonStart = response.indexOf('{');
+        const jsonEnd = response.lastIndexOf('}') + 1;
         
-        routes: `// routes/posts.js
-const express = require('express');
-const router = express.Router();
-const Post = require('../models/Post');
-const Comment = require('../models/Comment');
-const auth = require('../middleware/auth');
-
-// Get all posts with pagination
-router.get('/', async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    
-    const total = await Post.countDocuments();
-    const posts = await Post.find()
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate('author', 'username');
-    
-    res.json({
-      posts,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit)
-    });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// Get single post
-router.get('/:id', async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.id)
-      .populate('author', 'username')
-      .populate({
-        path: 'comments',
-        populate: {
-          path: 'author',
-          select: 'username'
+        if (jsonStart >= 0 && jsonEnd > jsonStart) {
+          const jsonContent = response.substring(jsonStart, jsonEnd);
+          parsedResponse = JSON.parse(jsonContent);
+        } else {
+          throw new Error("Could not find valid JSON in the response");
         }
+      } catch (parseError) {
+        console.error("Error parsing AI response:", parseError);
+        console.log("Raw response:", response);
+        throw new Error("Failed to parse AI response as JSON");
+      }
+
+      // Validate the parsed response
+      if (!validateApiPlan(parsedResponse)) {
+        console.error("Invalid API plan structure:", parsedResponse);
+        throw new Error("Generated API plan does not match the required structure. Please try again.");
+      }
+
+      return parsedResponse as ApiPlan;
+    } catch (error) {
+      console.error("Error generating API plan:", error);
+      throw error;
+    }
+  };
+
+  const handleCreateApi = async () => {
+    if (!description.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a description for your API",
+        variant: "destructive",
       });
-    
-    if (!post) {
-      return res.status(404).json({ msg: 'Post not found' });
+      return;
     }
-    
-    res.json(post);
-  } catch (err) {
-    console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ msg: 'Post not found' });
-    }
-    res.status(500).send('Server Error');
-  }
-});
-
-// Create a post
-router.post('/', auth, async (req, res) => {
-  const { title, content, tags } = req.body;
-  
-  try {
-    // Create an excerpt from the content
-    const excerpt = content.substring(0, 150) + '...';
-    
-    const newPost = new Post({
-      title,
-      content,
-      excerpt,
-      author: req.user.id,
-      tags
-    });
-    
-    const post = await newPost.save();
-    res.json(post);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// Add a comment to a post
-router.post('/:id/comments', auth, async (req, res) => {
-  const { content } = req.body;
-  
-  try {
-    const post = await Post.findById(req.params.id);
-    
-    if (!post) {
-      return res.status(404).json({ msg: 'Post not found' });
-    }
-    
-    const newComment = new Comment({
-      content,
-      post: req.params.id,
-      author: req.user.id
-    });
-    
-    const comment = await newComment.save();
-    
-    // Add comment to post's comments array
-    post.comments.push(comment._id);
-    await post.save();
-    
-    await comment.populate('author', 'username').execPopulate();
-    
-    res.json(comment);
-  } catch (err) {
-    console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ msg: 'Post not found' });
-    }
-    res.status(500).send('Server Error');
-  }
-});
-
-module.exports = router;`
-      },
-      security: [
-        "Implement content validation",
-        "Add CSRF protection",
-        "Configure rate limiting for comments",
-        "Add moderation features for comments"
-      ],
-      deployment: [
-        "Set up content backup strategy",
-        "Configure caching for popular blog posts",
-        "Set up SEO-friendly URL structure",
-        "Implement analytics for tracking post engagement"
-      ]
-    };
-  };
-
-  const generateFileSystemApi = (): ApiPlan => {
-    return {
-      overview: {
-        purpose: "File storage API for uploading, storing, and sharing files",
-        techStack: "Node.js, Express, MongoDB, AWS S3 for storage",
-        architecture: "RESTful API with file management capabilities"
-      },
-      endpoints: [
-        { 
-          method: "POST", 
-          path: "/api/files/upload", 
-          description: "Upload a file", 
-          requestBody: "FormData with 'file' field",
-          response: "{ \"id\": \"string\", \"filename\": \"string\", \"url\": \"string\", \"size\": number, \"mimetype\": \"string\" }"
-        },
-        { 
-          method: "GET", 
-          path: "/api/files", 
-          description: "Get list of user's files", 
-          requestBody: "No body (JWT in Authorization header)",
-          response: "[{ \"id\": \"string\", \"filename\": \"string\", \"url\": \"string\", \"size\": number, \"uploaded\": \"date\" }]"
-        },
-        { 
-          method: "GET", 
-          path: "/api/files/:id", 
-          description: "Get file details", 
-          requestBody: "No body",
-          response: "{ \"id\": \"string\", \"filename\": \"string\", \"url\": \"string\", \"size\": number, \"mimetype\": \"string\", \"uploaded\": \"date\" }"
-        },
-        { 
-          method: "DELETE", 
-          path: "/api/files/:id", 
-          description: "Delete a file", 
-          requestBody: "No body (JWT in Authorization header)",
-          response: "{ \"message\": \"File deleted successfully\" }"
-        }
-      ],
-      dataModels: [
-        {
-          name: "File",
-          schema: `const fileSchema = new mongoose.Schema({
-  filename: {
-    type: String,
-    required: true
-  },
-  originalName: {
-    type: String,
-    required: true
-  },
-  encoding: {
-    type: String,
-    required: true
-  },
-  mimetype: {
-    type: String,
-    required: true
-  },
-  size: {
-    type: Number,
-    required: true
-  },
-  url: {
-    type: String,
-    required: true
-  },
-  key: {
-    type: String,
-    required: true
-  },
-  owner: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  public: {
-    type: Boolean,
-    default: false
-  },
-  uploaded: {
-    type: Date,
-    default: Date.now
-  }
-});`
-        }
-      ],
-      implementation: {
-        setup: `// Install dependencies
-npm init -y
-npm install express mongoose aws-sdk multer multer-s3 cors dotenv jsonwebtoken
-
-// Create server.js
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-require('dotenv').config();
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-
-// Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/files', require('./routes/files'));
-
-// Database connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error(err));
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(\`Server running on port \${PORT}\`));`,
-        
-        routes: `// config/s3.js
-const aws = require('aws-sdk');
-const multer = require('multer');
-const multerS3 = require('multer-s3');
-const path = require('path');
-
-aws.config.update({
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  region: process.env.AWS_REGION
-});
-
-const s3 = new aws.S3();
-
-// Set up file filter (optional)
-const fileFilter = (req, file, cb) => {
-  const allowedFileTypes = ['.jpg', '.jpeg', '.png', '.pdf', '.doc', '.docx'];
-  const ext = path.extname(file.originalname).toLowerCase();
-  
-  if (allowedFileTypes.includes(ext)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Invalid file type, only JPEG, PNG, PDF and DOC are allowed!'), false);
-  }
-};
-
-// Set up multer middleware
-const upload = multer({
-  fileFilter,
-  storage: multerS3({
-    s3,
-    bucket: process.env.AWS_S3_BUCKET,
-    acl: 'public-read',
-    metadata: function (req, file, cb) {
-      cb(null, { fieldName: file.fieldname });
-    },
-    key: function (req, file, cb) {
-      const fileName = \`\${Date.now().toString()}-\${file.originalname}\`;
-      cb(null, fileName);
-    }
-  }),
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
-  }
-});
-
-module.exports = upload;
-
-// routes/files.js
-const express = require('express');
-const router = express.Router();
-const File = require('../models/File');
-const auth = require('../middleware/auth');
-const upload = require('../config/s3');
-const aws = require('aws-sdk');
-
-// Upload a file
-router.post('/upload', [auth, upload.single('file')], async (req, res) => {
-  try {
-    const file = req.file;
-    
-    if (!file) {
-      return res.status(400).json({ msg: 'Please upload a file' });
-    }
-    
-    const newFile = new File({
-      filename: file.key,
-      originalName: file.originalname,
-      encoding: file.encoding,
-      mimetype: file.mimetype,
-      size: file.size,
-      url: file.location,
-      key: file.key,
-      owner: req.user.id
-    });
-    
-    await newFile.save();
-    
-    res.json(newFile);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// Get all user files
-router.get('/', auth, async (req, res) => {
-  try {
-    const files = await File.find({ owner: req.user.id }).sort({ uploaded: -1 });
-    res.json(files);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
-// Get a single file
-router.get('/:id', auth, async (req, res) => {
-  try {
-    const file = await File.findById(req.params.id);
-    
-    if (!file) {
-      return res.status(404).json({ msg: 'File not found' });
-    }
-    
-    // Check if user owns the file or if file is public
-    if (file.owner.toString() !== req.user.id && !file.public) {
-      return res.status(401).json({ msg: 'Not authorized' });
-    }
-    
-    res.json(file);
-  } catch (err) {
-    console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ msg: 'File not found' });
-    }
-    res.status(500).send('Server Error');
-  }
-});
-
-// Delete a file
-router.delete('/:id', auth, async (req, res) => {
-  try {
-    const file = await File.findById(req.params.id);
-    
-    if (!file) {
-      return res.status(404).json({ msg: 'File not found' });
-    }
-    
-    // Check if user owns the file
-    if (file.owner.toString() !== req.user.id) {
-      return res.status(401).json({ msg: 'Not authorized' });
-    }
-    
-    // Delete from S3
-    const s3 = new aws.S3();
-    await s3.deleteObject({
-      Bucket: process.env.AWS_S3_BUCKET,
-      Key: file.key
-    }).promise();
-    
-    // Delete from database
-    await file.remove();
-    
-    res.json({ msg: 'File deleted successfully' });
-  } catch (err) {
-    console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ msg: 'File not found' });
-    }
-    res.status(500).send('Server Error');
-  }
-});
-
-module.exports = router;`
-      },
-      security: [
-        "Implement file type validation",
-        "Set up file size limits",
-        "Configure proper AWS IAM permissions",
-        "Add virus scanning for uploaded files"
-      ],
-      deployment: [
-        "Set up CDN for faster file delivery",
-        "Configure S3 lifecycle policies for storage optimization",
-        "Set up file access logging",
-        "Implement backup strategy for critical files"
-      ]
-    };
-  };
-
-  const handleCreateApi = () => {
-    if (description.trim() === "") return;
     
     setIsProcessing(true);
+    setError(null);
     
-    // Create a timeout to simulate processing
-    setTimeout(() => {
-      try {
-        // Analyze the requirements and generate an appropriate API plan
-        const generatedApiPlan = analyzeRequirements(description);
-        setApiPlan(generatedApiPlan);
-        
-        toast({
-          title: "API Plan Generated",
-          description: "Your custom API plan has been created based on your requirements.",
-        });
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to generate API plan. Please try again.",
-          variant: "destructive",
-        });
-        console.error("Error generating API plan:", error);
-      } finally {
-        setIsProcessing(false);
-      }
-    }, 2000);
+    try {
+      // Generate the prompt for the API plan
+      const prompt = getApiPlanPrompt(description, fileContent);
+      
+      // Call Gemini API to generate the plan
+      const generatedApiPlan = await generateApiPlanWithAI(prompt);
+      setApiPlan(generatedApiPlan);
+      
+      toast({
+        title: "API Plan Generated",
+        description: "Your custom API plan has been created based on your requirements.",
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      console.error("Error generating API plan:", error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (!apiPlan) {
@@ -1285,19 +258,25 @@ module.exports = router;`
           </CardContent>
         </Card>
         
-        <Button
-          onClick={handleCreateApi}
-          className="bg-squadrun-primary hover:bg-squadrun-vivid text-white mt-4 ml-auto"
-          disabled={isProcessing || description.trim() === ""}
-        >
-          {isProcessing ? (
-            <>Processing...</>
-          ) : (
-            <>
-              <Server className="mr-2 h-4 w-4" /> Generate API Plan
-            </>
-          )}
-        </Button>
+        <div className="flex justify-between items-center">
+          <ModelPicker
+            value={model}
+            onChange={setModel}
+          />
+          <Button
+            onClick={handleCreateApi}
+            className="bg-squadrun-primary hover:bg-squadrun-vivid text-white mt-4 ml-auto"
+            disabled={isProcessing || description.trim() === ""}
+          >
+            {isProcessing ? (
+              <>Processing...</>
+            ) : (
+              <>
+                <Server className="mr-2 h-4 w-4" /> Generate API Plan
+              </>
+            )}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -1376,13 +355,21 @@ module.exports = router;`
                         <div>
                           <h4 className="text-xs text-squadrun-gray mb-1">Request</h4>
                           <div className="bg-squadrun-darker rounded p-2">
-                            <pre className="text-xs text-white whitespace-pre-wrap">{endpoint.requestBody}</pre>
+                            <pre className="text-xs text-white whitespace-pre-wrap">
+                              {typeof endpoint.requestBody === 'object' 
+                                ? JSON.stringify(endpoint.requestBody, null, 2)
+                                : endpoint.requestBody}
+                            </pre>
                           </div>
                         </div>
                         <div>
                           <h4 className="text-xs text-squadrun-gray mb-1">Response</h4>
                           <div className="bg-squadrun-darker rounded p-2">
-                            <pre className="text-xs text-white whitespace-pre-wrap">{endpoint.response}</pre>
+                            <pre className="text-xs text-white whitespace-pre-wrap">
+                              {typeof endpoint.response === 'object'
+                                ? JSON.stringify(endpoint.response, null, 2)
+                                : endpoint.response}
+                            </pre>
                           </div>
                         </div>
                       </div>
@@ -1403,7 +390,10 @@ module.exports = router;`
                   {apiPlan.dataModels.map((model: DataModel, index: number) => (
                     <div key={index} className="border border-squadrun-primary/10 rounded-md p-4">
                       <h3 className="text-sm font-medium text-white mb-2">{model.name} Schema</h3>
-                      <CodeDisplay code={model.schema} language="javascript" />
+                      <CodeDisplay 
+                        code={typeof model.schema === 'string' ? model.schema : JSON.stringify(model.schema, null, 2)} 
+                        language="javascript" 
+                      />
                     </div>
                   ))}
                 </div>
@@ -1432,7 +422,12 @@ module.exports = router;`
                         User Authentication
                       </AccordionTrigger>
                       <AccordionContent>
-                        <CodeDisplay code={apiPlan.implementation.authentication} language="javascript" />
+                        <CodeDisplay 
+                          code={typeof apiPlan.implementation.authentication === 'string' 
+                            ? apiPlan.implementation.authentication 
+                            : JSON.stringify(apiPlan.implementation.authentication, null, 2)} 
+                          language="javascript" 
+                        />
                       </AccordionContent>
                     </AccordionItem>
                   )}
@@ -1442,7 +437,12 @@ module.exports = router;`
                         Authentication Middleware
                       </AccordionTrigger>
                       <AccordionContent>
-                        <CodeDisplay code={apiPlan.implementation.middleware} language="javascript" />
+                        <CodeDisplay 
+                          code={typeof apiPlan.implementation.middleware === 'string' 
+                            ? apiPlan.implementation.middleware 
+                            : JSON.stringify(apiPlan.implementation.middleware, null, 2)} 
+                          language="javascript" 
+                        />
                       </AccordionContent>
                     </AccordionItem>
                   )}
@@ -1452,7 +452,12 @@ module.exports = router;`
                         Route Implementation
                       </AccordionTrigger>
                       <AccordionContent>
-                        <CodeDisplay code={apiPlan.implementation.routes} language="javascript" />
+                        <CodeDisplay 
+                          code={typeof apiPlan.implementation.routes === 'string' 
+                            ? apiPlan.implementation.routes 
+                            : JSON.stringify(apiPlan.implementation.routes, null, 2)} 
+                          language="javascript" 
+                        />
                       </AccordionContent>
                     </AccordionItem>
                   )}
