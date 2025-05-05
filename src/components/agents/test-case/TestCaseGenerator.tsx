@@ -9,6 +9,7 @@ import { TestCase, TestCaseProps, TestResults } from "./types";
 import TestCaseList from "./components/TestCaseList";
 import OriginalCode from "./components/OriginalCode";
 import TestResultsSummary from "./components/TestResultsSummary";
+import { toast } from "sonner";
 
 export default function TestCaseGenerator({ fileContent, fileName, onClearFile }: TestCaseProps) {
   const [isGenerating, setIsGenerating] = useState(false);
@@ -25,15 +26,21 @@ export default function TestCaseGenerator({ fileContent, fileName, onClearFile }
     }
   }, [fileContent, fileName]);
 
-  const handleGenerateTests = () => {
+  const handleGenerateTests = async () => {
     if (!fileContent) return;
     setIsGenerating(true);
 
-    setTimeout(() => {
-      const generatedTestCases = generateTestCasesForLanguage(fileContent, fileName, fileLanguage);
+    try {
+      const generatedTestCases = await generateTestCasesForLanguage(fileContent, fileName, fileLanguage);
       setTestCases(generatedTestCases);
+    } catch (error) {
+      console.error('Error generating test cases:', error);
+      toast.error('Failed to generate test cases', {
+        description: error instanceof Error ? error.message : 'An unknown error occurred'
+      });
+    } finally {
       setIsGenerating(false);
-    }, 1500);
+    }
   };
 
   const handleRunTests = () => {

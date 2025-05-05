@@ -12,7 +12,6 @@ import {
 import CodeDisplay from "../CodeDisplay";
 import { useToast } from "@/hooks/use-toast";
 import { AutogrowingTextarea } from "@/components/ui/autogrowing-textarea";
-import ModelPicker from "@/components/ModelPicker";
 import { callGeminiApi } from "@/utils/aiUtils";
 import { systemInstructionTemplate, getApiPlanPrompt } from "@/utils/aiUtils/apiPromptTemplates";
 import { toast } from "sonner";
@@ -59,7 +58,6 @@ export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
   const [description, setDescription] = useState<string>("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [apiPlan, setApiPlan] = useState<ApiPlan | null>(null);
-  const [model, setModel] = useState<"gemini" | "openai" | "groq">("gemini");
   const [error, setError] = useState<string | null>(null);
 
   const validateApiPlan = (plan: any): plan is ApiPlan => {
@@ -214,33 +212,33 @@ export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
       
       // Call Gemini API to generate the plan
       const generatedApiPlan = await generateApiPlanWithAI(prompt);
-      setApiPlan(generatedApiPlan);
-      
-      toast({
-        title: "API Plan Generated",
-        description: "Your custom API plan has been created based on your requirements.",
-      });
-    } catch (error) {
+        setApiPlan(generatedApiPlan);
+        
+        toast({
+          title: "API Plan Generated",
+          description: "Your custom API plan has been created based on your requirements.",
+        });
+      } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";
       setError(errorMessage);
-      toast({
-        title: "Error",
+        toast({
+          title: "Error",
         description: errorMessage,
-        variant: "destructive",
-      });
-      console.error("Error generating API plan:", error);
-    } finally {
-      setIsProcessing(false);
-    }
+          variant: "destructive",
+        });
+        console.error("Error generating API plan:", error);
+      } finally {
+        setIsProcessing(false);
+      }
   };
 
   if (!apiPlan) {
     return (
       <div className="p-4 h-full flex flex-col">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold text-white mb-2">API Creator</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">AI API Creator</h1>
           <p className="text-squadrun-gray">
-            Convert code or natural language descriptions into production-ready API designs and implementation plans.
+            Create a new API endpoint using natural language. Describe what you want your API to do, and we'll generate the code for you.
           </p>
         </div>
         
@@ -259,23 +257,19 @@ export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
         </Card>
         
         <div className="flex justify-between items-center">
-          <ModelPicker
-            value={model}
-            onChange={setModel}
-          />
-          <Button
-            onClick={handleCreateApi}
-            className="bg-squadrun-primary hover:bg-squadrun-vivid text-white mt-4 ml-auto"
-            disabled={isProcessing || description.trim() === ""}
-          >
-            {isProcessing ? (
-              <>Processing...</>
-            ) : (
-              <>
-                <Server className="mr-2 h-4 w-4" /> Generate API Plan
-              </>
-            )}
-          </Button>
+        <Button
+          onClick={handleCreateApi}
+          className="bg-squadrun-primary hover:bg-squadrun-vivid text-white mt-4 ml-auto"
+          disabled={isProcessing || description.trim() === ""}
+        >
+          {isProcessing ? (
+            <>Processing...</>
+          ) : (
+            <>
+              <Server className="mr-2 h-4 w-4" /> Generate API Plan
+            </>
+          )}
+        </Button>
         </div>
       </div>
     );
@@ -283,11 +277,6 @@ export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
 
   return (
     <div className="p-4 h-full flex flex-col">
-      <div className="mb-3 flex items-center">
-        <span className="text-squadrun-gray mr-2 text-sm">Model:</span>
-        <ModelPicker value={model} onChange={setModel} />
-      </div>
-      
       <div className="mb-4">
         <h1 className="text-2xl font-bold text-white mb-2">API Implementation Plan</h1>
         <p className="text-squadrun-gray">
@@ -501,15 +490,10 @@ export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
       <div className="flex justify-end mt-4">
         <Button
           variant="outline" 
-          className="text-squadrun-gray mr-2 border-squadrun-primary/20 hover:bg-squadrun-primary/10"
+          className="text-squadrun-gray border-squadrun-primary/20 hover:bg-squadrun-primary/10"
           onClick={() => setApiPlan(null)}
         >
           <ChevronsUpDown className="mr-2 h-4 w-4" /> Edit Requirements
-        </Button>
-        <Button
-          className="bg-squadrun-primary hover:bg-squadrun-vivid text-white"
-        >
-          <FileDown className="mr-2 h-4 w-4" /> Download API Blueprint
         </Button>
       </div>
     </div>

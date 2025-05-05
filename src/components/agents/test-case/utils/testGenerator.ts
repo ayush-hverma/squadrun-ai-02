@@ -1,13 +1,36 @@
-
 import { extractFunctionNames } from './functionExtractor';
 import { getTestTemplates, generateGenericTestCases } from './testTemplates';
 import { TestCase } from '../types';
+import { callGeminiApi } from '@/utils/aiUtils/geminiApi';
 
-export const generateTestCasesForLanguage = (
+const TEST_GENERATION_SYSTEM_INSTRUCTION = `You are an expert software test engineer. Your task is to generate comprehensive test cases for the given function.
+Follow these strict guidelines:
+1. Generate test cases that cover all edge cases, error conditions, and normal operation
+2. Include clear assertions and error messages
+3. Follow the language's testing best practices and conventions
+4. Ensure tests are deterministic and reproducible
+5. Include proper setup and teardown if needed
+6. Document test cases with clear descriptions
+7. Use meaningful test data that demonstrates the function's behavior
+
+Return the test cases in the following JSON format:
+{
+  "testCases": [
+    {
+      "id": number,
+      "name": string,
+      "type": string,
+      "code": string,
+      "description": string
+    }
+  ]
+}`;
+
+export const generateTestCasesForLanguage = async (
   fileContent: string | null, 
   fileName: string | null,
   fileLanguage: string
-): TestCase[] => {
+): Promise<TestCase[]> => {
   if (!fileContent) return [];
   const language = fileLanguage;
   const functionNames = extractFunctionNames(fileContent, language);
@@ -15,7 +38,8 @@ export const generateTestCasesForLanguage = (
 
   for (let i = 0; i < Math.min(functionNames.length, 5); i++) {
     const fn = functionNames[i];
-    testCases.push(...generateTestsForFunction(fn, language, i + 1));
+    const generatedTests = await generateTestsForFunction(fn, language, i + 1);
+    testCases.push(...generatedTests);
   }
 
   if (testCases.length === 0) {
@@ -24,27 +48,68 @@ export const generateTestCasesForLanguage = (
   return testCases;
 };
 
-export const generateTestsForFunction = (
+export const generateTestsForFunction = async (
   functionName: string, 
   language: string, 
   id: number
-): TestCase[] => {
+): Promise<TestCase[]> => {
   const templates = getTestTemplates(language, functionName);
   const testTypes = ['positive', 'negative', 'edge', 'performance', 'concurrency'];
   const result: TestCase[] = [];
 
   const selectedTypes = testTypes.filter((_, index) => index === id % testTypes.length || index === (id + 2) % testTypes.length);
+  
   for (const type of selectedTypes) {
     const testName = `Test ${functionName} ${type.replace(/([A-Z])/g, ' $1').toLowerCase()}`;
     const testType = type.charAt(0).toUpperCase() + type.slice(1) + ' Case';
-    const template = templates[type as keyof typeof templates];
-    result.push({
-      id: result.length + 1,
-      name: testName,
-      type: testType,
-      code: template.code,
-      description: template.description
-    });
+    
+    try {
+      const prompt = `Generate a ${type} test case for the following ${language} function:
+\`\`\`${language}
+${templates[type as keyof typeof templates].code}
+\`\`\`
+Function name: ${functionName}
+Focus on testing ${type} scenarios.`;
+
+      const response = await callGeminiApi(prompt, TEST_GENERATION_SYSTEM_INSTRUCTION, {
+        temperature: 0.1,
+        maxOutputTokens: 2000
+      });
+
+      try {
+        const parsedResponse = JSON.parse(response);
+        if (parsedResponse.testCases && Array.isArray(parsedResponse.testCases)) {
+          result.push(...parsedResponse.testCases);
+        } else {
+          // Fallback to template if AI response is invalid
+          result.push({
+            id: result.length + 1,
+            name: testName,
+            type: testType,
+            code: templates[type as keyof typeof templates].code,
+            description: templates[type as keyof typeof templates].description
+          });
+        }
+      } catch (parseError) {
+        // Fallback to template if parsing fails
+        result.push({
+          id: result.length + 1,
+          name: testName,
+          type: testType,
+          code: templates[type as keyof typeof templates].code,
+          description: templates[type as keyof typeof templates].description
+        });
+      }
+    } catch (error) {
+      // Fallback to template if AI call fails
+      result.push({
+        id: result.length + 1,
+        name: testName,
+        type: testType,
+        code: templates[type as keyof typeof templates].code,
+        description: templates[type as keyof typeof templates].description
+      });
+    }
   }
   return result;
 };

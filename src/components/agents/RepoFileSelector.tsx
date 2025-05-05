@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertCircle, ArrowDown, File, Loader2, Upload } from "lucide-react";
@@ -6,13 +5,14 @@ import React from "react";
 import type { FileEntry } from "./hooks/useRepoFileSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
+import TokenCountDisplay from "./TokenCountDisplay";
 
 interface RepoFileSelectorProps {
   githubUrl: string;
   setGithubUrl: (val: string) => void;
   repoFiles: FileEntry[];
   selectedFile: FileEntry | null;
-  selectedFiles?: FileEntry[]; // New: array of selected files
+  selectedFiles?: FileEntry[];
   setSelectedFile: (file: FileEntry) => void;
   fetchFileContent: (file: FileEntry) => void;
   fileDropdownOpen: boolean;
@@ -24,7 +24,8 @@ interface RepoFileSelectorProps {
   handleGithubRepoInput: (e: React.FormEvent<HTMLFormElement>) => void;
   loadingFiles: boolean;
   handleClearFile?: () => void;
-  toggleFileSelection?: (file: FileEntry) => void; // New: function to toggle file selection
+  toggleFileSelection?: (file: FileEntry) => void;
+  allRepoFilesWithContent?: FileEntry[];
 }
 
 export default function RepoFileSelector({
@@ -44,7 +45,8 @@ export default function RepoFileSelector({
   handleGithubRepoInput,
   loadingFiles,
   handleClearFile,
-  toggleFileSelection
+  toggleFileSelection,
+  allRepoFilesWithContent = []
 }: RepoFileSelectorProps) {
   return (
     <div>
@@ -94,25 +96,46 @@ export default function RepoFileSelector({
         </Alert>
       )}
 
+      {/* Show repository token count immediately after loading files */}
+      {allRepoFilesWithContent.length > 0 && (
+        <div className="mb-4">
+          <TokenCountDisplay 
+            files={allRepoFilesWithContent} 
+            label="Repository" 
+          />
+        </div>
+      )}
+
       {repoFiles.length > 0 && (
         <div className="mb-4">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="flex items-center gap-2"
-            onClick={() => setFileDropdownOpen(open => !open)}
-            aria-expanded={fileDropdownOpen}
-          >
-            <ArrowDown className={`transition-transform ${fileDropdownOpen ? "rotate-180" : ""}`} />
-            <span>
-              {selectedFile
-                ? <span className="flex items-center gap-2"><File className="w-4 h-4" /> {selectedFile.path}</span>
-                : selectedFiles && selectedFiles.length > 0 
-                  ? `${selectedFiles.length} files selected` 
-                  : "Select files from repo" }
-            </span>
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={() => setFileDropdownOpen(open => !open)}
+              aria-expanded={fileDropdownOpen}
+            >
+              <ArrowDown className={`transition-transform ${fileDropdownOpen ? "rotate-180" : ""}`} />
+              <span>
+                {selectedFile
+                  ? <span className="flex items-center gap-2"><File className="w-4 h-4" /> {selectedFile.path}</span>
+                  : selectedFiles && selectedFiles.length > 0 
+                    ? `${selectedFiles.length} files selected` 
+                    : "Select files from repo" }
+              </span>
+            </Button>
+
+            {/* Show selected files token count when files are selected */}
+            {selectedFiles && selectedFiles.length > 0 && (
+              <TokenCountDisplay 
+                files={selectedFiles} 
+                label="Selected Files" 
+              />
+            )}
+          </div>
+          
           {fileDropdownOpen && (
             <div className="max-h-64 overflow-auto rounded border bg-popover mt-2 shadow z-10 absolute w-[400px]">
               {repoFiles.map(entry => (
@@ -127,7 +150,6 @@ export default function RepoFileSelector({
                     fetchFileContent(entry);
                   }}
                 >
-                  {/* Add checkbox for multi-selection */}
                   {toggleFileSelection && (
                     <div 
                       className="mr-2"
@@ -152,13 +174,6 @@ export default function RepoFileSelector({
           {fetchingFileContent && (
             <div className="text-xs text-squadrun-gray mt-1 flex items-center">
               <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Loading file...
-            </div>
-          )}
-          
-          {/* Show count of selected files */}
-          {selectedFiles && selectedFiles.length > 0 && !fileDropdownOpen && (
-            <div className="text-xs text-squadrun-primary mt-1">
-              {selectedFiles.length} {selectedFiles.length === 1 ? 'file' : 'files'} selected for analysis
             </div>
           )}
         </div>

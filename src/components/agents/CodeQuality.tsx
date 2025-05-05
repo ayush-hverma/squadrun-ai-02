@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Cpu, Search, FolderOpen } from "lucide-react";
@@ -9,6 +8,10 @@ import AnalysisView from "./quality/AnalysisView";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { FileEntry } from "./hooks/useRepoFileSelector";
+import FileAnalysisTable from './quality/FileAnalysisTable';
+//import { QualityMetrics } from '@/components/agents/quality/QualityMetrics';
+//import { QualityIssues } from '@/components/agents/quality/QualityIssues';
+//import { QualityRecommendations } from '@/components/agents/quality/QualityRecommendations';
 
 /**
  * Logging utility for debugging
@@ -59,6 +62,8 @@ export default function CodeQuality({
   const [currentBatch, setCurrentBatch] = useState(0);
   const [totalBatches, setTotalBatches] = useState(0);
   const [repositoryName, setRepositoryName] = useState<string | null>(null);
+  const [selectedFileIndex, setSelectedFileIndex] = useState<number | null>(null);
+  const [fileResults, setFileResults] = useState<QualityResults[]>([]);
 
   // Check if GitHub URL is entered (not empty)
   const hasGithubUrl = Boolean(githubUrl?.trim());
@@ -165,7 +170,7 @@ export default function CodeQuality({
     }
   };
 
-  const handleRepoAssessQuality = async () => {
+  const handleRepoAssessQuality = async (analyzeAll: boolean = false) => {
     try {
       setError(null);
       setIsProcessing(true);
@@ -174,35 +179,89 @@ export default function CodeQuality({
       setCurrentFile('');
       setCurrentBatch(0);
       setTotalBatches(0);
-      setIsRepoAnalysis(true);
+      setIsRepoAnalysis(analyzeAll);
+      setSelectedFileIndex(null);
 
-      // Use selected files if available, otherwise use all repo files
-      const filesToAnalyze = selectedFiles && selectedFiles.length > 0
-        ? selectedFiles.filter(f => f.content).map(f => ({ path: f.path, content: f.content || '' }))
-        : repoFiles;
+      // For selected files analysis
+      if (!analyzeAll) {
+        if (!selectedFiles || selectedFiles.length === 0) {
+          throw new Error('No files selected for analysis');
+        }
 
-      log.info('Starting repository quality assessment', {
-        totalFiles: filesToAnalyze?.length,
-        selectedFilesCount: selectedFiles?.length,
-        repoUrl,
-        repositoryName
-      });
+        const validFiles = selectedFiles.filter(f => f.content && f.content.trim().length > 0);
+        
+        if (validFiles.length === 0) {
+          throw new Error('No valid files with content to analyze');
+        }
 
-      if (!filesToAnalyze || filesToAnalyze.length === 0) {
-        throw new Error('No files selected for analysis');
+        setTotalBatches(validFiles.length);
+        
+        // Analyze each selected file individually using code analysis
+        const results = await Promise.all(
+          validFiles.map(async (file) => {
+            const language = file.path.split('.').pop() || 'javascript';
+            return analyzeCodeWithAI(file.content || '', language);
+          })
+        );
+
+        setFileResults(results);
+
+        // Combine results from individual file analyses
+        const combinedResults: QualityResults = {
+          score: Math.round(results.reduce((sum, result) => sum + result.score, 0) / results.length),
+          issues: results.flatMap(result => result.issues),
+          recommendations: results.flatMap(result => result.recommendations),
+          readabilityScore: Math.round(results.reduce((sum, result) => sum + (result.readabilityScore || 0), 0) / results.length),
+          maintainabilityScore: Math.round(results.reduce((sum, result) => sum + (result.maintainabilityScore || 0), 0) / results.length),
+          performanceScore: Math.round(results.reduce((sum, result) => sum + (result.performanceScore || 0), 0) / results.length),
+          securityScore: Math.round(results.reduce((sum, result) => sum + (result.securityScore || 0), 0) / results.length),
+          codeSmellScore: Math.round(results.reduce((sum, result) => sum + (result.codeSmellScore || 0), 0) / results.length)
+        };
+
+        setCurrentFile(validFiles[0]?.path || '');
+        setProcessingProgress(100);
+        setQualityResults(combinedResults);
+
+        log.info('Selected files quality assessment complete', {
+          score: combinedResults.score,
+          issues: combinedResults.issues.length,
+          recommendations: combinedResults.recommendations.length,
+          analyzedFileCount: validFiles.length,
+          analyzedFiles: validFiles.map(f => f.path)
+        });
+
+        toast.success(`Analysis Complete for ${validFiles.length} selected files`, {
+          description: `Overall Score: ${combinedResults.score}/100`,
+        });
+        return;
       }
 
-      const results = await analyzeRepositoryWithAI(filesToAnalyze);
+      // For full repository analysis
+      if (!repoFiles || repoFiles.length === 0) {
+        throw new Error('No files found in repository');
+      }
+
+      const validFiles = repoFiles.filter(f => f.content && f.content.trim().length > 0);
+      
+      if (validFiles.length === 0) {
+        throw new Error('No valid files with content to analyze');
+      }
+
+      setTotalBatches(validFiles.length);
+      const results = await analyzeRepositoryWithAI(validFiles);
+      setCurrentFile(validFiles[0]?.path || '');
+      setProcessingProgress(100);
       setQualityResults(results);
+
       log.info('Repository quality assessment complete', {
         score: results.score,
         issues: results.issues.length,
         recommendations: results.recommendations.length,
-        analyzedFileCount: filesToAnalyze.length
+        analyzedFileCount: validFiles.length,
+        analyzeAll
       });
       
-      // Show toast with analyzed file count
-      toast.success(`Analysis Complete for ${filesToAnalyze.length} files`, {
+      toast.success(`Analysis Complete for ${validFiles.length} files`, {
         description: `Overall Score: ${results.score}/100`,
       });
     } catch (error) {
@@ -222,6 +281,30 @@ export default function CodeQuality({
     toast.success("Analysis Cleared", {
       description: "You can now upload a new file or repository.",
     });
+  };
+
+  const handleFileSelect = (index: number) => {
+    setSelectedFileIndex(index);
+    if (fileResults[index]) {
+      setQualityResults(fileResults[index]);
+    }
+  };
+
+  const handleReset = () => {
+    setSelectedFileIndex(null);
+    if (fileResults.length > 0) {
+      const combinedResults: QualityResults = {
+        score: Math.round(fileResults.reduce((sum, result) => sum + result.score, 0) / fileResults.length),
+        issues: fileResults.flatMap(result => result.issues),
+        recommendations: fileResults.flatMap(result => result.recommendations),
+        readabilityScore: Math.round(fileResults.reduce((sum, result) => sum + (result.readabilityScore || 0), 0) / fileResults.length),
+        maintainabilityScore: Math.round(fileResults.reduce((sum, result) => sum + (result.maintainabilityScore || 0), 0) / fileResults.length),
+        performanceScore: Math.round(fileResults.reduce((sum, result) => sum + (result.performanceScore || 0), 0) / fileResults.length),
+        securityScore: Math.round(fileResults.reduce((sum, result) => sum + (result.securityScore || 0), 0) / fileResults.length),
+        codeSmellScore: Math.round(fileResults.reduce((sum, result) => sum + (result.codeSmellScore || 0), 0) / fileResults.length)
+      };
+      setQualityResults(combinedResults);
+    }
   };
 
   if (!fileContent && !repoFiles?.length && !hasRepoUrl && !hasGithubUrl) {
@@ -259,20 +342,37 @@ export default function CodeQuality({
               </Button>
             )}
             
-            {/* Update text to show selected file count if any */}
+            {/* Show different buttons based on selection state */}
             {(hasRepoUrl || hasGithubUrl) && (
+              <>
+                {selectedFiles && selectedFiles.length > 0 && (
+                  <Button
+                    onClick={() => handleRepoAssessQuality(false)}
+                    disabled={isProcessing}
+                    className="bg-squadrun-vivid hover:bg-squadrun-primary text-white"
+                  >
+                    <FolderOpen className="mr-2 h-4 w-4" />
+                    Assess {selectedFiles.length} Selected Files
+                  </Button>
+                )}
               <Button
-                onClick={handleRepoAssessQuality}
+                  onClick={() => handleRepoAssessQuality(true)}
                 disabled={isProcessing}
                 className="bg-squadrun-vivid hover:bg-squadrun-primary text-white"
               >
                 <FolderOpen className="mr-2 h-4 w-4" />
-                {selectedFiles && selectedFiles.length > 0 
-                  ? `Assess ${selectedFiles.length} Selected Files` 
-                  : "Assess Repository Quality"}
+                  Assess All Repository Files
               </Button>
+              </>
             )}
           </div>
+
+          {/* Show selected files count */}
+          {selectedFiles && selectedFiles.length > 0 && (
+            <div className="text-sm text-squadrun-primary mb-4">
+              {selectedFiles.length} {selectedFiles.length === 1 ? 'file' : 'files'} selected for analysis
+            </div>
+          )}
 
           {isProcessing && (
             <div className="mt-4 flex flex-col items-center w-full max-w-lg">
@@ -280,7 +380,9 @@ export default function CodeQuality({
                 <Cpu className="h-16 w-16 text-squadrun-primary" />
               </div>
               <h2 className="text-xl font-medium text-white mb-2">
-                {isRepoAnalysis ? "Analyzing Repository Quality" : "Analyzing File Quality"}
+                {isRepoAnalysis 
+                  ? "Analyzing Repository Quality" 
+                  : `Analyzing ${selectedFiles.length} Files Quality`}
               </h2>
               
               {isRepoAnalysis && (
@@ -293,7 +395,7 @@ export default function CodeQuality({
               )}
               
               <p className="text-squadrun-gray text-center max-w-md">
-                We're examining your {isRepoAnalysis ? "repository" : "code"} for quality metrics including
+                We're examining your {isRepoAnalysis ? "repository" : "selected files"} for quality metrics including
                 readability, maintainability, performance, security, and code smell.
               </p>
             </div>
@@ -307,24 +409,58 @@ export default function CodeQuality({
                 {isRepoAnalysis ? (
                   <>Repository Analysis: <span className="text-squadrun-primary">{repositoryName}</span></>
                 ) : (
-                  <>File Analysis: <span className="text-squadrun-primary">{fileName}</span></>
+                  <>Files Analysis: <span className="text-squadrun-primary">{selectedFiles.map(f => f.path).join(', ')}</span></>
                 )}
               </h2>
               <p className="text-sm text-squadrun-gray">
                 {isRepoAnalysis 
                   ? `Analyzed ${repoFiles?.length || 0} files with batch processing` 
-                  : "Individual file analysis"}
+                  : `Analyzed ${selectedFiles.length} selected files`}
               </p>
             </CardContent>
           </Card>
           
-          <AnalysisView 
-            qualityResults={qualityResults} 
-            fileName={fileName} 
-            isRepositoryAnalysis={isRepoAnalysis} 
-            repositoryName={repositoryName} 
-          />
-          
+          {qualityResults && !isRepoAnalysis && (
+            <div className="space-y-6">
+              <FileAnalysisTable
+                files={selectedFiles}
+                fileResults={fileResults}
+                selectedFileIndex={selectedFileIndex}
+                onFileSelect={handleFileSelect}
+                onReset={handleReset}
+              />
+              
+              <Card className="bg-squadrun-darker/50 border border-squadrun-primary/20 transition-all duration-300 ease-in-out">
+                <CardContent className="p-6">
+                  <h2 className="text-xl font-bold text-white mb-4 transition-all duration-300 ease-in-out">
+                    {selectedFileIndex !== null 
+                      ? `Quality Assessment: ${selectedFiles[selectedFileIndex]?.path}`
+                      : 'Overall Quality Assessment'}
+                  </h2>
+                  <div className="transition-opacity duration-300 ease-in-out">
+                    <AnalysisView 
+                      qualityResults={qualityResults} 
+                      fileName={selectedFileIndex !== null ? selectedFiles[selectedFileIndex]?.path : undefined}
+                      isRepositoryAnalysis={isRepoAnalysis} 
+                      repositoryName={repositoryName} 
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {qualityResults && isRepoAnalysis && (
+            <div className="space-y-6">
+              <AnalysisView 
+                qualityResults={qualityResults} 
+                fileName={fileName} 
+                isRepositoryAnalysis={isRepoAnalysis} 
+                repositoryName={repositoryName} 
+              />
+            </div>
+          )}
+
           <div className="mt-4 flex justify-center">
             <Button onClick={handleClear} variant="destructive" className="w-full max-w-md">
               Clear Analysis

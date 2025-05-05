@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { toast } from "sonner";
+import { calculateTotalTokens } from "@/utils/aiUtils/tokenCounter";
 
 export interface FileEntry {
   path: string;
@@ -112,7 +113,6 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
         item.type === "blob" && 
         !item.path.startsWith('.git/') &&
         !item.path.includes('node_modules/') &&
-        // Remove the file extension filter to show all files
         !item.path.includes('/dist/') &&
         !item.path.includes('/build/')
       )
@@ -120,7 +120,7 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
         path: item.path,
         type: item.type === "blob" ? "file" : "dir",
         size: item.size,
-        selected: false // Initialize with unselected state
+        selected: false
       }));
     
     if (files.length === 0) {
@@ -132,14 +132,12 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     toast.success(`${files.length} repository files loaded successfully`);
     setFileDropdownOpen(true);
     
-    // Load file contents for bulk analysis (limit to reasonable number to avoid rate limiting)
-    const filesToAnalyze = files.slice(0, 50); // Limit to 50 files for analysis
+    // Load file contents for bulk analysis
+    const filesToAnalyze = files.slice(0, 50);
     
-    // Fetch content for each file
     let filesWithContent: FileEntry[] = [];
     let loadedCount = 0;
     
-    // Create a promise for each file content fetch
     const fetchPromises = filesToAnalyze.map(async (file) => {
       try {
         const fileUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${file.path}`;
@@ -153,22 +151,21 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
           }
           return { ...file, content };
         }
-        return file; // Return without content if fetch fails
+        return file;
       } catch (error) {
         console.error(`Error fetching content for ${file.path}:`, error);
         return file;
       }
     });
     
-    // Wait for all fetches to complete
     const results = await Promise.all(fetchPromises);
     filesWithContent = results.filter(file => file.content) as FileEntry[];
     
-    // Update state with files that have content
     setAllRepoFilesWithContent(filesWithContent);
     
     if (filesWithContent.length > 0) {
-      toast.success(`Loaded content for ${filesWithContent.length} files for repository analysis`);
+      const totalTokens = calculateTotalTokens(filesWithContent);
+      toast.success(`Loaded content for ${filesWithContent.length} files (${totalTokens.toLocaleString()} tokens)`);
     }
   };
   
@@ -257,20 +254,55 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
   };
 
   // New function to toggle selection of a file
-  const toggleFileSelection = (file: FileEntry) => {
-    const updatedFiles = repoFiles.map(f => 
-      f.path === file.path ? { ...f, selected: !f.selected } : f
-    );
-    
-    setRepoFiles(updatedFiles);
-    
-    // Update selectedFiles array
-    const newSelectedFiles = updatedFiles.filter(f => f.selected);
-    setSelectedFiles(newSelectedFiles);
-    
-    // If files were selected, show a toast
-    if (newSelectedFiles.length > 0) {
-      toast.success(`${newSelectedFiles.length} files selected for analysis`);
+  const toggleFileSelection = async (file: FileEntry) => {
+    try {
+      // If file is being selected, fetch its content
+      if (!file.selected) {
+        setFetchingFileContent(true);
+        const repoInfo = extractRepoInfo(githubUrl);
+        if (!repoInfo) {
+          throw new Error("Invalid GitHub repository URL");
+        }
+
+        const { owner, repo } = repoInfo;
+        
+        // Fetch raw file content from GitHub
+        const response = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/main/${file.path}`);
+        
+        if (!response.ok) {
+          // Try with master branch if main doesn't exist
+          const masterResponse = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/master/${file.path}`);
+          if (!masterResponse.ok) {
+            throw new Error("Failed to fetch file content");
+          }
+          const content = await masterResponse.text();
+          file.content = content;
+        } else {
+          const content = await response.text();
+          file.content = content;
+        }
+      }
+
+      // Update the file's selected state
+      const updatedFiles = repoFiles.map(f => 
+        f.path === file.path ? { ...f, selected: !f.selected, content: file.content } : f
+      );
+      
+      setRepoFiles(updatedFiles);
+      
+      // Update selectedFiles array
+      const newSelectedFiles = updatedFiles.filter(f => f.selected);
+      setSelectedFiles(newSelectedFiles);
+      
+      // If files were selected, show a toast with token count
+      if (newSelectedFiles.length > 0) {
+        const totalTokens = calculateTotalTokens(newSelectedFiles);
+        toast.success(`${newSelectedFiles.length} files selected (${totalTokens.toLocaleString()} tokens)`);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to fetch file content");
+    } finally {
+      setFetchingFileContent(false);
     }
   };
 

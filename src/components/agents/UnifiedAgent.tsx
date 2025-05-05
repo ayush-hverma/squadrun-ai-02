@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Code, Check, TestTube, Github } from "lucide-react";
@@ -41,6 +40,7 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
         setGithubUrl={selector.setGithubUrl}
         repoFiles={selector.repoFiles}
         selectedFile={selector.selectedFile}
+        selectedFiles={selector.selectedFiles}
         setSelectedFile={selector.setSelectedFile}
         fetchFileContent={selector.fetchFileContent}
         fileDropdownOpen={selector.fileDropdownOpen}
@@ -52,6 +52,8 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
         handleGithubRepoInput={selector.handleGithubRepoInput}
         loadingFiles={selector.loadingFiles}
         handleClearFile={selector.handleClearFile}
+        toggleFileSelection={selector.toggleFileSelection}
+        allRepoFilesWithContent={selector.allRepoFilesWithContent}
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
@@ -86,9 +88,10 @@ export default function UnifiedAgent({ fileContent, fileName }: UnifiedAgentProp
                 path: file.path,
                 content: file.content || ''
               }))}
+              selectedFiles={selector.selectedFiles}
               repoUrl={selector.repositoryName}
               hasRepoUrl={!!selector.githubUrl.trim()}
-              githubUrl={selector.githubUrl} // Pass the githubUrl to CodeQuality
+              githubUrl={selector.githubUrl}
             />
           ) : (
             <NoCodeMessage />

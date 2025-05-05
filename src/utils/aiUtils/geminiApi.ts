@@ -4,8 +4,8 @@ import { toast } from "sonner";
 const DEFAULT_CONFIG = {
   apiKey: import.meta.env.VITE_GEMINI_API_KEY, 
   model: "gemini-1.5-pro",
-  temperature: 0.7,
-  maxOutputTokens: 2048
+  temperature: 0.1,
+  maxOutputTokens: 8000
 };
 
 // Store configuration in localStorage
