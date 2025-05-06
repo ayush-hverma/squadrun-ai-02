@@ -236,7 +236,7 @@ export default function ApiCreator({ fileContent, fileName }: ApiCreatorProps) {
     return (
       <div className="p-4 h-full flex flex-col">
         <div className="mb-4">
-          <h1 className="text-2xl font-bold text-white mb-2">AI API Creator</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">API Creator</h1>
           <p className="text-squadrun-gray">
             Create a new API endpoint using natural language. Describe what you want your API to do, and we'll generate the code for you.
           </p>

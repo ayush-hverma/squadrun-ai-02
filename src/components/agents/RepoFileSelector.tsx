@@ -1,29 +1,37 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, ArrowDown, File, Loader2, Upload } from "lucide-react";
-import React from "react";
+import { AlertCircle, ArrowDown, File, Loader2, Upload, Key, Github, CheckSquare } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import type { FileEntry } from "./hooks/useRepoFileSelector";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import TokenCountDisplay from "./TokenCountDisplay";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
+
+interface GitHubRepo {
+  full_name: string;
+  html_url: string;
+  private: boolean;
+}
 
 interface RepoFileSelectorProps {
   githubUrl: string;
-  setGithubUrl: (val: string) => void;
+  setGithubUrl: (url: string) => void;
   repoFiles: FileEntry[];
   selectedFile: FileEntry | null;
   selectedFiles?: FileEntry[];
-  setSelectedFile: (file: FileEntry) => void;
-  fetchFileContent: (file: FileEntry) => void;
+  setSelectedFile: (file: FileEntry | null) => void;
+  fetchFileContent: (file: FileEntry) => Promise<void>;
   fileDropdownOpen: boolean;
-  setFileDropdownOpen: (v: boolean | ((v: boolean) => boolean)) => void;
+  setFileDropdownOpen: (open: boolean | ((prev: boolean) => boolean)) => void;
   fetchingFileContent: boolean;
   fetchError: string | null;
   fileInputRef: React.RefObject<HTMLInputElement>;
   handleLocalFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleGithubRepoInput: (e: React.FormEvent<HTMLFormElement>) => void;
+  handleGithubRepoInput: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
   loadingFiles: boolean;
-  handleClearFile?: () => void;
+  handleClearFile: () => void;
   toggleFileSelection?: (file: FileEntry) => void;
   allRepoFilesWithContent?: FileEntry[];
 }
@@ -48,6 +56,89 @@ export default function RepoFileSelector({
   toggleFileSelection,
   allRepoFilesWithContent = []
 }: RepoFileSelectorProps) {
+  const [githubToken, setGithubToken] = useState("");
+  const [showTokenInput, setShowTokenInput] = useState(true);
+  const [userRepos, setUserRepos] = useState<GitHubRepo[]>([]);
+  const [loadingRepos, setLoadingRepos] = useState(false);
+  const [repoError, setRepoError] = useState<string | null>(null);
+
+  const handleTokenAccept = async () => {
+    if (githubToken.trim()) {
+      // Store token in localStorage
+      localStorage.setItem('github_token', githubToken);
+      setShowTokenInput(false);
+      
+      // Fetch user repositories
+      await fetchUserRepos();
+    }
+  };
+
+  const fetchUserRepos = async () => {
+    setLoadingRepos(true);
+    setRepoError(null);
+    
+    try {
+      const response = await fetch('https://api.github.com/user/repos?sort=updated&per_page=100', {
+        headers: {
+          'Authorization': `token ${githubToken}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch repositories');
+      }
+
+      const repos = await response.json();
+      setUserRepos(repos);
+    } catch (error) {
+      setRepoError(error instanceof Error ? error.message : 'Failed to fetch repositories');
+      toast.error('Failed to fetch repositories');
+    } finally {
+      setLoadingRepos(false);
+    }
+  };
+
+  const handleRepoSelect = async (repoUrl: string) => {
+    setGithubUrl(repoUrl);
+    
+    // Create a synthetic form event to trigger the file fetching
+    const syntheticEvent = {
+      preventDefault: () => {},
+    } as React.FormEvent<HTMLFormElement>;
+    
+    // Trigger the file fetching process
+    await handleGithubRepoInput(syntheticEvent);
+  };
+
+  const handleFileSelect = async (entry: FileEntry) => {
+    if (toggleFileSelection) {
+      try {
+        // Store the current selection state before toggling
+        const wasSelected = entry.selected;
+        
+        // Toggle the selection
+        toggleFileSelection(entry);
+        
+        // If the file is being selected (not deselected), fetch its content
+        if (!wasSelected) {
+          // Fetch content for the newly selected file
+          await fetchFileContent(entry);
+          
+          // Show a toast to indicate successful selection
+          toast.success(`Selected and loaded content for ${entry.path}`);
+        } else {
+          // Show a toast when deselecting
+          toast.info(`Deselected ${entry.path}`);
+        }
+      } catch (error) {
+        // If there's an error fetching content, deselect the file
+        toggleFileSelection(entry);
+        toast.error(`Failed to load content for ${entry.path}`);
+      }
+    }
+  };
+
   return (
     <div>
       <form onSubmit={handleGithubRepoInput} className="mb-4 flex gap-2 items-center relative">
@@ -89,21 +180,71 @@ export default function RepoFileSelector({
         </Button>
       </form>
 
+      {showTokenInput && (
+        <div className="mb-4 flex gap-2 items-center">
+          <Input
+            value={githubToken}
+            onChange={e => setGithubToken(e.target.value)}
+            placeholder="GitHub Token"
+            type="password"
+            className="text-base w-[200px]"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+            onClick={handleTokenAccept}
+            disabled={!githubToken.trim()}
+          >
+            <Key className="w-4 h-4" />
+            Accept
+          </Button>
+        </div>
+      )}
+
+      {!showTokenInput && userRepos.length > 0 && (
+        <div className="mb-4">
+          <Select onValueChange={handleRepoSelect}>
+            <SelectTrigger className="w-[300px]">
+              <SelectValue placeholder="Select your repository" />
+            </SelectTrigger>
+            <SelectContent>
+              {userRepos.map((repo) => (
+                <SelectItem key={repo.full_name} value={repo.html_url}>
+                  <div className="flex items-center gap-2">
+                    <Github className="w-4 h-4" />
+                    <span>{repo.full_name}</span>
+                    {repo.private && (
+                      <span className="text-xs text-squadrun-gray">(private)</span>
+                    )}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {loadingRepos && (
+        <div className="mb-4 flex items-center gap-2 text-sm text-squadrun-gray">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Loading your repositories...
+        </div>
+      )}
+
+      {repoError && (
+        <Alert variant="destructive" className="mb-4 py-2 bg-destructive/10 border-destructive/30">
+          <AlertCircle className="w-4 h-4" />
+          <AlertDescription className="text-sm ml-2">{repoError}</AlertDescription>
+        </Alert>
+      )}
+
       {fetchError && (
         <Alert variant="destructive" className="mb-4 py-2 bg-destructive/10 border-destructive/30">
           <AlertCircle className="w-4 h-4" />
           <AlertDescription className="text-sm ml-2">{fetchError}</AlertDescription>
         </Alert>
-      )}
-
-      {/* Show repository token count immediately after loading files */}
-      {allRepoFilesWithContent.length > 0 && (
-        <div className="mb-4">
-          <TokenCountDisplay 
-            files={allRepoFilesWithContent} 
-            label="Repository" 
-          />
-        </div>
       )}
 
       {repoFiles.length > 0 && (
@@ -119,11 +260,9 @@ export default function RepoFileSelector({
             >
               <ArrowDown className={`transition-transform ${fileDropdownOpen ? "rotate-180" : ""}`} />
               <span>
-                {selectedFile
-                  ? <span className="flex items-center gap-2"><File className="w-4 h-4" /> {selectedFile.path}</span>
-                  : selectedFiles && selectedFiles.length > 0 
-                    ? `${selectedFiles.length} files selected` 
-                    : "Select files from repo" }
+                {selectedFiles && selectedFiles.length > 0 
+                  ? `${selectedFiles.length} files selected` 
+                  : "Select files from repo" }
               </span>
             </Button>
 
@@ -143,37 +282,34 @@ export default function RepoFileSelector({
                   key={entry.path}
                   tabIndex={0}
                   className={`flex items-center px-3 py-2 cursor-pointer hover:bg-squadrun-primary/10 ${
-                    selectedFile?.path === entry.path ? "bg-squadrun-primary/20" : ""
+                    entry.selected ? "bg-squadrun-primary/20" : ""
                   }`}
-                  onClick={() => {
-                    setSelectedFile(entry);
-                    fetchFileContent(entry);
-                  }}
                 >
-                  {toggleFileSelection && (
-                    <div 
-                      className="mr-2"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFileSelection(entry);
-                      }}
-                    >
-                      <Checkbox 
-                        checked={entry.selected} 
-                        onCheckedChange={() => toggleFileSelection(entry)}
-                        aria-label={`Select ${entry.path}`}
-                      />
-                    </div>
-                  )}
+                  <div 
+                    className="mr-2"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleFileSelect(entry);
+                    }}
+                  >
+                    <Checkbox 
+                      checked={entry.selected} 
+                      onCheckedChange={() => handleFileSelect(entry)}
+                      aria-label={`Select ${entry.path}`}
+                    />
+                  </div>
                   <File className="mr-2 w-4 h-4" />
                   <span className="truncate">{entry.path}</span>
+                  {entry.selected && entry.content && (
+                    <span className="ml-2 text-xs text-squadrun-gray">(loaded)</span>
+                  )}
                 </div>
               ))}
             </div>
           )}
           {fetchingFileContent && (
             <div className="text-xs text-squadrun-gray mt-1 flex items-center">
-              <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Loading file...
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" /> Loading file content...
             </div>
           )}
         </div>

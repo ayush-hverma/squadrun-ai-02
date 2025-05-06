@@ -75,21 +75,34 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
       const { owner, repo } = repoInfo;
       setRepositoryName(`${owner}/${repo}`);
       
+      // Get stored GitHub token
+      const githubToken = localStorage.getItem('github_token');
+      const headers: HeadersInit = {
+        'Accept': 'application/vnd.github.v3+json'
+      };
+      if (githubToken) {
+        headers['Authorization'] = `token ${githubToken}`;
+      }
+      
       // Fetch repository contents using GitHub API
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`);
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/main?recursive=1`, {
+        headers
+      });
       
       if (!response.ok) {
         // Try with master branch if main doesn't exist
-        const masterResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/master?recursive=1`);
+        const masterResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/master?recursive=1`, {
+          headers
+        });
         if (!masterResponse.ok) {
           throw new Error("Failed to fetch repository files. Repository may be private or doesn't exist.");
         }
         
         const data = await masterResponse.json();
-        processRepoFiles(data, owner, repo, "master");
+        await processRepoFiles(data, owner, repo, "master");
       } else {
         const data = await response.json();
-        processRepoFiles(data, owner, repo, "main");
+        await processRepoFiles(data, owner, repo, "main");
       }
       
     } catch (error) {
@@ -138,28 +151,50 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     let filesWithContent: FileEntry[] = [];
     let loadedCount = 0;
     
-    const fetchPromises = filesToAnalyze.map(async (file) => {
-      try {
-        const fileUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${file.path}`;
-        const response = await fetch(fileUrl);
-        
-        if (response.ok) {
-          const content = await response.text();
-          loadedCount++;
-          if (loadedCount % 10 === 0) {
-            toast.info(`Loaded ${loadedCount}/${filesToAnalyze.length} files for analysis...`);
-          }
-          return { ...file, content };
-        }
-        return file;
-      } catch (error) {
-        console.error(`Error fetching content for ${file.path}:`, error);
-        return file;
-      }
-    });
+    // Get stored GitHub token
+    const githubToken = localStorage.getItem('github_token');
+    const headers: HeadersInit = {
+      'Accept': 'application/vnd.github.v3+json'
+    };
+    if (githubToken) {
+      headers['Authorization'] = `token ${githubToken}`;
+    }
     
-    const results = await Promise.all(fetchPromises);
-    filesWithContent = results.filter(file => file.content) as FileEntry[];
+    // Process files in batches to avoid rate limiting
+    const batchSize = 10;
+    for (let i = 0; i < filesToAnalyze.length; i += batchSize) {
+      const batch = filesToAnalyze.slice(i, i + batchSize);
+      const batchPromises = batch.map(async (file) => {
+        try {
+          // Use GitHub API to get file content
+          const fileUrl = `https://api.github.com/repos/${owner}/${repo}/contents/${file.path}?ref=${branch}`;
+          const response = await fetch(fileUrl, { headers });
+          
+          if (response.ok) {
+            const fileData = await response.json();
+            // GitHub API returns content in base64
+            const content = atob(fileData.content);
+            loadedCount++;
+            if (loadedCount % 10 === 0) {
+              toast.info(`Loaded ${loadedCount}/${filesToAnalyze.length} files for analysis...`);
+            }
+            return { ...file, content };
+          }
+          return file;
+        } catch (error) {
+          console.error(`Error fetching content for ${file.path}:`, error);
+          return file;
+        }
+      });
+      
+      const batchResults = await Promise.all(batchPromises);
+      filesWithContent = [...filesWithContent, ...batchResults.filter(file => 'content' in file)];
+      
+      // Add a small delay between batches to avoid rate limiting
+      if (i + batchSize < filesToAnalyze.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
     
     setAllRepoFilesWithContent(filesWithContent);
     
@@ -191,19 +226,30 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
 
       const { owner, repo } = repoInfo;
       
-      // Fetch raw file content from GitHub
-      const response = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/main/${file.path}`);
+      // Get stored GitHub token
+      const githubToken = localStorage.getItem('github_token');
+      const headers: HeadersInit = {
+        'Accept': 'application/vnd.github.v3+json'
+      };
+      if (githubToken) {
+        headers['Authorization'] = `token ${githubToken}`;
+      }
+      
+      // Use GitHub API to get file content
+      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${file.path}?ref=main`, { headers });
       
       if (!response.ok) {
         // Try with master branch if main doesn't exist
-        const masterResponse = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/master/${file.path}`);
+        const masterResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${file.path}?ref=master`, { headers });
         if (!masterResponse.ok) {
           throw new Error("Failed to fetch file content");
         }
-        const content = await masterResponse.text();
+        const fileData = await masterResponse.json();
+        const content = atob(fileData.content);
         setSelectedFileContent(content);
       } else {
-        const content = await response.text();
+        const fileData = await response.json();
+        const content = atob(fileData.content);
         setSelectedFileContent(content);
       }
       
@@ -266,31 +312,44 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
 
         const { owner, repo } = repoInfo;
         
-        // Fetch raw file content from GitHub
-        const response = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/main/${file.path}`);
+        // Get stored GitHub token
+        const githubToken = localStorage.getItem('github_token');
+        const headers: HeadersInit = {
+          'Accept': 'application/vnd.github.v3+json'
+        };
+        if (githubToken) {
+          headers['Authorization'] = `token ${githubToken}`;
+        }
+        
+        // Use GitHub API to get file content instead of raw.githubusercontent.com
+        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${file.path}?ref=main`, { headers });
         
         if (!response.ok) {
           // Try with master branch if main doesn't exist
-          const masterResponse = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/master/${file.path}`);
+          const masterResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${file.path}?ref=master`, { headers });
           if (!masterResponse.ok) {
             throw new Error("Failed to fetch file content");
           }
-          const content = await masterResponse.text();
+          const fileData = await masterResponse.json();
+          // GitHub API returns content in base64
+          const content = atob(fileData.content);
           file.content = content;
         } else {
-          const content = await response.text();
+          const fileData = await response.json();
+          // GitHub API returns content in base64
+          const content = atob(fileData.content);
           file.content = content;
         }
       }
 
-      // Update the file's selected state
+      // Update the file's selected state and content in repoFiles
       const updatedFiles = repoFiles.map(f => 
         f.path === file.path ? { ...f, selected: !f.selected, content: file.content } : f
       );
       
       setRepoFiles(updatedFiles);
       
-      // Update selectedFiles array
+      // Update selectedFiles array with all selected files
       const newSelectedFiles = updatedFiles.filter(f => f.selected);
       setSelectedFiles(newSelectedFiles);
       
@@ -298,9 +357,12 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
       if (newSelectedFiles.length > 0) {
         const totalTokens = calculateTotalTokens(newSelectedFiles);
         toast.success(`${newSelectedFiles.length} files selected (${totalTokens.toLocaleString()} tokens)`);
+      } else {
+        toast.info("No files selected");
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to fetch file content");
+      throw error; // Re-throw to handle in the component
     } finally {
       setFetchingFileContent(false);
     }
@@ -312,7 +374,7 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     repoFiles,
     selectedFile,
     setSelectedFile,
-    selectedFiles, // New: export selected files array
+    selectedFiles,
     selectedFileContent,
     selectedFileName,
     fileDropdownOpen,
@@ -327,6 +389,6 @@ export const useRepoFileSelector = (initialFileContent: string | null, initialFi
     handleClearFile,
     allRepoFilesWithContent,
     repositoryName,
-    toggleFileSelection // New: export toggle selection function
+    toggleFileSelection
   };
 };
